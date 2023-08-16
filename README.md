@@ -1,23 +1,33 @@
 # 🔥 Models 🔥
 
-Welcome to the Models !
-This repository contains a collection of deep learning models and examples built using [Burn](https://github.com/burn-rs/burn).
+Welcome to the Models repository! Here, you'll find a diverse collection of deep learning models and
+examples constructed using the [Burn](https://github.com/burn-rs/burn) deep learning framework.
 
-## Community
+## Collection of Official Models
 
-A curated list of models built by the community ♥.
+| Model                                          | Description                                       | Repository Link                              |
+| ---------------------------------------------- | ------------------------------------------------- | -------------------------------------------- |
+| [SqueezeNet](https://arxiv.org/abs/1602.07360) | A small CNN-based model for image classification. | [squeezenet-burn](squeezenet-burn/README.md) |
 
-| Model | Description | Repository |
-|---|---|---|
-| [Llama 2](https://arxiv.org/abs/2307.09288) | LLMs built by Meta AI ranging from 7 billion to 70 billion parameters. | [Gadersd/llama2-burn](https://github.com/Gadersd/llama2-burn) |
-| [Whisper](https://arxiv.org/abs/2212.04356) | General-purpose speech recognition model built by OpenAI. | [Gadersd/whisper-burn](https://github.com/Gadersd/whisper-burn) |
-| Stable Diffusion v1.4 | Image generation model built by Stability AI. | [Gadersd/stable-diffusion-burn](https://github.com/Gadersd/stable-diffusion-burn) |
+## Community Contributions
 
+Explore the curated list of models developed by the community ♥.
 
-## License
+| Model                                       | Description                                                       | Repository Link                                                                   |
+| ------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [Llama 2](https://arxiv.org/abs/2307.09288) | LLMs by Meta AI, ranging from 7 billion to 70 billion parameters. | [Gadersd/llama2-burn](https://github.com/Gadersd/llama2-burn)                     |
+| [Whisper](https://arxiv.org/abs/2212.04356) | A general-purpose speech recognition model by OpenAI.             | [Gadersd/whisper-burn](https://github.com/Gadersd/whisper-burn)                   |
+| Stable Diffusion v1.4                       | An image generation model developed by Stability AI.              | [Gadersd/stable-diffusion-burn](https://github.com/Gadersd/stable-diffusion-burn) |
 
-Models implemented in this repository are distributed under the terms of both the MIT license and the Apache License (Version 2.0).
-See [LICENSE-APACHE](./LICENSE-APACHE) and [LICENSE-MIT](./LICENSE-MIT) for details. Opening a pull
-request is assumed to signal agreement with these licensing terms.
+## License Information
 
-Community models linked in this repository may be distributed under different licenses.
+Models implemented in this repository are distributed under the terms of both the MIT license and
+the Apache License (Version 2.0). See [LICENSE-APACHE](./LICENSE-APACHE) and
+[LICENSE-MIT](./LICENSE-MIT) for complete details.
+
+Please note that opening a pull request signals your agreement with these licensing terms. If you
+copy or adapt material from other resources or codebases, ensure that you include the original
+license information in the NOTICES.md file under the corresponding model directory.
+
+Community models linked in this repository may fall under different licenses, so please consult the
+respective repositories for specific license information.
