@@ -1,0 +1,5 @@
+[default]
+extend-ignore-identifiers-re = ["NdArray*", "ND"]
+
+[files]
+extend-exclude = ["squeezenet-burn/src/model/label.txt"]

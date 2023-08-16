@@ -1,0 +1,28 @@
+[package]
+authors = ["Dilshod Tadjibaev (@antimora)"]
+license = "MIT OR Apache-2.0"
+name = "squeezenet-burn"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+# TODO make it work with no_std
+# TODO export model with embeddible weights
+# TODO export model with f16 weights
+default = []
+
+[dependencies]
+burn = { git = "https://github.com/burn-rs/burn", package = "burn" }
+serde = { version = "1.0.183", default-features = false, features = [
+    "derive",
+    "alloc",
+] } # alloc is for no_std, derive is needed
+
+[dev-dependencies]
+# Used by examples
+burn-ndarray = { git = "https://github.com/burn-rs/burn", package = "burn-ndarray" }
+image = { version = "0.24.7", features = ["png", "jpeg"] }
+
+[build-dependencies]
+# Used to generate code from ONNX model
+burn-import = { git = "https://github.com/burn-rs/burn", package = "burn-import" }
