@@ -10,6 +10,11 @@ using the [burn-import](https://github.com/burn-rs/burn/tree/main/burn-import) c
 time. The weights are saved in a binary file during build time in Burn compatible format, and the
 model is loaded at runtime.
 
+It is worth noting that the model can be fine-tuned to improve the accuracy, since the ONNX model is
+fully converted to a Burn model. The model is trained with the ImageNet dataset, which contains 1.2
+million images. The model can be fine-tuned with a smaller dataset to improve the accuracy for a
+specific use case.
+
 The labels for the classes are included in the crate and generated from the
 [`labels.txt`](src/model/label.txt) during build time.
 
