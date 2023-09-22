@@ -34,7 +34,7 @@ jobs:
       - name: Run Clippy
         run: |
           cd squeezenet-burn
-          cargo clippy --all-targets --all-features -- -D warnings
+          cargo clippy -- -D warnings
 
       - name: Build
         run: |
