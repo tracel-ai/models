@@ -21,6 +21,8 @@ The labels for the classes are included in the crate and generated from the
 The data normalizer for the model is included in the crate. See
 [Normalizer](src/model/normalizer.rs).
 
+The model is [no_std compatible](https://docs.rust-embedded.org/book/intro/no-std.html).
+
 See the [classify example](examples/classify.rs) for how to use the model.
 
 ## Usage
@@ -31,12 +33,37 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-squeezenet-burn = { git = "https://github.com/burn-rs/models", package = "squeezenet-burn" }
-
+squeezenet-burn = { git = "https://github.com/burn-rs/models", package = "squeezenet-burn", features = ["weights_embedded"], default-features = false }
 ```
 
 ### To run the example
 
+1. Use the `weights_embedded` feature to embed the weights in the binary.
+
 ```shell
-cargo r --release --example classify samples/flamingo.jpg
+cargo r --release --features weights_embedded --no-default-features --example classify samples/flamingo.jpg
 ```
+
+2. Use the `weights_file` feature to load the weights from a file.
+
+```shell
+cargo r --release --features weights_file  --example classify samples/flamingo.jpg
+```
+
+3. Use the `weights_f16` feature to use 16-bit floating point numbers for the weights.
+
+```shell
+cargo r --release --features "weights_embedded, weights_f16" --no-default-features --example classify samples/flamingo.jpg
+```
+
+Or
+
+```shell
+cargo r --release --features "weights_file, weights_f16"  --example classify samples/flamingo.jpg
+```
+
+## Feature Flags
+
+- `weights_file`: Load the weights from a file (enabled by default).
+- `weights_embedded`: Embed the weights in the binary.
+- `weights_f16`: Use 16-bit floating point numbers for the weights. (by default 32-bit is used)

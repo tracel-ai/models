@@ -8,6 +8,9 @@ use image::{self, GenericImageView, Pixel};
 const HEIGHT: usize = 224;
 const WIDTH: usize = 224;
 
+#[cfg(feature = "weights_file")]
+const RECORD_FILE: &str = "squeezenet1";
+
 type Backend = NdArrayBackend<f32>;
 
 fn main() {
@@ -15,7 +18,7 @@ fn main() {
     let img_path = std::env::args().nth(1).expect("No image path provided");
 
     // Load the image
-    let img = image::open(&img_path).expect(format!("Failed to load image: {img_path}").as_str());
+    let img = image::open(&img_path).unwrap_or_else(|_| panic!("Failed to load image: {img_path}"));
 
     // Resize it to 224x224
     let resized_img = img.resize_exact(
@@ -47,7 +50,20 @@ fn main() {
     let normalized_image = normalizer.normalize(image_input);
 
     // Create the model
-    let model = Model::<Backend>::default();
+    // Load the weights from the file next to the executable
+    #[cfg(feature = "weights_file")]
+    let weights_file = std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join(RECORD_FILE);
+
+    #[cfg(feature = "weights_file")]
+    let model = Model::<Backend>::from_file(weights_file.to_str().unwrap());
+
+    #[cfg(feature = "weights_embedded")]
+    // Load model from embedded weights
+    let model = Model::<Backend>::from_embedded();
 
     // Run the model
     let output = model.forward(normalized_image);
