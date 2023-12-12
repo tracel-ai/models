@@ -21,7 +21,7 @@ weights_file = ["burn/default"]
 [dependencies]
 
 # Note: default-features = false is needed to disable std
-burn = { git = "https://github.com/burn-rs/burn", package = "burn", default-features = false }
+burn = { version = "0.10.0", default-features = false }
 
 # Used to load weights from a file
 serde = { version = "1.0.183", default-features = false, features = [
@@ -31,9 +31,9 @@ serde = { version = "1.0.183", default-features = false, features = [
 
 [dev-dependencies]
 # Used by the classify example
-burn-ndarray = { git = "https://github.com/burn-rs/burn", package = "burn-ndarray" }
+burn-ndarray = { version = "0.10.0", package = "burn-ndarray" }
 image = { version = "0.24.7", features = ["png", "jpeg"] }
 
 [build-dependencies]
 # Used to generate code from ONNX model
-burn-import = { git = "https://github.com/burn-rs/burn", package = "burn-import" }
+burn-import = { version = "0.10.0", package = "burn-import" }

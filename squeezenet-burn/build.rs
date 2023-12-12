@@ -9,7 +9,7 @@ use burn_import::onnx::ModelGen;
 
 const LABEL_SOURCE_FILE: &str = "src/model/label.txt";
 const LABEL_DEST_FILE: &str = "model/label.rs";
-const GENERATED_MODEL_WEIGHTS_FILE: &str = "squeezenet1.mpk.gz";
+const GENERATED_MODEL_WEIGHTS_FILE: &str = "squeezenet1.mpk";
 const INPUT_ONNX_FILE: &str = "src/model/squeezenet1.onnx";
 const OUT_DIR: &str = "model/";
 
@@ -31,7 +31,7 @@ fn main() {
     let (record_type, embed_states) = if cfg!(feature = "weights_embedded") {
         (RecordType::Bincode, true)
     } else {
-        (RecordType::NamedMpkGz, false)
+        (RecordType::NamedMpk, false)
     };
 
     // Check if half precision is enabled.
@@ -59,7 +59,7 @@ fn main() {
 fn generate_labels_from_txt_file() -> std::io::Result<()> {
     let out_dir = env::var("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join(LABEL_DEST_FILE);
-    let mut f = File::create(&dest_path)?;
+    let mut f = File::create(dest_path)?;
 
     let file = File::open(LABEL_SOURCE_FILE)?;
     let reader = BufReader::new(file);
