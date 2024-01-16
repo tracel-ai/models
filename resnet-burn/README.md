@@ -10,21 +10,15 @@ The model is [no_std compatible](https://docs.rust-embedded.org/book/intro/no-st
 
 Add this to your `Cargo.toml`:
 
-<!-- ```toml
+```toml
 [dependencies]
-resnet-burn = { git = "https://github.com/burn-rs/models", package = "resnet-burn", features = ["weights_embedded"], default-features = false }
-``` -->
+resnet-burn = { git = "https://github.com/burn-rs/models", package = "resnet-burn", default-features = false }
+```
 
 ### Example Usage
 
-The [inference example](examples/inference.rs) initializes a ResNet-18 with the `NdArray` backend and performs inference on a single input image. You can also run it yourself with the following command:
+The [inference example](examples/inference.rs) initializes a ResNet-18 with the `NdArray` backend, loads the ImageNet [pre-trained weights](model/) and performs inference on the provided input image. You can also run it yourself with the following command:
 
-```shell
-cargo run --release --example inference
+```sh
+cargo run --release --example inference samples/dog.jpg
 ```
-
-
-TODO:
-- [ ] Load pre-trained weights
-- [ ] Replace dummy input with actual image
-- [ ] Training example

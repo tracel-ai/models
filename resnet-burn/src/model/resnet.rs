@@ -47,10 +47,10 @@ impl<B: Backend> ResNet<B> {
             .init();
 
         // Residual blocks
-        let layer1 = LayerBlock::new(blocks[0], 64, 64);
-        let layer2 = LayerBlock::new(blocks[1], 64, 128);
-        let layer3 = LayerBlock::new(blocks[2], 128, 256);
-        let layer4 = LayerBlock::new(blocks[2], 256, 512);
+        let layer1 = LayerBlock::new(blocks[0], 64, 64, 1);
+        let layer2 = LayerBlock::new(blocks[1], 64, 128, 2);
+        let layer3 = LayerBlock::new(blocks[2], 128, 256, 2);
+        let layer4 = LayerBlock::new(blocks[3], 256, 512, 2);
 
         // Average pooling [B, 512, H, W] -> [B, 512, 1, 1]
         let avgpool = AdaptiveAvgPool2dConfig::new([1, 1]).init();
@@ -97,7 +97,6 @@ impl<B: Backend> ResNet<B> {
 
         let out = self.avgpool.forward(out);
         // Reshape [B, C, 1, 1] -> [B, C]
-        // println!("Flatten in: {:?}", out.shape());
         // let out = out.flatten(2, 3);
         let out: Tensor<B, 3> = out.squeeze(3);
         let out: Tensor<B, 2> = out.squeeze(2);

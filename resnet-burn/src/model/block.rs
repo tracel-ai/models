@@ -48,7 +48,7 @@ impl<B: Backend> ResidualBlock<B> {
         let bn2 = BatchNormConfig::new(out_channels).init();
 
         let downsample = {
-            if stride != 1 || in_channels != out_channels {
+            if in_channels != out_channels {
                 Some(Downsample::new(in_channels, out_channels, stride))
             } else {
                 None
@@ -102,6 +102,7 @@ impl<B: Backend> Downsample<B> {
         // conv1x1 (default padding = valid)
         let conv = Conv2dConfig::new([in_channels, out_channels], [1, 1])
             .with_stride([stride, stride])
+            .with_padding(PaddingConfig2d::Explicit(0, 0))
             .with_bias(false)
             .with_initializer(Initializer::KaimingNormal {
                 gain: f64::sqrt(2.0), // recommended value for ReLU
@@ -128,13 +129,15 @@ pub struct LayerBlock<B: Backend> {
 }
 
 impl<B: Backend> LayerBlock<B> {
-    pub fn new(num_blocks: usize, in_channels: usize, out_channels: usize) -> Self {
+    pub fn new(num_blocks: usize, in_channels: usize, out_channels: usize, stride: usize) -> Self {
         let blocks = (0..num_blocks)
             .map(|b| {
                 if b == 0 {
-                    ResidualBlock::new(in_channels, out_channels, 2)
+                    // First block uses the specified stride
+                    ResidualBlock::new(in_channels, out_channels, stride)
                 } else {
-                    ResidualBlock::new(out_channels, out_channels, 2)
+                    // Other blocks use a stride of 1
+                    ResidualBlock::new(out_channels, out_channels, 1)
                 }
             })
             .collect();

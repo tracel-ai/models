@@ -18,5 +18,5 @@ serde = { version = "1.0.192", default-features = false, features = [
 ] } # alloc is for no_std, derive is needed
 
 [dev-dependencies]
-# Used by the classify example
 burn-ndarray = { version = "0.11.1", package = "burn-ndarray" }
+image = { version = "0.24.7", features = ["png", "jpeg"] }
