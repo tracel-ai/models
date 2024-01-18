@@ -41,7 +41,7 @@ impl<B: Backend, M: ResidualBlock<B>> ResNet<B, M> {
             .with_bias(false)
             .with_initializer(Initializer::KaimingNormal {
                 gain: f64::sqrt(2.0), // recommended value for ReLU
-                fan_out_only: false,  // TODO: switch to true when fixed in burn
+                fan_out_only: true,
             })
             .init(device);
         let bn1 = BatchNormConfig::new(64).init(device);
