@@ -5,29 +5,35 @@ use burn::{
         pool::{AdaptiveAvgPool2d, AdaptiveAvgPool2dConfig, MaxPool2d, MaxPool2dConfig},
         BatchNorm, BatchNormConfig, Initializer, Linear, LinearConfig, PaddingConfig2d, ReLU,
     },
-    tensor::{backend::Backend, Tensor},
+    tensor::{backend::Backend, Device, Tensor},
 };
 
-use super::block::LayerBlock;
+use super::block::{BasicBlock, Bottleneck, LayerBlock, ResidualBlock};
 
 /// ResNet implementation.
 /// Derived from [torchivision.models.resnet.ResNet](https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py)
 #[derive(Module, Debug)]
-pub struct ResNet<B: Backend> {
+pub struct ResNet<B: Backend, M> {
     conv1: Conv2d<B>,
     bn1: BatchNorm<B, 2>,
     relu: ReLU,
     maxpool: MaxPool2d,
-    layer1: LayerBlock<B>,
-    layer2: LayerBlock<B>,
-    layer3: LayerBlock<B>,
-    layer4: LayerBlock<B>,
+    layer1: LayerBlock<B, M>,
+    layer2: LayerBlock<B, M>,
+    layer3: LayerBlock<B, M>,
+    layer4: LayerBlock<B, M>,
     avgpool: AdaptiveAvgPool2d,
     fc: Linear<B>,
 }
 
-impl<B: Backend> ResNet<B> {
-    fn new(blocks: [usize; 4], num_classes: usize) -> Self {
+impl<B: Backend, M: ResidualBlock<B>> ResNet<B, M> {
+    fn new(blocks: [usize; 4], num_classes: usize, expansion: usize, device: &Device<B>) -> Self {
+        // `new()` is private but still check just in case...
+        assert!(
+            expansion == 1 || expansion == 4,
+            "ResNet module only supports expansion values [1, 4] for residual blocks"
+        );
+
         // 7x7 conv, 64, /2
         let conv1 = Conv2dConfig::new([3, 64], [7, 7])
             .with_stride([2, 2])
@@ -37,8 +43,8 @@ impl<B: Backend> ResNet<B> {
                 gain: f64::sqrt(2.0), // recommended value for ReLU
                 fan_out_only: false,  // TODO: switch to true when fixed in burn
             })
-            .init();
-        let bn1 = BatchNormConfig::new(64).init();
+            .init(device);
+        let bn1 = BatchNormConfig::new(64).init(device);
         let relu = ReLU::new();
         // 3x3 maxpool, /2
         let maxpool = MaxPool2dConfig::new([3, 3])
@@ -47,16 +53,16 @@ impl<B: Backend> ResNet<B> {
             .init();
 
         // Residual blocks
-        let layer1 = LayerBlock::new(blocks[0], 64, 64, 1);
-        let layer2 = LayerBlock::new(blocks[1], 64, 128, 2);
-        let layer3 = LayerBlock::new(blocks[2], 128, 256, 2);
-        let layer4 = LayerBlock::new(blocks[3], 256, 512, 2);
+        let layer1 = LayerBlock::new(blocks[0], 64, 64 * expansion, 1, device);
+        let layer2 = LayerBlock::new(blocks[1], 64 * expansion, 128 * expansion, 2, device);
+        let layer3 = LayerBlock::new(blocks[2], 128 * expansion, 256 * expansion, 2, device);
+        let layer4 = LayerBlock::new(blocks[3], 256 * expansion, 512 * expansion, 2, device);
 
         // Average pooling [B, 512, H, W] -> [B, 512, 1, 1]
         let avgpool = AdaptiveAvgPool2dConfig::new([1, 1]).init();
 
         // Output layer
-        let fc = LinearConfig::new(512, num_classes).init();
+        let fc = LinearConfig::new(512 * expansion, num_classes).init(device);
 
         Self {
             conv1,
@@ -71,16 +77,6 @@ impl<B: Backend> ResNet<B> {
             fc,
         }
     }
-
-    pub fn resnet18(num_classes: usize) -> Self {
-        Self::new([2, 2, 2, 2], num_classes)
-    }
-
-    pub fn resnet34(num_classes: usize) -> Self {
-        Self::new([3, 4, 6, 3], num_classes)
-    }
-
-    // TODO: resnet{50, 101, 152} use different blocks
 
     pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 2> {
         // First block
@@ -103,5 +99,85 @@ impl<B: Backend> ResNet<B> {
         let out = self.fc.forward(out);
 
         out
+    }
+}
+
+impl<B: Backend> ResNet<B, BasicBlock<B>> {
+    /// ResNet-18 from [`Deep Residual Learning for Image Recognition`](https://arxiv.org/abs/1512.03385).
+    ///
+    /// # Arguments
+    ///
+    /// * `num_classes`: Number of output classes of the model.
+    /// * `device` - Device to create the module on.
+    ///
+    /// # Returns
+    ///
+    /// A ResNet-18 module.
+    pub fn resnet18(num_classes: usize, device: &Device<B>) -> Self {
+        Self::new([2, 2, 2, 2], num_classes, 1, device)
+    }
+}
+
+impl<B: Backend> ResNet<B, BasicBlock<B>> {
+    /// ResNet-34 from [`Deep Residual Learning for Image Recognition`](https://arxiv.org/abs/1512.03385).
+    ///
+    /// # Arguments
+    ///
+    /// * `num_classes`: Number of output classes of the model.
+    /// * `device` - Device to create the module on.
+    ///
+    /// # Returns
+    ///
+    /// A ResNet-34 module.
+    pub fn resnet34(num_classes: usize, device: &Device<B>) -> Self {
+        Self::new([3, 4, 6, 3], num_classes, 1, device)
+    }
+}
+
+impl<B: Backend> ResNet<B, Bottleneck<B>> {
+    /// ResNet-50 from [`Deep Residual Learning for Image Recognition`](https://arxiv.org/abs/1512.03385).
+    ///
+    /// # Arguments
+    ///
+    /// * `num_classes`: Number of output classes of the model.
+    /// * `device` - Device to create the module on.
+    ///
+    /// # Returns
+    ///
+    /// A ResNet-50 module.
+    pub fn resnet50(num_classes: usize, device: &Device<B>) -> Self {
+        Self::new([3, 4, 6, 3], num_classes, 4, device)
+    }
+}
+
+impl<B: Backend> ResNet<B, Bottleneck<B>> {
+    /// ResNet-101 from [`Deep Residual Learning for Image Recognition`](https://arxiv.org/abs/1512.03385).
+    ///
+    /// # Arguments
+    ///
+    /// * `num_classes`: Number of output classes of the model.
+    /// * `device` - Device to create the module on.
+    ///
+    /// # Returns
+    ///
+    /// A ResNet-101 module.
+    pub fn resnet101(num_classes: usize, device: &Device<B>) -> Self {
+        Self::new([3, 4, 23, 3], num_classes, 4, device)
+    }
+}
+
+impl<B: Backend> ResNet<B, Bottleneck<B>> {
+    /// ResNet-152 from [`Deep Residual Learning for Image Recognition`](https://arxiv.org/abs/1512.03385).
+    ///
+    /// # Arguments
+    ///
+    /// * `num_classes`: Number of output classes of the model.
+    /// * `device` - Device to create the module on.
+    ///
+    /// # Returns
+    ///
+    /// A ResNet-152 module.
+    pub fn resnet152(num_classes: usize, device: &Device<B>) -> Self {
+        Self::new([3, 8, 36, 3], num_classes, 4, device)
     }
 }

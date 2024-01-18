@@ -1,4 +1,4 @@
-use burn::tensor::{backend::Backend, Tensor};
+use burn::tensor::{backend::Backend, Device, Tensor};
 
 // ResNet18_Weights.DEFAULT.transforms()
 // NOTE: we simply resize to 256 instead of resize + center crop
@@ -20,9 +20,9 @@ pub struct Normalizer<B: Backend> {
 
 impl<B: Backend> Normalizer<B> {
     /// Creates a new normalizer.
-    pub fn new() -> Self {
-        let mean = Tensor::from_floats(MEAN).reshape([1, 3, 1, 1]);
-        let std = Tensor::from_floats(STD).reshape([1, 3, 1, 1]);
+    pub fn new(device: &Device<B>) -> Self {
+        let mean = Tensor::from_floats(MEAN, device).reshape([1, 3, 1, 1]);
+        let std = Tensor::from_floats(STD, device).reshape([1, 3, 1, 1]);
         Self { mean, std }
     }
 
@@ -35,12 +35,6 @@ impl<B: Backend> Normalizer<B> {
     /// `input = (input - mean) / std`
     pub fn normalize(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
         (input - self.mean.clone()) / self.std.clone()
-    }
-}
-
-impl<B: Backend> Default for Normalizer<B> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

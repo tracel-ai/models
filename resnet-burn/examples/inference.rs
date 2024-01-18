@@ -4,16 +4,15 @@ use resnet_burn::model::{imagenet, resnet::ResNet};
 
 use burn::{
     module::Module,
-    record::{FullPrecisionSettings, NamedMpkGzFileRecorder},
+    record::{FullPrecisionSettings, NamedMpkFileRecorder},
     tensor::Tensor,
 };
 use burn_ndarray::NdArray;
 use image::{self, GenericImageView, Pixel};
 
+const NUM_CLASSES: usize = 1000;
 const HEIGHT: usize = 224;
 const WIDTH: usize = 224;
-
-type Backend = NdArray<f32>;
 
 pub fn main() {
     // Load image
@@ -42,21 +41,25 @@ pub fn main() {
         }
     }
 
+    let device = &Default::default();
+
     // Create a tensor from the array
-    let image_input = Tensor::<Backend, 3>::from_data(img_array).reshape([1, 3, HEIGHT, WIDTH]);
-    let recorder = NamedMpkGzFileRecorder::<FullPrecisionSettings>::new();
+    let image_input =
+        Tensor::<NdArray<f32>, 3>::from_data(img_array, device).reshape([1, 3, HEIGHT, WIDTH]);
+    let recorder = NamedMpkFileRecorder::<FullPrecisionSettings>::new();
 
     // Normalize the image
-    let x = imagenet::Normalizer::new().normalize(image_input);
+    let x = imagenet::Normalizer::new(device).normalize(image_input);
 
-    // Load pre-trained ResNet-18
+    // Load pre-trained ResNet
     let model_path = Path::new(file!())
         .parent()
         .unwrap()
         .parent()
         .unwrap()
         .join("model/resnet18-ImageNet1k");
-    let model = ResNet::<Backend>::resnet18(1000)
+    let model = ResNet::resnet18(NUM_CLASSES, device);
+    let model = model
         .load_file(model_path.clone(), &recorder)
         .unwrap_or_else(|_| panic!("Failed to load model file: {}", model_path.display()));
 
@@ -73,4 +76,13 @@ pub fn main() {
         idx,
         score.into_scalar()
     );
+
+    // let recorder = NamedMpkFileRecorder::<FullPrecisionSettings>::new();
+    // // let recorder = PrettyJsonFileRecorder::<DoublePrecisionSettings>::new();
+    // let now = Instant::now();
+    // model
+    //     .save_file("resnet152.mpk", &recorder)
+    //     .expect("Could not save model to file with full precision settings.");
+    // let elapsed = now.elapsed();
+    // println!("Model save took {} seconds.", elapsed.as_millis());
 }
