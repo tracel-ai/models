@@ -76,13 +76,4 @@ pub fn main() {
         idx,
         score.into_scalar()
     );
-
-    // let recorder = NamedMpkFileRecorder::<FullPrecisionSettings>::new();
-    // // let recorder = PrettyJsonFileRecorder::<DoublePrecisionSettings>::new();
-    // let now = Instant::now();
-    // model
-    //     .save_file("resnet152.mpk", &recorder)
-    //     .expect("Could not save model to file with full precision settings.");
-    // let elapsed = now.elapsed();
-    // println!("Model save took {} seconds.", elapsed.as_millis());
 }
