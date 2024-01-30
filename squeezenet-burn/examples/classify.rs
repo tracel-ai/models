@@ -1,7 +1,7 @@
 use squeezenet_burn::model::{label::LABELS, normalizer::Normalizer, squeezenet1::Model};
 
+use burn::backend::NdArray;
 use burn::tensor::Tensor;
-use burn_ndarray::NdArrayBackend;
 
 use image::{self, GenericImageView, Pixel};
 
@@ -11,7 +11,7 @@ const WIDTH: usize = 224;
 #[cfg(feature = "weights_file")]
 const RECORD_FILE: &str = "squeezenet1";
 
-type Backend = NdArrayBackend<f32>;
+type Backend = NdArray<f32>;
 
 fn main() {
     // Path to the image from the main args
