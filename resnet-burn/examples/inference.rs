@@ -26,7 +26,7 @@ pub fn main() {
         image::imageops::FilterType::Triangle, // also known as bilinear in 2D
     );
 
-    // 3d array of 224x224x3 floats
+    // 3d array of 3x224x224 floats
     let mut img_array = [[[0.0; WIDTH]; HEIGHT]; 3];
 
     // Iterate over the pixels and populate the array
@@ -60,7 +60,7 @@ pub fn main() {
         .join("model/resnet18-ImageNet1k");
     let model = ResNet::resnet18(NUM_CLASSES, device);
     let model = model
-        .load_file(model_path.clone(), &recorder)
+        .load_file(model_path.clone(), &recorder, device)
         .unwrap_or_else(|_| panic!("Failed to load model file: {}", model_path.display()));
 
     // Forward pass
