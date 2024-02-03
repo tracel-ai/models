@@ -1,0 +1,35 @@
+[package]
+authors = ["Aasheesh Singh aasheeshdtu@gmail.com"]
+license = "MIT OR Apache-2.0"
+name = "bert-burn"
+version="0.1.0"
+edition = "2021"
+
+[features]
+default = ["burn/dataset", "burn/sqlite-bundled"]
+f16 = []
+ndarray = ["burn/ndarray"]
+ndarray-blas-accelerate = ["burn/ndarray", "burn/accelerate"]
+ndarray-blas-netlib = ["burn/ndarray", "burn/blas-netlib"]
+ndarray-blas-openblas = ["burn/ndarray", "burn/openblas"]
+tch-cpu = ["burn/tch"]
+tch-gpu = ["burn/tch"]
+wgpu = ["burn/wgpu"]
+
+
+[dependencies]
+# Burn
+burn = {version = "0.12.1", features=["train", "ndarray", "fusion"]}
+candle-core = { version = "0.3.2" }
+# Tokenizer
+tokenizers = { version = "0.15.0", default-features = false, features = [
+  "onig",
+  "http",
+] }
+burn-import = "0.12.1"
+derive-new = "0.6.0"
+
+# Utils
+serde = { version = "1.0.196", features = ["std", "derive"] }
+libm = "0.2.8"
+serde_json = "1.0.113"
