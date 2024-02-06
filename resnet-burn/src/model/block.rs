@@ -71,6 +71,7 @@ impl<B: Backend> ResidualBlock<B> for BasicBlock<B> {
             downsample,
         }
     }
+
     fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
         let identity = input.clone();
 
@@ -90,9 +91,7 @@ impl<B: Backend> ResidualBlock<B> for BasicBlock<B> {
         };
 
         // Activation
-        let out = self.relu.forward(out);
-
-        out
+        self.relu.forward(out)
     }
 }
 
@@ -122,9 +121,7 @@ impl<B: Backend> Downsample<B> {
 
     pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
         let out = self.conv.forward(input);
-        let out = self.bn.forward(out);
-
-        out
+        self.bn.forward(out)
     }
 }
 
@@ -228,9 +225,7 @@ impl<B: Backend> ResidualBlock<B> for Bottleneck<B> {
         };
 
         // Activation
-        let out = self.relu.forward(out);
-
-        out
+        self.relu.forward(out)
     }
 }
 
@@ -266,6 +261,7 @@ impl<B: Backend, M: ResidualBlock<B>> LayerBlock<B, M> {
             _backend: PhantomData,
         }
     }
+
     pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
         let mut out = input;
         for block in &self.blocks {

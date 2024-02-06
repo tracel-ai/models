@@ -58,7 +58,7 @@ impl<B: Backend, M: ResidualBlock<B>> ResNet<B, M> {
         let layer3 = LayerBlock::new(blocks[2], 128 * expansion, 256 * expansion, 2, device);
         let layer4 = LayerBlock::new(blocks[3], 256 * expansion, 512 * expansion, 2, device);
 
-        // Average pooling [B, 512, H, W] -> [B, 512, 1, 1]
+        // Average pooling [B, 512 * expansion, H, W] -> [B, 512 * expansion, 1, 1]
         let avgpool = AdaptiveAvgPool2dConfig::new([1, 1]).init();
 
         // Output layer
@@ -93,12 +93,11 @@ impl<B: Backend, M: ResidualBlock<B>> ResNet<B, M> {
 
         let out = self.avgpool.forward(out);
         // Reshape [B, C, 1, 1] -> [B, C]
-        // let out = out.flatten(2, 3);
-        let out: Tensor<B, 3> = out.squeeze(3);
-        let out: Tensor<B, 2> = out.squeeze(2);
-        let out = self.fc.forward(out);
+        let out = out.flatten(1, 3);
+        // let out: Tensor<B, 3> = out.squeeze(3);
+        // let out: Tensor<B, 2> = out.squeeze(2);
 
-        out
+        self.fc.forward(out)
     }
 }
 
@@ -116,9 +115,7 @@ impl<B: Backend> ResNet<B, BasicBlock<B>> {
     pub fn resnet18(num_classes: usize, device: &Device<B>) -> Self {
         Self::new([2, 2, 2, 2], num_classes, 1, device)
     }
-}
 
-impl<B: Backend> ResNet<B, BasicBlock<B>> {
     /// ResNet-34 from [`Deep Residual Learning for Image Recognition`](https://arxiv.org/abs/1512.03385).
     ///
     /// # Arguments
@@ -148,9 +145,7 @@ impl<B: Backend> ResNet<B, Bottleneck<B>> {
     pub fn resnet50(num_classes: usize, device: &Device<B>) -> Self {
         Self::new([3, 4, 6, 3], num_classes, 4, device)
     }
-}
 
-impl<B: Backend> ResNet<B, Bottleneck<B>> {
     /// ResNet-101 from [`Deep Residual Learning for Image Recognition`](https://arxiv.org/abs/1512.03385).
     ///
     /// # Arguments
@@ -164,9 +159,7 @@ impl<B: Backend> ResNet<B, Bottleneck<B>> {
     pub fn resnet101(num_classes: usize, device: &Device<B>) -> Self {
         Self::new([3, 4, 23, 3], num_classes, 4, device)
     }
-}
 
-impl<B: Backend> ResNet<B, Bottleneck<B>> {
     /// ResNet-152 from [`Deep Residual Learning for Image Recognition`](https://arxiv.org/abs/1512.03385).
     ///
     /// # Arguments
