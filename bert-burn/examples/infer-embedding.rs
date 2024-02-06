@@ -1,4 +1,4 @@
-use bert_burn::bert::BertModelConfig;
+use bert_burn::bert::{BertModel, BertModelConfig, BertModelRecord};
 use bert_burn::data::{BertInputBatcher, BertTokenizer};
 use bert_burn::loader::{load_model_config, load_model_from_safetensors};
 use burn::data::dataloader::batcher::Batcher;
@@ -8,8 +8,8 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fs::File;
 use std::sync::Arc;
-// use burn_import::pytorch::PyTorchFileRecorder;
-// use burn::record::{FullPrecisionSettings, Recorder};
+use burn_import::pytorch::{LoadArgs, PyTorchFileRecorder};
+use burn::record::{FullPrecisionSettings, Record, Recorder};
 
 #[cfg(not(feature = "f16"))]
 #[allow(dead_code)]
@@ -63,22 +63,39 @@ pub fn launch<B: Backend>(device: B::Device) {
     );
 
     let model_config: BertModelConfig = load_model_config(config);
-    let model = load_model_from_safetensors("weights/model.safetensors", &device, model_config);
+    // let model = load_model_from_safetensors("weights/model.safetensors", &device, model_config);
 
-    let output = model.forward(input);
+    // let output = model.forward(input);
 
     // get sentence embedding from the first [CLS] token
-    let sentence_embedding = output.clone().slice([0..3, 0..1, 0..768]);
-    let sentence_embedding: Tensor<B, 2> = sentence_embedding.squeeze(1);
-    println!(
-        "Roberta Sentence embedding shape {:?} // (Batch Size, Embedding_dim)",
-        sentence_embedding.shape()
-    );
+    // let sentence_embedding = output.clone().slice([0..3, 0..1, 0..768]);
+    // let sentence_embedding: Tensor<B, 2> = sentence_embedding.squeeze(1);
+    // println!(
+    //     "Roberta Sentence embedding shape {:?} // (Batch Size, Embedding_dim)",
+    //     sentence_embedding.shape()
+    // );
 
     // Not working
-    // let record = PyTorchFileRecorder::<FullPrecisionSettings>::default()
-    //     .load("examples/bert/weights/model.pt".into(), &device)
-    //     .expect("Should decode state successfully");
+    let load_args = LoadArgs::new("weights/model.pt".into())
+        .with_key_remap("roberta\\.embeddings\\.(?!LayerNorm\\.)\\S+", "embeddings.$0")
+        .with_key_remap("roberta\\.embeddings\\.LayerNorm\\.weight", "embeddings.layer_norm.gamma")
+        .with_key_remap("roberta\\.embeddings\\.LayerNorm\\.bias", "embeddings.layer_norm.beta")
+        .with_key_remap("roberta\\.encoder\\.layer\\.(\\d+)\\.attention\\.self\\.(.*)", "encoder.layers.$1.mha.$2")
+        .with_key_remap("roberta\\.encoder\\.layer\\.(\\d+)\\.attention\\.output\\.dense\\.(.*)", "encoder.layers.$1.mha.output.$2")
+        .with_key_remap("roberta\\.encoder\\.layer.(\\d+)\\.attention\\.output\\.LayerNorm\\.weight", "encoder.layers.$1.norm_1.gamma")
+        .with_key_remap("roberta\\.encoder\\.layer.(\\d+)\\.attention\\.output\\.LayerNorm\\.weight", "encoder.layers.$1.norm_1.beta")
+        .with_key_remap("roberta\\.encoder\\.layer\\.(\\d+)\\.intermediate\\.dense\\.(.*)", "encoder.layers.$1.pwff.linear_inner.$2")
+        .with_key_remap("roberta\\.encoder\\.layer\\.(\\d+)\\.output\\.dense\\.(.*)", "encoder.layers.$1.pwff.linear_outer.$2")
+        .with_key_remap("roberta\\.encoder\\.layer.(\\d+)\\.output\\.LayerNorm\\.weight", "encoder.layers.$1.norm_2.gamma")
+        .with_key_remap("roberta\\.encoder\\.layer.(\\d+)\\.output\\.LayerNorm\\.weight", "encoder.layers.$1.norm_2.beta");
+
+    let record: BertModelRecord<B> = PyTorchFileRecorder::<FullPrecisionSettings>::default()
+        .load(load_args, &device)
+        .expect("Should load model successfully");
+
+
+    println!("{:?}", record.embeddings.position_embeddings.weight.shape());
+
 }
 
 #[cfg(any(
