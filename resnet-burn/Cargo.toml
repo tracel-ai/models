@@ -11,16 +11,13 @@ default = ["burn/default"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std
-burn = { version = "0.12.1", default-features = false}
-# burn = { path = "../../burn/burn", default-features = false}
+burn = { path = "../../burn/burn", default-features = false}
 serde = { version = "1.0.192", default-features = false, features = [
     "derive",
     "alloc",
 ] } # alloc is for no_std, derive is needed
 
 [dev-dependencies]
-burn = { version = "0.12.1", default-features = false, features = ["ndarray"]}
-burn-import = "0.12.1"
-# burn = { path = "../../burn/burn", default-features = false}
-# burn-import = {path = "../../burn/burn-import"}
-# image = { version = "0.24.7", features = ["png", "jpeg"] }
+burn = { path = "../../burn/burn", default-features = false} # local burn to include the with_key_remap chain fix
+burn-import = {path = "../../burn/burn-import"} # local burn-import depends on the git version of candle-core
+image = { version = "0.24.7", features = ["png", "jpeg"] }

@@ -20,8 +20,13 @@ resnet-burn = { git = "https://github.com/burn-rs/models", package = "resnet-bur
 ### Example Usage
 
 The [inference example](examples/inference.rs) initializes a ResNet-18 with the `NdArray` backend,
-loads the ImageNet [pre-trained weights](model/) and performs inference on the provided input image.
-You can also run it yourself with the following command:
+imports the ImageNet pre-trained weights from
+[`torchvision`](https://download.pytorch.org/models/resnet18-f37072fd.pth) and performs inference on
+the provided input image.
+
+After downloading the
+[pre-trained weights](https://download.pytorch.org/models/resnet18-f37072fd.pth) to the current
+directory, you can run the example with the following command:
 
 ```sh
 cargo run --release --example inference samples/dog.jpg

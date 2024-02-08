@@ -39,7 +39,7 @@ impl<B: Backend> Normalizer<B> {
 }
 
 // ImageNet categories
-pub const CLASSES: &'static [&'static str; 1000] = &[
+pub const CLASSES: [&str; 1000] = [
     "tench",
     "goldfish",
     "great white shark",
