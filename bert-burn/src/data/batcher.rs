@@ -34,7 +34,7 @@ impl<B: Backend> Batcher<String, BertInferenceBatch<B>> for BertInputBatcher<B> 
             self.tokenizer.pad_token(),
             tokens_list,
             Some(self.max_seq_length),
-            &B::Device::default(),
+            &self.device,
         );
 
         // Create and return inference batch

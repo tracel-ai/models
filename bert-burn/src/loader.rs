@@ -1,4 +1,4 @@
-use crate::bert::{BertEmbeddingsRecord, BertModel, BertModelConfig, BertModelRecord};
+use crate::model::{BertModel, BertModelConfig, BertModelRecord};
 
 use burn::nn::attention::MultiHeadAttentionRecord;
 use burn::nn::transformer::{
@@ -11,8 +11,11 @@ use burn::{
     tensor::{backend::Backend, Data, Shape, Tensor},
 };
 use candle_core::{safetensors, Device, Tensor as CandleTensor};
-use serde_json::Value;
 use std::collections::HashMap;
+use std::fmt::format;
+use std::path::{Path, PathBuf};
+use burn::config::Config;
+use crate::embedding::BertEmbeddingsRecord;
 
 fn load_1d_tensor_from_candle<B: Backend>(
     tensor: &CandleTensor,
@@ -148,7 +151,7 @@ fn load_encoder_from_safetensors<B: Backend>(
     let mut layers: HashMap<usize, HashMap<String, CandleTensor>> = HashMap::new();
 
     for (key, value) in encoder_tensors.iter() {
-        let layer_number = key.split(".").collect::<Vec<&str>>()[3]
+        let layer_number = key.split(".").collect::<Vec<&str>>()[2]
             .parse::<usize>()
             .unwrap();
         if !layers.contains_key(&layer_number) {
@@ -169,7 +172,7 @@ fn load_encoder_from_safetensors<B: Backend>(
     // Now, we can iterate over the layers and load each layer
     let mut bert_encoder_layers: Vec<TransformerEncoderLayerRecord<B>> = Vec::new();
     for (key, value) in layers.iter() {
-        let layer_key = format!("roberta.encoder.layer.{}", key.to_string());
+        let layer_key = format!("encoder.layer.{}", key.to_string());
         let attention_tensors = value.clone();
         // Remove the layer number from the key
         let attention_tensors = attention_tensors
@@ -236,23 +239,23 @@ fn load_embeddings_from_safetensors<B: Backend>(
     device: &B::Device,
 ) -> BertEmbeddingsRecord<B> {
     let word_embeddings = load_embedding_safetensor(
-        &embedding_tensors["roberta.embeddings.word_embeddings.weight"],
+        &embedding_tensors["embeddings.word_embeddings.weight"],
         device,
     );
 
     let position_embeddings = load_embedding_safetensor(
-        &embedding_tensors["roberta.embeddings.position_embeddings.weight"],
+        &embedding_tensors["embeddings.position_embeddings.weight"],
         device,
     );
 
     let token_type_embeddings = load_embedding_safetensor(
-        &embedding_tensors["roberta.embeddings.token_type_embeddings.weight"],
+        &embedding_tensors["embeddings.token_type_embeddings.weight"],
         device,
     );
 
     let layer_norm = load_layer_norm_safetensor::<B>(
-        &embedding_tensors["roberta.embeddings.LayerNorm.bias"],
-        &embedding_tensors["roberta.embeddings.LayerNorm.weight"],
+        &embedding_tensors["embeddings.LayerNorm.bias"],
+        &embedding_tensors["embeddings.LayerNorm.weight"],
         device,
     );
 
@@ -269,12 +272,13 @@ fn load_embeddings_from_safetensors<B: Backend>(
 }
 
 pub fn load_model_from_safetensors<B: Backend>(
-    file_path: &str,
+    file_path: PathBuf,
     device: &B::Device,
-    config: BertModelConfig,
+    config: BertModelConfig
 ) -> BertModel<B> {
-    let file_path = std::path::Path::new(file_path);
-    let weight_result = safetensors::load::<&std::path::Path>(file_path, &Device::Cpu);
+
+    let model_name = config.model_type.as_str();
+    let weight_result = safetensors::load::<PathBuf>(file_path, &Device::Cpu);
 
     // Match on the result of loading the weights
     let weights = match weight_result {
@@ -288,11 +292,22 @@ pub fn load_model_from_safetensors<B: Backend>(
     let mut encoder_layers: HashMap<String, CandleTensor> = HashMap::new();
     let mut embeddings_layers: HashMap<String, CandleTensor> = HashMap::new();
 
+    let mut key_without_prefix= String::new();
+
     for (key, value) in weights.iter() {
-        if key.starts_with("roberta.encoder.layer.") {
-            encoder_layers.insert(key.to_string(), value.clone());
-        } else if key.starts_with("roberta.embeddings.") {
-            embeddings_layers.insert(key.to_string(), value.clone());
+
+        // If model name prefix present in keys, remove it. Present in most variants (roberta, xlm-bert, etc.)
+        // Else, use the key as is (eg: not present in bert-base variants)
+        let prefix = String::from(model_name) + ".";
+        if key.starts_with(&prefix){
+            key_without_prefix = key.replace(&prefix, "");
+        }
+        else { key_without_prefix = key.clone(); }
+
+        if key_without_prefix.starts_with("encoder.layer.") {
+            encoder_layers.insert(key_without_prefix, value.clone());
+        } else if key_without_prefix.starts_with("embeddings.") {
+            embeddings_layers.insert(key_without_prefix, value.clone());
         }
     }
 
@@ -307,18 +322,30 @@ pub fn load_model_from_safetensors<B: Backend>(
     model
 }
 
-pub fn load_model_config(config: HashMap<String, Value>) -> BertModelConfig {
-    let model_config = BertModelConfig {
-        n_heads: config["num_attention_heads"].as_i64().unwrap() as usize,
-        n_layers: config["num_hidden_layers"].as_i64().unwrap() as usize,
-        layer_norm_eps: config["layer_norm_eps"].as_f64().unwrap(),
-        hidden_size: config["hidden_size"].as_i64().unwrap() as usize,
-        intermediate_size: config["intermediate_size"].as_i64().unwrap() as usize,
-        vocab_size: config["vocab_size"].as_i64().unwrap() as usize,
-        max_position_embeddings: config["max_position_embeddings"].as_i64().unwrap() as usize,
-        type_vocab_size: config["type_vocab_size"].as_i64().unwrap() as usize,
-        hidden_dropout_prob: config["hidden_dropout_prob"].as_f64().unwrap(),
-    };
-
+pub fn load_model_config(path: PathBuf) -> BertModelConfig {
+    let mut model_config = BertModelConfig::load(path)
+        .expect("Config file present");
+    model_config.max_seq_len = Some(512);
     model_config
+}
+
+#[tokio::main]
+pub async fn download_hf_model(model_name: &str) -> (PathBuf, PathBuf) {
+    /// Download model config and weights from Hugging Face Hub
+    /// If file exists in cache, it will not be downloaded again
+
+    let api = hf_hub::api::tokio::Api::new().unwrap();
+    let repo = api.model(model_name.to_string());
+
+    let model_filepath = repo.get("model.safetensors")
+        .await
+        .expect(&format!("Failed to download: {} weights with name: model.safetensors from HuggingFace Hub",
+                         model_name));
+
+    let config_filepath = repo.get("config.json")
+        .await
+        .expect(&format!("Failed to download: {} config with name: config.json from HuggingFace Hub",
+                 model_name));
+
+    (config_filepath, model_filepath)
 }

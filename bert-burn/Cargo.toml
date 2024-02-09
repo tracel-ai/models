@@ -17,6 +17,7 @@ tch-gpu = ["burn/tch"]
 wgpu = ["burn/wgpu"]
 
 
+
 [dependencies]
 # Burn
 burn = {version = "0.12.1", features=["train", "ndarray", "fusion"]}
@@ -28,8 +29,10 @@ tokenizers = { version = "0.15.0", default-features = false, features = [
 ] }
 burn-import = "0.12.1"
 derive-new = "0.6.0"
+hf-hub = { version = "0.3.2", features = ["tokio"] }
 
 # Utils
 serde = { version = "1.0.196", features = ["std", "derive"] }
 libm = "0.2.8"
 serde_json = "1.0.113"
+tokio = "1.35.1"
