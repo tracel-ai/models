@@ -18,7 +18,7 @@ pub fn launch<B: Backend>(device: B::Device) {
     let default_model = "roberta-base".to_string();
     let model_variant = if args.len() > 1 {
         // Use the argument provided by the user
-        // Possible values: "roberta-base", "roberta-large"
+        // Possible values: "bert-base-uncased", "roberta-large" etc.
         &args[1]
     } else {
         // Use the default value if no argument is provided
