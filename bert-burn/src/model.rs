@@ -1,4 +1,5 @@
 use crate::data::BertInferenceBatch;
+use crate::embedding::{BertEmbeddings, BertEmbeddingsConfig};
 use burn::nn::transformer::{
     TransformerEncoder, TransformerEncoderConfig, TransformerEncoderInput,
 };
@@ -8,24 +9,34 @@ use burn::{
     module::Module,
     tensor::{backend::Backend, Tensor},
 };
-use serde::Deserialize;
-use crate::embedding::{BertEmbeddings, BertEmbeddingsConfig};
 
 // Define the Bert model configuration
 #[derive(Config)]
 pub struct BertModelConfig {
+    /// Number of attention heads in the multi-head attention
     pub num_attention_heads: usize,
+    /// Number of transformer encoder layers/blocks
     pub num_hidden_layers: usize,
+    /// Layer normalization epsilon
     pub layer_norm_eps: f64,
+    /// Size of bert embedding (e.g., 768 for roberta-base)
     pub hidden_size: usize,
+    /// Size of the intermediate position wise feedforward layer
     pub intermediate_size: usize,
+    /// Size of the vocabulary
     pub vocab_size: usize,
+    /// Max position embeddings, typically max_seq_len + 2 to account for [BOS] and [PAD] tokens
     pub max_position_embeddings: usize,
+    /// Identifier for sentence type in input (e.g., 0 for single sentence, 1 for pair)
     pub type_vocab_size: usize,
+    /// Dropout value across layers, typically 0.1
     pub hidden_dropout_prob: f64,
+    /// BERT model name (roberta)
     pub model_type: String,
+    /// Index of the padding token
     pub pad_token_id: usize,
-    pub max_seq_len: Option<usize>
+    /// Maximum sequence length for the tokenizer
+    pub max_seq_len: Option<usize>,
 }
 
 // Define the Bert model structure

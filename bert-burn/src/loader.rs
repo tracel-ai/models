@@ -1,5 +1,7 @@
 use crate::model::{BertModel, BertModelConfig, BertModelRecord};
 
+use crate::embedding::BertEmbeddingsRecord;
+use burn::config::Config;
 use burn::nn::attention::MultiHeadAttentionRecord;
 use burn::nn::transformer::{
     PositionWiseFeedForwardRecord, TransformerEncoderLayerRecord, TransformerEncoderRecord,
@@ -12,10 +14,7 @@ use burn::{
 };
 use candle_core::{safetensors, Device, Tensor as CandleTensor};
 use std::collections::HashMap;
-use std::fmt::format;
-use std::path::{Path, PathBuf};
-use burn::config::Config;
-use crate::embedding::BertEmbeddingsRecord;
+use std::path::PathBuf;
 
 fn load_1d_tensor_from_candle<B: Backend>(
     tensor: &CandleTensor,
@@ -183,9 +182,16 @@ fn load_encoder_from_safetensors<B: Backend>(
         let attention_layer =
             load_attention_layer_safetensor::<B>(attention_tensors.clone(), device);
 
+        let (bias_suffix, weight_suffix) =
+            if attention_tensors.contains_key("attention.output.LayerNorm.bias") {
+                ("bias", "weight")
+            } else {
+                ("beta", "gamma")
+            };
+
         let norm_1 = load_layer_norm_safetensor(
-            &attention_tensors["attention.output.LayerNorm.bias"],
-            &attention_tensors["attention.output.LayerNorm.weight"],
+            &attention_tensors[&format!("attention.output.LayerNorm.{}", bias_suffix)],
+            &attention_tensors[&format!("attention.output.LayerNorm.{}", weight_suffix)],
             device,
         );
 
@@ -198,8 +204,8 @@ fn load_encoder_from_safetensors<B: Backend>(
         );
 
         let norm_2 = load_layer_norm_safetensor::<B>(
-            &value[&format!("{}.output.LayerNorm.bias", layer_key)],
-            &value[&format!("{}.output.LayerNorm.weight", layer_key)],
+            &value[&format!("{}.output.LayerNorm.{}", layer_key, bias_suffix)],
+            &value[&format!("{}.output.LayerNorm.{}", layer_key, weight_suffix)],
             device,
         );
 
@@ -253,9 +259,16 @@ fn load_embeddings_from_safetensors<B: Backend>(
         device,
     );
 
+    // BERT-base/large contains beta, gamma keys for layerNorm whereas roberta-base/large contains weight, bias keys
+    let (bias_key, weight_key) = if embedding_tensors.contains_key("embeddings.LayerNorm.bias") {
+        ("embeddings.LayerNorm.bias", "embeddings.LayerNorm.weight")
+    } else {
+        ("embeddings.LayerNorm.beta", "embeddings.LayerNorm.gamma")
+    };
+
     let layer_norm = load_layer_norm_safetensor::<B>(
-        &embedding_tensors["embeddings.LayerNorm.bias"],
-        &embedding_tensors["embeddings.LayerNorm.weight"],
+        &embedding_tensors[bias_key],
+        &embedding_tensors[weight_key],
         device,
     );
 
@@ -274,9 +287,8 @@ fn load_embeddings_from_safetensors<B: Backend>(
 pub fn load_model_from_safetensors<B: Backend>(
     file_path: PathBuf,
     device: &B::Device,
-    config: BertModelConfig
+    config: BertModelConfig,
 ) -> BertModel<B> {
-
     let model_name = config.model_type.as_str();
     let weight_result = safetensors::load::<PathBuf>(file_path, &Device::Cpu);
 
@@ -292,17 +304,12 @@ pub fn load_model_from_safetensors<B: Backend>(
     let mut encoder_layers: HashMap<String, CandleTensor> = HashMap::new();
     let mut embeddings_layers: HashMap<String, CandleTensor> = HashMap::new();
 
-    let mut key_without_prefix= String::new();
-
     for (key, value) in weights.iter() {
+        // If model name prefix present in keys, remove it to load keys consistently
+        // across variants (bert-base, roberta-base etc.)
 
-        // If model name prefix present in keys, remove it. Present in most variants (roberta, xlm-bert, etc.)
-        // Else, use the key as is (eg: not present in bert-base variants)
         let prefix = String::from(model_name) + ".";
-        if key.starts_with(&prefix){
-            key_without_prefix = key.replace(&prefix, "");
-        }
-        else { key_without_prefix = key.clone(); }
+        let key_without_prefix = key.replace(&prefix, "");
 
         if key_without_prefix.starts_with("encoder.layer.") {
             encoder_layers.insert(key_without_prefix, value.clone());
@@ -323,29 +330,27 @@ pub fn load_model_from_safetensors<B: Backend>(
 }
 
 pub fn load_model_config(path: PathBuf) -> BertModelConfig {
-    let mut model_config = BertModelConfig::load(path)
-        .expect("Config file present");
+    let mut model_config = BertModelConfig::load(path).expect("Config file present");
     model_config.max_seq_len = Some(512);
     model_config
 }
 
+/// Download model config and weights from Hugging Face Hub
+/// If file exists in cache, it will not be downloaded again
 #[tokio::main]
 pub async fn download_hf_model(model_name: &str) -> (PathBuf, PathBuf) {
-    /// Download model config and weights from Hugging Face Hub
-    /// If file exists in cache, it will not be downloaded again
-
     let api = hf_hub::api::tokio::Api::new().unwrap();
     let repo = api.model(model_name.to_string());
 
-    let model_filepath = repo.get("model.safetensors")
-        .await
-        .expect(&format!("Failed to download: {} weights with name: model.safetensors from HuggingFace Hub",
-                         model_name));
+    let model_filepath = repo.get("model.safetensors").await.expect(&format!(
+        "Failed to download: {} weights with name: model.safetensors from HuggingFace Hub",
+        model_name
+    ));
 
-    let config_filepath = repo.get("config.json")
-        .await
-        .expect(&format!("Failed to download: {} config with name: config.json from HuggingFace Hub",
-                 model_name));
+    let config_filepath = repo.get("config.json").await.expect(&format!(
+        "Failed to download: {} config with name: config.json from HuggingFace Hub",
+        model_name
+    ));
 
     (config_filepath, model_filepath)
 }

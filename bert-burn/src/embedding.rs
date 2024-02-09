@@ -1,9 +1,9 @@
+use crate::data::BertInferenceBatch;
 use burn::config::Config;
 use burn::module::Module;
 use burn::nn::{Dropout, DropoutConfig, Embedding, EmbeddingConfig, LayerNorm, LayerNormConfig};
 use burn::tensor::backend::Backend;
-use burn::tensor::{Data, Float, Int, Shape, Tensor};
-use crate::data::BertInferenceBatch;
+use burn::tensor::{Float, Int, Tensor};
 
 #[derive(Config)]
 pub struct BertEmbeddingsConfig {
@@ -77,7 +77,7 @@ impl BertEmbeddingsConfig {
 
 impl<B: Backend> BertEmbeddings<B> {
     pub fn forward(&self, item: BertInferenceBatch<B>) -> Tensor<B, 3, Float> {
-        // Extract tokens from the batch
+        // Items batch contains the tokenized input and padding mask, each of dim: [batch_size, max_seq_length]
         let input_shape = &item.tokens.shape();
         let input_ids = item.tokens;
 
@@ -92,17 +92,12 @@ impl<B: Backend> BertEmbeddings<B> {
 
         embeddings = embeddings + token_type_embeddings;
 
-        // Position embeddings
-        // Assuming position_ids is a range from 0 to seq_length
+        // Max position embeddings is 514 for roberta models as opposed to 512 for bert models
+        // The position embeddings thus start from padding_idx + 1 to max_position_embeddings: [2 - 514)
+        // https://github.com/facebookresearch/fairseq/issues/1187
         let seq_length = input_shape.dims[1];
-        let position_values: Vec<i32> = (0..self.max_position_embeddings)
-            .map(|x| x as i32) // Convert each usize to Int
-            .collect::<Vec<_>>()[0..seq_length]
-            .to_vec();
-
-        let shape = Shape::new([1, seq_length]);
-        let data = Data::new(position_values, shape);
-        let position_ids_tensor = Tensor::<B, 2, Int>::from_ints(data, device);
+        let position_ids_tensor =
+            Tensor::arange(2..seq_length + 2, device).reshape([1, seq_length]);
 
         let position_embeddings = self.position_embeddings.forward(position_ids_tensor);
         embeddings = embeddings + position_embeddings;

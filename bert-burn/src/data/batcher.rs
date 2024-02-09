@@ -8,15 +8,20 @@ use std::sync::Arc;
 
 #[derive(new)]
 pub struct BertInputBatcher<B: Backend> {
-    tokenizer: Arc<dyn Tokenizer>, // Tokenizer for converting text to token IDs
-    device: B::Device, // Device on which to perform computation (e.g., CPU or CUDA device)
-    max_seq_length: usize, // Maximum sequence length for tokenized text
+    /// Tokenizer for converting input text string to token IDs
+    tokenizer: Arc<dyn Tokenizer>,
+    /// Device on which to perform computation (e.g., CPU or CUDA device)
+    device: B::Device,
+    /// Maximum sequence length for tokenized text
+    max_seq_length: usize,
 }
 
 #[derive(Debug, Clone, new)]
 pub struct BertInferenceBatch<B: Backend> {
-    pub tokens: Tensor<B, 2, Int>,    // Tokenized text
-    pub mask_pad: Tensor<B, 2, Bool>, // Padding mask for the tokenized text
+    /// Tokenized text as 2D tensor: [batch_size, max_seq_length]
+    pub tokens: Tensor<B, 2, Int>,
+    /// Padding mask for the tokenized text containing booleans for padding locations
+    pub mask_pad: Tensor<B, 2, Bool>,
 }
 
 impl<B: Backend> Batcher<String, BertInferenceBatch<B>> for BertInputBatcher<B> {
@@ -39,8 +44,8 @@ impl<B: Backend> Batcher<String, BertInferenceBatch<B>> for BertInputBatcher<B> 
 
         // Create and return inference batch
         BertInferenceBatch {
-            tokens: mask.tensor.to_device(&self.device),
-            mask_pad: mask.mask.to_device(&self.device),
+            tokens: mask.tensor,
+            mask_pad: mask.mask,
         }
     }
 }

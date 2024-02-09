@@ -1,14 +1,11 @@
-use bert_burn::model::{BertModel, BertModelConfig, BertModelRecord};
 use bert_burn::data::{BertInputBatcher, BertTokenizer};
-use bert_burn::loader::{load_model_config, load_model_from_safetensors, download_hf_model};
+use bert_burn::loader::{download_hf_model, load_model_config, load_model_from_safetensors};
+use bert_burn::model::BertModel;
 use burn::data::dataloader::batcher::Batcher;
 use burn::tensor::backend::Backend;
-use std::env;
-use std::fs::File;
-use std::sync::Arc;
-use burn::config::Config;
-use burn::record::{Record, Recorder};
 use burn::tensor::Tensor;
+use std::env;
+use std::sync::Arc;
 
 #[cfg(not(feature = "f16"))]
 #[allow(dead_code)]
@@ -17,7 +14,6 @@ type ElemType = f32;
 type ElemType = burn::tensor::f16;
 
 pub fn launch<B: Backend>(device: B::Device) {
-
     let args: Vec<String> = env::args().collect();
     let default_model = "roberta-base".to_string();
     let model_variant = if args.len() > 1 {
@@ -50,15 +46,15 @@ pub fn launch<B: Backend>(device: B::Device) {
     let (config_file, model_file) = download_hf_model(model_variant);
     let model_config = load_model_config(config_file);
 
-    let model: BertModel<B> = load_model_from_safetensors(model_file, &device,
-                                                          model_config.clone());
+    let model: BertModel<B> =
+        load_model_from_safetensors(model_file, &device, model_config.clone());
 
     let tokenizer = Arc::new(BertTokenizer::new(
         model_variant.to_string(),
         model_config.pad_token_id.clone(),
     ));
 
-    // Initialize a Batcher for batching the input samples to max sequence length with padding
+    // Batch the input samples to max sequence length with padding
     let batcher = Arc::new(BertInputBatcher::<B>::new(
         tokenizer.clone(),
         device.clone(),
@@ -67,18 +63,24 @@ pub fn launch<B: Backend>(device: B::Device) {
 
     // Batch input samples using the batcher Shape: [Batch size, Seq_len]
     let input = batcher.batch(text_samples.clone());
-    println!(
-        "Input shape: {:?} // (Batch Size, Seq_len)",
-        input.tokens.shape()
-    );
+    let [batch_size, _seq_len] = input.tokens.dims();
+    println!("Input: {:?} // (Batch Size, Seq_len)", input.tokens.shape());
 
     let output = model.forward(input);
 
     // get sentence embedding from the first [CLS] token
-    let sentence_embedding = output.clone().slice([0..3, 0..1, 0..768]);
+    let cls_token_idx = 0;
+
+    // Embedding size
+    let d_model = model_config.hidden_size.clone();
+    let sentence_embedding =
+        output
+            .clone()
+            .slice([0..batch_size, cls_token_idx..cls_token_idx + 1, 0..d_model]);
+
     let sentence_embedding: Tensor<B, 2> = sentence_embedding.squeeze(1);
     println!(
-        "Roberta Sentence embedding shape {:?} // (Batch Size, Embedding_dim)",
+        "Roberta Sentence embedding {:?} // (Batch Size, Embedding_dim)",
         sentence_embedding.shape()
     );
 }
