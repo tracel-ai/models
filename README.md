@@ -8,6 +8,7 @@ examples constructed using the [Burn](https://github.com/burn-rs/burn) deep lear
 | Model                                          | Description                                       | Repository Link                              |
 | ---------------------------------------------- | ------------------------------------------------- | -------------------------------------------- |
 | [SqueezeNet](https://arxiv.org/abs/1602.07360) | A small CNN-based model for image classification. | [squeezenet-burn](squeezenet-burn/README.md) |
+| [ResNet](https://arxiv.org/abs/1512.03385)     | A CNN based on residual blocks with skip connections. | [resnet-burn](resnet-burn/README.md) |
 
 ## Community Contributions
 
