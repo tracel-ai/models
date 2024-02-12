@@ -13,6 +13,7 @@ pub struct BertEmbeddingsConfig {
     pub hidden_size: usize,
     pub hidden_dropout_prob: f64,
     pub layer_norm_eps: f64,
+    pub pad_token_idx: usize,
 }
 
 #[derive(Module, Debug)]
@@ -23,6 +24,7 @@ pub struct BertEmbeddings<B: Backend> {
     layer_norm: LayerNorm<B>,
     dropout: Dropout,
     max_position_embeddings: usize,
+    pad_token_idx: usize,
 }
 
 impl BertEmbeddingsConfig {
@@ -46,6 +48,7 @@ impl BertEmbeddingsConfig {
             layer_norm,
             dropout,
             max_position_embeddings: self.max_position_embeddings,
+            pad_token_idx: self.pad_token_idx,
         }
     }
 
@@ -71,6 +74,7 @@ impl BertEmbeddingsConfig {
             layer_norm,
             dropout,
             max_position_embeddings: self.max_position_embeddings,
+            pad_token_idx: self.pad_token_idx,
         }
     }
 }
@@ -95,9 +99,23 @@ impl<B: Backend> BertEmbeddings<B> {
         // Max position embeddings is 514 for roberta models as opposed to 512 for bert models
         // The position embeddings thus start from padding_idx + 1 to max_position_embeddings: [2 - 514)
         // https://github.com/facebookresearch/fairseq/issues/1187
+
         let seq_length = input_shape.dims[1];
-        let position_ids_tensor =
-            Tensor::arange(2..seq_length + 2, device).reshape([1, seq_length]);
+        let mut position_ids_tensor: Tensor<B, 2, Int> =
+            Tensor::arange(0..seq_length, device).reshape([1, seq_length]);
+
+        if self.max_position_embeddings != 512 {
+            // RoBERTa use a different scheme than BERT to create position indexes where padding tokens are given
+            // a fixed positional index. Check: create_position_ids_from_input_ids() in
+            // https://github.com/huggingface/transformers/blob/main/src/transformers/models/roberta/modeling_roberta.py
+            let position_ids = Tensor::arange(
+                self.pad_token_idx + 1..seq_length + self.pad_token_idx + 1,
+                device,
+            )
+            .reshape([1, seq_length]);
+            position_ids_tensor =
+                position_ids.mask_fill(item.mask_pad.clone(), self.pad_token_idx.clone() as i32);
+        }
 
         let position_embeddings = self.position_embeddings.forward(position_ids_tensor);
         embeddings = embeddings + position_embeddings;

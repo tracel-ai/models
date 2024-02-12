@@ -29,7 +29,7 @@ pub struct BertModelConfig {
     pub intermediate_size: usize,
     /// Size of the vocabulary
     pub vocab_size: usize,
-    /// Max position embeddings, typically max_seq_len + 2 to account for [BOS] and [PAD] tokens
+    /// Max position embeddings, in RoBERTa equal to max_seq_len + 2 (514), for BERT equal to max_seq_len(512)
     pub max_position_embeddings: usize,
     /// Identifier for sentence type in input (e.g., 0 for single sentence, 1 for pair)
     pub type_vocab_size: usize,
@@ -60,6 +60,7 @@ impl BertModelConfig {
             hidden_size: self.hidden_size,
             hidden_dropout_prob: self.hidden_dropout_prob,
             layer_norm_eps: self.layer_norm_eps,
+            pad_token_idx: self.pad_token_id,
         }
         .init(device);
 
@@ -93,6 +94,7 @@ impl BertModelConfig {
             hidden_size: self.hidden_size,
             hidden_dropout_prob: self.hidden_dropout_prob,
             layer_norm_eps: self.layer_norm_eps,
+            pad_token_idx: self.pad_token_id,
         }
         .init_with(record.embeddings);
 

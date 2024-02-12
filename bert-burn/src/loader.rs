@@ -282,6 +282,7 @@ pub fn load_embeddings_from_safetensors<B: Backend>(
         layer_norm,
         dropout: ConstantRecord::new(),
         max_position_embeddings: ConstantRecord::new(),
+        pad_token_idx: ConstantRecord::new(),
     };
 
     embeddings_record

@@ -5,17 +5,18 @@ examples constructed using the [Burn](https://github.com/burn-rs/burn) deep lear
 
 ## Collection of Official Models
 
-| Model                                          | Description                                       | Repository Link                              |
-| ---------------------------------------------- | ------------------------------------------------- | -------------------------------------------- |
-| [SqueezeNet](https://arxiv.org/abs/1602.07360) | A small CNN-based model for image classification. | [squeezenet-burn](squeezenet-burn/README.md) |
-| [ResNet](https://arxiv.org/abs/1512.03385)     | A CNN based on residual blocks with skip connections. | [resnet-burn](resnet-burn/README.md) |
+| Model                                          | Description                                           | Repository Link                              |
+|------------------------------------------------|-------------------------------------------------------|----------------------------------------------|
+| [SqueezeNet](https://arxiv.org/abs/1602.07360) | A small CNN-based model for image classification.     | [squeezenet-burn](squeezenet-burn/README.md) |
+| [ResNet](https://arxiv.org/abs/1512.03385)     | A CNN based on residual blocks with skip connections. | [resnet-burn](resnet-burn/README.md)         |
+| [RoBERTa](https://arxiv.org/abs/1907.11692)    | A robustly optimized BERT pretraining approach.       | [bert-burn](bert-burn/README.md)             |
 
 ## Community Contributions
 
 Explore the curated list of models developed by the community ♥.
 
 | Model                                       | Description                                                       | Repository Link                                                                   |
-| ------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+|---------------------------------------------|-------------------------------------------------------------------|-----------------------------------------------------------------------------------|
 | [Llama 2](https://arxiv.org/abs/2307.09288) | LLMs by Meta AI, ranging from 7 billion to 70 billion parameters. | [Gadersd/llama2-burn](https://github.com/Gadersd/llama2-burn)                     |
 | [Whisper](https://arxiv.org/abs/2212.04356) | A general-purpose speech recognition model by OpenAI.             | [Gadersd/whisper-burn](https://github.com/Gadersd/whisper-burn)                   |
 | Stable Diffusion v1.4                       | An image generation model developed by Stability AI.              | [Gadersd/stable-diffusion-burn](https://github.com/Gadersd/stable-diffusion-burn) |
