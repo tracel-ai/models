@@ -1,8 +1,7 @@
 # Bert-Burn Model
 
 This project provides an example implementation for inference on the BERT family of models. The following compatible
-bert-variants: `roberta-base`(**default
-**)/`roberta-large`, `bert-base-uncased`/`bert-large-uncased`/`bert-base-cased`/`bert-large-cased`
+bert-variants: `roberta-base`(**default**)/`roberta-large`, `bert-base-uncased`/`bert-large-uncased`/`bert-base-cased`/`bert-large-cased`
 can be loaded as following. The pre-trained weights and config files are automatically downloaded
 from: [HuggingFace Model hub](https://huggingface.co/FacebookAI/roberta-base/tree/main)
 
