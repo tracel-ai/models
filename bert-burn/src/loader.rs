@@ -1,4 +1,7 @@
-use crate::model::{BertModel, BertModelConfig, BertModelRecord};
+// This file contains logic to load the BERT Model from the safetensor format available on Hugging Face Hub.
+// Some utility functions are referenced from: https://github.com/tvergho/sentence-transformers-burn/tree/main
+
+use crate::model::BertModelConfig;
 
 use crate::embedding::BertEmbeddingsRecord;
 use burn::config::Config;
@@ -12,7 +15,7 @@ use burn::{
     nn::{EmbeddingRecord, LinearRecord},
     tensor::{backend::Backend, Data, Shape, Tensor},
 };
-use candle_core::{safetensors, Device, Tensor as CandleTensor};
+use candle_core::Tensor as CandleTensor;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -141,7 +144,7 @@ fn load_attention_layer_safetensor<B: Backend>(
     attention_record
 }
 
-fn load_encoder_from_safetensors<B: Backend>(
+pub fn load_encoder_from_safetensors<B: Backend>(
     encoder_tensors: HashMap<String, CandleTensor>,
     device: &B::Device,
 ) -> TransformerEncoderRecord<B> {
@@ -240,7 +243,7 @@ fn load_embedding_safetensor<B: Backend>(
     embedding
 }
 
-fn load_embeddings_from_safetensors<B: Backend>(
+pub fn load_embeddings_from_safetensors<B: Backend>(
     embedding_tensors: HashMap<String, CandleTensor>,
     device: &B::Device,
 ) -> BertEmbeddingsRecord<B> {
@@ -282,51 +285,6 @@ fn load_embeddings_from_safetensors<B: Backend>(
     };
 
     embeddings_record
-}
-
-pub fn load_model_from_safetensors<B: Backend>(
-    file_path: PathBuf,
-    device: &B::Device,
-    config: BertModelConfig,
-) -> BertModel<B> {
-    let model_name = config.model_type.as_str();
-    let weight_result = safetensors::load::<PathBuf>(file_path, &Device::Cpu);
-
-    // Match on the result of loading the weights
-    let weights = match weight_result {
-        Ok(weights) => weights,
-        Err(e) => panic!("Error loading weights: {:?}", e),
-    };
-
-    // Weights are stored in a HashMap<String, Tensor>
-    // For each layer, it will either be prefixed with "encoder.layer." or "embeddings."
-    // We need to extract both.
-    let mut encoder_layers: HashMap<String, CandleTensor> = HashMap::new();
-    let mut embeddings_layers: HashMap<String, CandleTensor> = HashMap::new();
-
-    for (key, value) in weights.iter() {
-        // If model name prefix present in keys, remove it to load keys consistently
-        // across variants (bert-base, roberta-base etc.)
-
-        let prefix = String::from(model_name) + ".";
-        let key_without_prefix = key.replace(&prefix, "");
-
-        if key_without_prefix.starts_with("encoder.layer.") {
-            encoder_layers.insert(key_without_prefix, value.clone());
-        } else if key_without_prefix.starts_with("embeddings.") {
-            embeddings_layers.insert(key_without_prefix, value.clone());
-        }
-    }
-
-    let embeddings_record = load_embeddings_from_safetensors::<B>(embeddings_layers, device);
-    let encoder_record = load_encoder_from_safetensors::<B>(encoder_layers, device);
-    let model_record = BertModelRecord {
-        embeddings: embeddings_record,
-        encoder: encoder_record,
-    };
-
-    let model = config.init_with::<B>(model_record);
-    model
 }
 
 pub fn load_model_config(path: PathBuf) -> BertModelConfig {

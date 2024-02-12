@@ -6,22 +6,21 @@ version="0.1.0"
 edition = "2021"
 
 [features]
-default = ["burn/dataset", "burn/sqlite-bundled"]
+default = ["burn/dataset"]
 f16 = []
 ndarray = ["burn/ndarray"]
-ndarray-blas-accelerate = ["burn/ndarray", "burn/accelerate"]
-ndarray-blas-netlib = ["burn/ndarray", "burn/blas-netlib"]
-ndarray-blas-openblas = ["burn/ndarray", "burn/openblas"]
 tch-cpu = ["burn/tch"]
 tch-gpu = ["burn/tch"]
 wgpu = ["burn/wgpu"]
-
+fusion = ["burn/fusion"]
+# To be replaced by burn-safetensors once supported: https://github.com/tracel-ai/burn/issues/626
+safetensors = ["candle-core/default"]
 
 
 [dependencies]
 # Burn
-burn = {version = "0.12.1", features=["train", "ndarray", "fusion"]}
-candle-core = { version = "0.3.2" }
+burn = {version = "0.12.1", default-features = false}
+candle-core = { version = "0.3.2", optional = true}
 # Tokenizer
 tokenizers = { version = "0.15.0", default-features = false, features = [
   "onig",

@@ -1,5 +1,6 @@
 use crate::data::BertInferenceBatch;
 use crate::embedding::{BertEmbeddings, BertEmbeddingsConfig};
+use crate::loader::{load_embeddings_from_safetensors, load_encoder_from_safetensors};
 use burn::nn::transformer::{
     TransformerEncoder, TransformerEncoderConfig, TransformerEncoderInput,
 };
@@ -9,6 +10,9 @@ use burn::{
     module::Module,
     tensor::{backend::Backend, Tensor},
 };
+use candle_core::{safetensors, Device, Tensor as CandleTensor};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 // Define the Bert model configuration
 #[derive(Config)]
@@ -125,5 +129,50 @@ impl<B: Backend> BertModel<B> {
         let encoder_input = TransformerEncoderInput::new(embedding).mask_pad(mask_pad);
         let output = self.encoder.forward(encoder_input);
         output
+    }
+
+    pub fn from_safetensors(
+        file_path: PathBuf,
+        device: &B::Device,
+        config: BertModelConfig,
+    ) -> BertModel<B> {
+        let model_name = config.model_type.as_str();
+        let weight_result = safetensors::load::<PathBuf>(file_path, &Device::Cpu);
+
+        // Match on the result of loading the weights
+        let weights = match weight_result {
+            Ok(weights) => weights,
+            Err(e) => panic!("Error loading weights: {:?}", e),
+        };
+
+        // Weights are stored in a HashMap<String, Tensor>
+        // For each layer, it will either be prefixed with "encoder.layer." or "embeddings."
+        // We need to extract both.
+        let mut encoder_layers: HashMap<String, CandleTensor> = HashMap::new();
+        let mut embeddings_layers: HashMap<String, CandleTensor> = HashMap::new();
+
+        for (key, value) in weights.iter() {
+            // If model name prefix present in keys, remove it to load keys consistently
+            // across variants (bert-base, roberta-base etc.)
+
+            let prefix = String::from(model_name) + ".";
+            let key_without_prefix = key.replace(&prefix, "");
+
+            if key_without_prefix.starts_with("encoder.layer.") {
+                encoder_layers.insert(key_without_prefix, value.clone());
+            } else if key_without_prefix.starts_with("embeddings.") {
+                embeddings_layers.insert(key_without_prefix, value.clone());
+            }
+        }
+
+        let embeddings_record = load_embeddings_from_safetensors::<B>(embeddings_layers, device);
+        let encoder_record = load_encoder_from_safetensors::<B>(encoder_layers, device);
+        let model_record = BertModelRecord {
+            embeddings: embeddings_record,
+            encoder: encoder_record,
+        };
+
+        let model = config.init_with::<B>(model_record);
+        model
     }
 }
