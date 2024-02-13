@@ -1,16 +1,13 @@
-use resnet_burn::model::{imagenet, resnet::ResNet};
+use resnet_burn::model::{imagenet, resnet::ResNet, weights};
 
 use burn::{
     backend::NdArray,
     module::Module,
-    record::{FullPrecisionSettings, NamedMpkFileRecorder, Recorder},
+    record::{FullPrecisionSettings, NamedMpkFileRecorder},
     tensor::{backend::Backend, Data, Device, Element, Shape, Tensor},
 };
-use burn_import::pytorch::{LoadArgs, PyTorchFileRecorder};
 
-const TORCH_WEIGHTS: &str = "resnet18-f37072fd.pth";
 const MODEL_PATH: &str = "resnet18-ImageNet1k";
-const NUM_CLASSES: usize = 1000;
 const HEIGHT: usize = 224;
 const WIDTH: usize = 224;
 
@@ -32,22 +29,10 @@ pub fn main() {
 
     // Create ResNet-18
     let device = Default::default();
-    let model: ResNet<NdArray, _> = ResNet::resnet18(NUM_CLASSES, &device);
-
-    // Load weights from torch state_dict
-    let load_args = LoadArgs::new(TORCH_WEIGHTS.into())
-        // Map *.downsample.0.* -> *.downsample.conv.*
-        .with_key_remap("(.+)\\.downsample\\.0\\.(.+)", "$1.downsample.conv.$2")
-        // Map *.downsample.1.* -> *.downsample.bn.*
-        .with_key_remap("(.+)\\.downsample\\.1\\.(.+)", "$1.downsample.bn.$2")
-        // Map layer[i].[j].* -> layer[i].blocks.[j].*
-        .with_key_remap("(layer[1-4])\\.([0-9])\\.(.+)", "$1.blocks.$2.$3");
-    let record = PyTorchFileRecorder::<FullPrecisionSettings>::new()
-        .load(load_args, &device)
-        .map_err(|err| format!("Failed to load weights.\nError: {err}"))
-        .unwrap();
-
-    let model = model.load_record(record);
+    let model: ResNet<NdArray, _> =
+        ResNet::resnet18_pretrained(weights::ResNet18::ImageNet1kV1, &device)
+            .map_err(|err| format!("Failed to load pre-traind weightts.\nError: {err}"))
+            .unwrap();
 
     // Save the model to a supported format and load it back
     let recorder = NamedMpkFileRecorder::<FullPrecisionSettings>::new();

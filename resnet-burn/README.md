@@ -17,17 +17,23 @@ Add this to your `Cargo.toml`:
 resnet-burn = { git = "https://github.com/burn-rs/models", package = "resnet-burn", default-features = false }
 ```
 
+If you want to get the pre-trained ImageNet weights, enable the `pretrained` feature flag.
+
+```toml
+[dependencies]
+resnet-burn = { git = "https://github.com/burn-rs/models", package = "resnet-burn", features = ["pretrained"] }
+```
+
+**Important:** this feature requires `std`.
+
 ### Example Usage
 
-The [inference example](examples/inference.rs) initializes a ResNet-18 with the `NdArray` backend,
-imports the ImageNet pre-trained weights from
-[`torchvision`](https://download.pytorch.org/models/resnet18-f37072fd.pth) and performs inference on
-the provided input image.
+The [inference example](examples/inference.rs) initializes a ResNet-18 from the ImageNet
+[pre-trained weights](https://pytorch.org/vision/stable/models/generated/torchvision.models.resnet18.html#torchvision.models.ResNet18_Weights)
+with the `NdArray` backend and performs inference on the provided input image.
 
-After downloading the
-[pre-trained weights](https://download.pytorch.org/models/resnet18-f37072fd.pth) to the current
-directory, you can run the example with the following command:
+You can run the example with the following command:
 
 ```sh
-cargo run --release --example inference samples/dog.jpg
+cargo run --release --features pretrained --example inference samples/dog.jpg
 ```
