@@ -1,0 +1,37 @@
+[package]
+authors = ["Aasheesh Singh aasheeshdtu@gmail.com"]
+license = "MIT OR Apache-2.0"
+name = "bert-burn"
+version="0.1.0"
+edition = "2021"
+
+[features]
+default = ["burn/dataset"]
+f16 = []
+ndarray = ["burn/ndarray"]
+tch-cpu = ["burn/tch"]
+tch-gpu = ["burn/tch"]
+wgpu = ["burn/wgpu"]
+fusion = ["burn/fusion"]
+# To be replaced by burn-safetensors once supported: https://github.com/tracel-ai/burn/issues/626
+safetensors = ["candle-core/default"]
+
+
+[dependencies]
+# Burn
+burn = {version = "0.12.1", default-features = false}
+candle-core = { version = "0.3.2", optional = true}
+# Tokenizer
+tokenizers = { version = "0.15.0", default-features = false, features = [
+  "onig",
+  "http",
+] }
+burn-import = "0.12.1"
+derive-new = "0.6.0"
+hf-hub = { version = "0.3.2", features = ["tokio"] }
+
+# Utils
+serde = { version = "1.0.196", features = ["std", "derive"] }
+libm = "0.2.8"
+serde_json = "1.0.113"
+tokio = "1.35.1"
