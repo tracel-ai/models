@@ -84,7 +84,7 @@ impl<B: Backend, M: Module<B>> ResNet<B, M> {
             // Map *.downsample.1.* -> *.downsample.bn.*
             .with_key_remap("(.+)\\.downsample\\.1\\.(.+)", "$1.downsample.bn.$2")
             // Map layer[i].[j].* -> layer[i].blocks.[j].*
-            .with_key_remap("(layer[1-4])\\.([0-9])\\.(.+)", "$1.blocks.$2.$3");
+            .with_key_remap("(layer[1-4])\\.([0-9]+)\\.(.+)", "$1.blocks.$2.$3");
         let record = PyTorchFileRecorder::<FullPrecisionSettings>::new().load(load_args, device)?;
 
         Ok(record)
