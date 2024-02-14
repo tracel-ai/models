@@ -302,7 +302,7 @@ struct ResNetConfig<B, M> {
 
 impl<B: Backend, M> ResNetConfig<B, M> {
     /// Create a new instance of the ResNet [config](ResNetConfig).
-    pub fn new(blocks: [usize; 4], num_classes: usize, expansion: usize) -> Self {
+    fn new(blocks: [usize; 4], num_classes: usize, expansion: usize) -> Self {
         // `new()` is private but still check just in case...
         assert!(
             expansion == 1 || expansion == 4,
@@ -350,7 +350,7 @@ impl<B: Backend, M> ResNetConfig<B, M> {
 
 impl<B: Backend> ResNetConfig<B, BasicBlock<B>> {
     /// Initialize a new [ResNet](ResNet) module.
-    pub fn init(self, device: &Device<B>) -> ResNet<B, BasicBlock<B>> {
+    fn init(self, device: &Device<B>) -> ResNet<B, BasicBlock<B>> {
         // Conv initializer
         let initializer = Initializer::KaimingNormal {
             gain: SQRT_2, // recommended value for ReLU
@@ -372,7 +372,7 @@ impl<B: Backend> ResNetConfig<B, BasicBlock<B>> {
     }
 
     /// Initialize a new [ResNet](ResNet) module with a [record](ResNetRecord).
-    pub fn init_with(&self, record: ResNetRecord<B, BasicBlock<B>>) -> ResNet<B, BasicBlock<B>> {
+    fn init_with(&self, record: ResNetRecord<B, BasicBlock<B>>) -> ResNet<B, BasicBlock<B>> {
         ResNet {
             conv1: self.conv1.init_with(record.conv1),
             bn1: self.bn1.init_with(record.bn1),
@@ -390,7 +390,7 @@ impl<B: Backend> ResNetConfig<B, BasicBlock<B>> {
 
 impl<B: Backend> ResNetConfig<B, Bottleneck<B>> {
     /// Initialize a new [ResNet](ResNet) module.
-    pub fn init(self, device: &Device<B>) -> ResNet<B, Bottleneck<B>> {
+    fn init(self, device: &Device<B>) -> ResNet<B, Bottleneck<B>> {
         // Conv initializer
         let initializer = Initializer::KaimingNormal {
             gain: SQRT_2, // recommended value for ReLU
@@ -412,7 +412,7 @@ impl<B: Backend> ResNetConfig<B, Bottleneck<B>> {
     }
 
     /// Initialize a new [ResNet](ResNet) module with a [record](ResNetRecord).
-    pub fn init_with(&self, record: ResNetRecord<B, Bottleneck<B>>) -> ResNet<B, Bottleneck<B>> {
+    fn init_with(&self, record: ResNetRecord<B, Bottleneck<B>>) -> ResNet<B, Bottleneck<B>> {
         ResNet {
             conv1: self.conv1.init_with(record.conv1),
             bn1: self.bn1.init_with(record.bn1),

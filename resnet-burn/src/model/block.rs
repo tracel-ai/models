@@ -200,9 +200,6 @@ impl BasicBlockConfig {
 
     /// Initialize a new [basic residual block](BasicBlock) module with a [record](BasicBlockRecord).
     fn init_with<B: Backend>(&self, record: BasicBlockRecord<B>) -> BasicBlock<B> {
-        // println!("Downsample cfg {}", self.downsample.is_none());
-        // println!("Downsample record {}", record.downsample.is_none());
-
         BasicBlock {
             conv1: self.conv1.init_with(record.conv1),
             bn1: self.bn1.init_with(record.bn1),
