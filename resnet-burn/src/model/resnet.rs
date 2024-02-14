@@ -203,7 +203,7 @@ impl<B: Backend> ResNet<B, Bottleneck<B>> {
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNetConfig::<B, Bottleneck<B>>::new(RESNET50_BLOCKS, weights.num_classes, 1)
+        let model = ResNetConfig::<B, Bottleneck<B>>::new(RESNET50_BLOCKS, weights.num_classes, 4)
             .init_with(record);
 
         Ok(model)
@@ -236,12 +236,12 @@ impl<B: Backend> ResNet<B, Bottleneck<B>> {
     /// A ResNet-101 module with pre-trained weights.
     #[cfg(feature = "pretrained")]
     pub fn resnet101_pretrained(
-        weights: weights::ResNet50,
+        weights: weights::ResNet101,
         device: &Device<B>,
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNetConfig::<B, Bottleneck<B>>::new(RESNET101_BLOCKS, weights.num_classes, 1)
+        let model = ResNetConfig::<B, Bottleneck<B>>::new(RESNET101_BLOCKS, weights.num_classes, 4)
             .init_with(record);
 
         Ok(model)
@@ -274,12 +274,12 @@ impl<B: Backend> ResNet<B, Bottleneck<B>> {
     /// A ResNet-152 module with pre-trained weights.
     #[cfg(feature = "pretrained")]
     pub fn resnet152_pretrained(
-        weights: weights::ResNet50,
+        weights: weights::ResNet152,
         device: &Device<B>,
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNetConfig::<B, Bottleneck<B>>::new(RESNET152_BLOCKS, weights.num_classes, 1)
+        let model = ResNetConfig::<B, Bottleneck<B>>::new(RESNET152_BLOCKS, weights.num_classes, 4)
             .init_with(record);
 
         Ok(model)
