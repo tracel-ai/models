@@ -4,10 +4,10 @@ This file contains notices and information required by libraries that this repos
 
 ## Sample Image
 
-Image Title: This is our Mascot DeVille.
-Author: Adelaidasofia
-Source: https://commons.wikimedia.org/wiki/File:VillyCustomsMascotDeVille%22Villy%22.jpg
-License: https://creativecommons.org/licenses/by-sa/3.0/
+Image Title: Man with Bike and Pet Dog circa 1900 (archive ref DDX1319-2-3)
+Author: East Riding Archives
+Source: https://commons.wikimedia.org/wiki/File:Man_with_Bike_and_Pet_Dog_circa_1900_%28archive_ref_DDX1319-2-3%29_%2826507570321%29.jpg
+License: [Creative Commons](https://www.flickr.com/commons/usage/)
 
 ## Pre-trained Model
 
