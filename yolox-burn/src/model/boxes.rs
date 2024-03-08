@@ -77,7 +77,6 @@ pub fn nms<B: Backend>(
                             let box_cls_score = cls_score[box_idx];
                             if box_cls_score >= score_threshold {
                                 let bbox = &candidate_boxes[box_idx * 4..box_idx * 4 + 4];
-                                // println!("Candidate {}: {:?}", box_idx, bbox);
                                 Some(BoundingBox {
                                     xmin: bbox[0] - bbox[2] / 2.,
                                     ymin: bbox[1] - bbox[3] / 2.,
