@@ -97,7 +97,7 @@ pub fn main() {
 
     // Create YOLOX-Nano
     let device = Default::default();
-    let model: Yolox<NdArray> = Yolox::yolox_s_pretrained(weights::YoloxS::Coco, &device)
+    let model: Yolox<NdArray> = Yolox::yolox_tiny_pretrained(weights::YoloxTiny::Coco, &device)
         .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
         .unwrap();
 
