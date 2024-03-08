@@ -4,7 +4,7 @@ use image::{DynamicImage, ImageBuffer};
 use yolox_burn::model::{boxes::nms, weights, yolox::Yolox, BoundingBox};
 
 use burn::{
-    backend::LibTorch,
+    backend::NdArray,
     tensor::{backend::Backend, Data, Device, Element, Shape, Tensor},
 };
 
@@ -97,7 +97,7 @@ pub fn main() {
 
     // Create YOLOX-Nano
     let device = Default::default();
-    let model: Yolox<LibTorch> = Yolox::yolox_s_pretrained(weights::YoloxS::Coco, &device)
+    let model: Yolox<NdArray> = Yolox::yolox_s_pretrained(weights::YoloxS::Coco, &device)
         .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
         .unwrap();
 
