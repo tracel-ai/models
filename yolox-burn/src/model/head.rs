@@ -27,8 +27,9 @@ fn create_2d_grid<B: Backend>(x: usize, y: usize, device: &Device<B>) -> Tensor<
         .repeat(1, x)
         .reshape(Shape::new([y, x]));
     let x_idx = Tensor::arange(0..x as i64, device)
+        .reshape(Shape::new([1, x])) // can only repeat with dim=1
         .repeat(0, y)
-        .reshape(Shape::new([x, y]));
+        .reshape(Shape::new([y, x]));
 
     Tensor::stack(vec![x_idx, y_idx], 2)
 }
