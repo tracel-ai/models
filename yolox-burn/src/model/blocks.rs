@@ -165,8 +165,7 @@ impl<B: Backend> Focus<B> {
             1,
         );
 
-        let x = self.conv.forward(x);
-        x
+        self.conv.forward(x)
     }
 }
 

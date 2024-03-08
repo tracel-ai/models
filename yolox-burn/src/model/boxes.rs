@@ -9,7 +9,7 @@ pub struct BoundingBox {
     pub confidence: f32,
 }
 
-/// Non-maximum suppression (NMS) filters overlaping bounding boxes that have an intersection-over-
+/// Non-maximum suppression (NMS) filters overlapping bounding boxes that have an intersection-over-
 /// union (IoU) greater or equal than the specified `iou_threshold` with previously selected boxes.
 ///
 /// Boxes are filtered based on `score_threshold` and ranked based on their score. As such, lower
@@ -96,8 +96,8 @@ pub fn nms<B: Backend>(
         })
         .collect::<Vec<_>>();
 
-    for batch_idx in 0..batch_size {
-        non_maximum_suppression(&mut bboxes[batch_idx], iou_threshold);
+    for batch_bboxes in bboxes.iter_mut().take(batch_size) {
+        non_maximum_suppression(batch_bboxes, iou_threshold);
     }
 
     bboxes

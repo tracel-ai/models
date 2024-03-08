@@ -82,7 +82,7 @@ pub struct SppBottleneck<B: Backend> {
 
 impl<B: Backend> SppBottleneck<B> {
     pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
-        if self.m.len() == 0 {
+        if self.m.is_empty() {
             panic!("No MaxPool2d modules found");
         }
 
@@ -163,10 +163,6 @@ impl<B: Backend> CspBottleneck<B> {
             .m
             .iter()
             .fold(x1, |x_i, bottleneck| bottleneck.forward(x_i));
-        // let mut x1 = x1;
-        // for bottleneck in &self.m {
-        //     x1 = bottleneck.forward(x1);
-        // }
 
         let x = Tensor::cat(vec![x1, x2], 1);
 
