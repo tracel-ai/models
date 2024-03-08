@@ -125,7 +125,7 @@ pub fn main() {
     let out = model.forward(x);
 
     // Post-processing
-    let [_, num_boxes, num_outputs] = out.shape().dims;
+    let [_, num_boxes, num_outputs] = out.dims();
     let boxes = out.clone().slice([0..1, 0..num_boxes, 0..4]);
     let obj_scores = out.clone().slice([0..1, 0..num_boxes, 4..5]);
     let cls_scores = out.slice([0..1, 0..num_boxes, 5..num_outputs]);

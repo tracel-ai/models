@@ -32,7 +32,7 @@ pub fn nms<B: Backend>(
     iou_threshold: f32,
     score_threshold: f32,
 ) -> Vec<Vec<Vec<BoundingBox>>> {
-    let [batch_size, num_boxes, num_classes] = scores.shape().dims;
+    let [batch_size, num_boxes, num_classes] = scores.dims();
 
     // Bounding boxes grouped by batch and by (maximum) class index
     let mut bboxes = boxes

@@ -134,7 +134,7 @@ pub struct Focus<B: Backend> {
 impl<B: Backend> Focus<B> {
     pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
         let device = x.device();
-        let [_, _, h, w] = x.shape().dims;
+        let [_, _, h, w] = x.dims();
 
         // Indexing
         let top_idx = Tensor::arange_step(0..h as i64, 2, &device);

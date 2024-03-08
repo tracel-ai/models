@@ -74,7 +74,7 @@ impl<B: Backend> Head<B> {
 
                 // Output [B, 5 + num_classes, num_anchors]
                 let out = Tensor::cat(vec![reg_out, sigmoid(obj_out), sigmoid(cls_out)], 1);
-                let [_, _, h, w] = out.shape().dims;
+                let [_, _, h, w] = out.dims();
                 (out.flatten(2, 3), (h, w))
             },
         )
@@ -89,7 +89,7 @@ impl<B: Backend> Head<B> {
     /// Decode bounding box absolute values from regression output offsets.
     fn decode(&self, outputs: Tensor<B, 3>, shapes: &[(usize, usize)]) -> Tensor<B, 3> {
         let device = outputs.device();
-        let [b, num_anchors, num_outputs] = outputs.shape().dims;
+        let [b, num_anchors, num_outputs] = outputs.dims();
 
         let (grids, strides) = shapes
             .iter()
