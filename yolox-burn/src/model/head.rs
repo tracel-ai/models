@@ -23,12 +23,12 @@ const PRIOR_PROB: f64 = 1e-2;
 /// but specific to two dimensions.
 fn create_2d_grid<B: Backend>(x: usize, y: usize, device: &Device<B>) -> Tensor<B, 3, Int> {
     let y_idx = Tensor::arange(0..y as i64, device)
-        .repeat(0, x)
+        .reshape(Shape::new([y, 1]))
+        .repeat(1, x)
         .reshape(Shape::new([y, x]));
     let x_idx = Tensor::arange(0..x as i64, device)
         .repeat(0, y)
-        .reshape(Shape::new([x, y]))
-        .transpose();
+        .reshape(Shape::new([x, y]));
 
     Tensor::stack(vec![x_idx, y_idx], 2)
 }
