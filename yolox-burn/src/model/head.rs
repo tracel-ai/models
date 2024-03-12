@@ -121,10 +121,6 @@ impl<B: Backend> Head<B> {
             2,
         )
     }
-
-    // TODO
-    // Training outputs
-    // fn forward_train(&self, x: FpnFeatures<B>) {}
 }
 
 /// [YOLOX head](Head) configuration.

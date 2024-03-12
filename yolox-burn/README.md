@@ -22,7 +22,7 @@ Add this to your `Cargo.toml`:
 yolox-burn = { git = "https://github.com/burn-rs/models", package = "yolox-burn", default-features = false }
 ```
 
-If you want to get the pre-trained ImageNet weights, enable the `pretrained` feature flag.
+If you want to get the COCO pre-trained weights, enable the `pretrained` feature flag.
 
 ```toml
 [dependencies]
@@ -33,7 +33,7 @@ yolox-burn = { git = "https://github.com/burn-rs/models", package = "yolox-burn"
 
 ### Example Usage
 
-The [inference example](examples/inference.rs) initializes a YOLOX-Nano from the COCO
+The [inference example](examples/inference.rs) initializes a YOLOX-Tiny from the COCO
 [pre-trained weights](https://github.com/Megvii-BaseDetection/YOLOX?tab=readme-ov-file#standard-models)
 with the `NdArray` backend and performs inference on the provided input image.
 
