@@ -26,9 +26,6 @@ pub struct BoundingBox {
 ///
 /// Vector of bounding boxes grouped by class for each batch. The boxes are sorted in decreasing
 /// order of scores for each class.
-///
-/// Selected indices of the boxes kept by NMS, sorted in decreasing order of scores.
-/// The selected index format is `[batch_index, class_index, box_index]`.
 pub fn nms<B: Backend>(
     boxes: Tensor<B, 3>,
     scores: Tensor<B, 3>,
