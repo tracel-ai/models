@@ -10,7 +10,7 @@ use burn::{
 };
 
 use super::{
-    blocks::{expand, BaseConv, BaseConvConfig},
+    blocks::{expand, BaseConv, BaseConvConfig, Conv, ConvConfig},
     bottleneck::{CspBottleneck, CspBottleneckConfig},
     darknet::{CspDarknet, CspDarknetConfig},
 };
@@ -29,8 +29,8 @@ pub struct Pafpn<B: Backend> {
     c3_p3: CspBottleneck<B>,
     c3_p4: CspBottleneck<B>,
     reduce_conv1: BaseConv<B>,
-    bu_conv1: BaseConv<B>, // bottom-up conv
-    bu_conv2: BaseConv<B>, // bottom-up conv
+    bu_conv1: Conv<B>, // bottom-up conv
+    bu_conv2: Conv<B>, // bottom-up conv
 }
 
 impl<B: Backend> Pafpn<B> {
@@ -78,13 +78,13 @@ pub struct PafpnConfig {
     c3_p3: CspBottleneckConfig,
     c3_p4: CspBottleneckConfig,
     reduce_conv1: BaseConvConfig,
-    bu_conv1: BaseConvConfig, // bottom-up conv
-    bu_conv2: BaseConvConfig, // bottom-up conv
+    bu_conv1: ConvConfig, // bottom-up conv
+    bu_conv2: ConvConfig, // bottom-up conv
 }
 
 impl PafpnConfig {
     /// Create a new instance of the PAFPN [config](PafpnConfig).
-    pub fn new(depth: f64, width: f64) -> Self {
+    pub fn new(depth: f64, width: f64, depthwise: bool) -> Self {
         assert!(
             [0.33, 0.67, 1.0, 1.33].contains(&depth),
             "invalid depth value {depth}"
@@ -106,22 +106,46 @@ impl PafpnConfig {
         ];
         let num_blocks = (3_f64 * depth).round() as usize;
 
-        let backbone = CspDarknetConfig::new(depth, width);
+        let backbone = CspDarknetConfig::new(depth, width, depthwise);
         let lateral_conv0 = BaseConvConfig::new(in_channels[2], in_channels[1], 1, 1, 1);
-        let c3_p4 =
-            CspBottleneckConfig::new(hidden_channels[1], in_channels[1], num_blocks, 0.5, false);
+        let c3_p4 = CspBottleneckConfig::new(
+            hidden_channels[1],
+            in_channels[1],
+            num_blocks,
+            0.5,
+            false,
+            depthwise,
+        );
 
         let reduce_conv1 = BaseConvConfig::new(in_channels[1], in_channels[0], 1, 1, 1);
-        let c3_p3 =
-            CspBottleneckConfig::new(hidden_channels[0], in_channels[0], num_blocks, 0.5, false);
+        let c3_p3 = CspBottleneckConfig::new(
+            hidden_channels[0],
+            in_channels[0],
+            num_blocks,
+            0.5,
+            false,
+            depthwise,
+        );
 
-        let bu_conv2 = BaseConvConfig::new(in_channels[0], in_channels[0], 3, 2, 1);
-        let c3_n3 =
-            CspBottleneckConfig::new(hidden_channels[0], in_channels[1], num_blocks, 0.5, false);
+        let bu_conv2 = ConvConfig::new(in_channels[0], in_channels[0], 3, 2, depthwise);
+        let c3_n3 = CspBottleneckConfig::new(
+            hidden_channels[0],
+            in_channels[1],
+            num_blocks,
+            0.5,
+            false,
+            depthwise,
+        );
 
-        let bu_conv1 = BaseConvConfig::new(in_channels[1], in_channels[1], 3, 2, 1);
-        let c3_n4 =
-            CspBottleneckConfig::new(hidden_channels[1], in_channels[2], num_blocks, 0.5, false);
+        let bu_conv1 = ConvConfig::new(in_channels[1], in_channels[1], 3, 2, depthwise);
+        let c3_n4 = CspBottleneckConfig::new(
+            hidden_channels[1],
+            in_channels[2],
+            num_blocks,
+            0.5,
+            false,
+            depthwise,
+        );
 
         Self {
             backbone,

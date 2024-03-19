@@ -52,7 +52,22 @@ pub trait WeightsMeta {
     fn weights(&self) -> Weights;
 }
 
-/// YOLOX-S pre-trained weights.
+/// YOLOX-Nano pre-trained weights.
+pub enum YoloxNano {
+    /// These weights were released after the original paper implementation with slightly better results.
+    /// mAP (val2017): 25.8
+    Coco,
+}
+impl WeightsMeta for YoloxNano {
+    fn weights(&self) -> Weights {
+        Weights {
+            url: "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_nano.pth",
+            num_classes: 80,
+        }
+    }
+}
+
+/// YOLOX-Tiny pre-trained weights.
 pub enum YoloxTiny {
     /// These weights were released after the original paper implementation with slightly better results.
     /// mAP (val2017): 32.8

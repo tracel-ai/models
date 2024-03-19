@@ -1,5 +1,6 @@
 use alloc::vec;
 use burn::{
+    config::Config,
     module::Module,
     nn::{
         conv::{Conv2d, Conv2dConfig},
@@ -11,6 +12,87 @@ use burn::{
 /// Compute the number of channels based on the provided factor.
 pub fn expand(num_channels: usize, factor: f64) -> usize {
     (num_channels as f64 * factor).floor() as usize
+}
+
+/// A base convolution block.
+/// Allows to switch between regular and depthwise separable convolution blocks based on the
+/// architecture.
+#[derive(Module, Debug)]
+pub enum Conv<B: Backend> {
+    BaseConv(BaseConv<B>),
+    DwsConv(DwsConv<B>),
+}
+
+impl<B: Backend> Conv<B> {
+    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+        match self {
+            Self::BaseConv(conv) => conv.forward(x),
+            Self::DwsConv(conv) => conv.forward(x),
+        }
+    }
+}
+
+#[derive(Config)]
+pub struct ConvConfig {
+    in_channels: usize,
+    out_channels: usize,
+    kernel_size: usize,
+    stride: usize,
+    depthwise: bool,
+}
+
+impl ConvConfig {
+    /// Initialize a new [convolution block](Conv) module.
+    pub fn init<B: Backend>(&self, device: &Device<B>) -> Conv<B> {
+        if self.depthwise {
+            Conv::DwsConv(
+                DwsConvConfig::new(
+                    self.in_channels,
+                    self.out_channels,
+                    self.kernel_size,
+                    self.stride,
+                )
+                .init(device),
+            )
+        } else {
+            Conv::BaseConv(
+                BaseConvConfig::new(
+                    self.in_channels,
+                    self.out_channels,
+                    self.kernel_size,
+                    self.stride,
+                    1,
+                )
+                .init(device),
+            )
+        }
+    }
+
+    /// Initialize a new [convolution block](Conv) module with a [record](ConvRecord).
+    pub fn init_with<B: Backend>(&self, record: ConvRecord<B>) -> Conv<B> {
+        match record {
+            ConvRecord::DwsConv(rec) if self.depthwise => Conv::DwsConv(
+                DwsConvConfig::new(
+                    self.in_channels,
+                    self.out_channels,
+                    self.kernel_size,
+                    self.stride,
+                )
+                .init_with(rec),
+            ),
+            ConvRecord::BaseConv(rec) if !self.depthwise => Conv::BaseConv(
+                BaseConvConfig::new(
+                    self.in_channels,
+                    self.out_channels,
+                    self.kernel_size,
+                    self.stride,
+                    1,
+                )
+                .init_with(rec),
+            ),
+            _ => panic!("Invalid record for depthwise={}", self.depthwise),
+        }
+    }
 }
 
 /// A Conv2d -> BatchNorm -> activation block.
@@ -77,7 +159,8 @@ impl BaseConvConfig {
     }
 }
 
-/// A [depthwise separable convolution](https://paperswithcode.com/method/depthwise-separable-convolution) block.
+/// A [depthwise separable convolution](https://paperswithcode.com/method/depthwise-separable-convolution)
+/// block. Both depthwise and pointwise blocks consist of a Conv2d -> BatchNorm -> activation block.
 #[derive(Module, Debug)]
 pub struct DwsConv<B: Backend> {
     dconv: BaseConv<B>,
@@ -200,8 +283,8 @@ impl FocusConfig {
 /// Dual convolution block used for feature extraction in the prediction head.
 #[derive(Module, Debug)]
 pub struct ConvBlock<B: Backend> {
-    conv0: BaseConv<B>,
-    conv1: BaseConv<B>,
+    conv0: Conv<B>,
+    conv1: Conv<B>,
 }
 
 impl<B: Backend> ConvBlock<B> {
@@ -213,15 +296,15 @@ impl<B: Backend> ConvBlock<B> {
 
 /// [Dual convolution block](ConvBlock) configuration.
 pub struct ConvBlockConfig {
-    conv0: BaseConvConfig,
-    conv1: BaseConvConfig,
+    conv0: ConvConfig,
+    conv1: ConvConfig,
 }
 
 impl ConvBlockConfig {
     /// Create a new instance of the dual convolution block [config](ConvBlockConfig).
-    pub fn new(channels: usize, kernel_size: usize, stride: usize) -> Self {
-        let conv0 = BaseConvConfig::new(channels, channels, kernel_size, stride, 1);
-        let conv1 = BaseConvConfig::new(channels, channels, kernel_size, stride, 1);
+    pub fn new(channels: usize, kernel_size: usize, stride: usize, depthwise: bool) -> Self {
+        let conv0 = ConvConfig::new(channels, channels, kernel_size, stride, depthwise);
+        let conv1 = ConvConfig::new(channels, channels, kernel_size, stride, depthwise);
 
         Self { conv0, conv1 }
     }

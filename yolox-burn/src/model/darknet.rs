@@ -3,7 +3,7 @@ use core::cmp::max;
 use crate::model::blocks::expand;
 
 use super::{
-    blocks::{BaseConv, BaseConvConfig, Focus, FocusConfig},
+    blocks::{Conv, ConvConfig, Focus, FocusConfig},
     bottleneck::{CspBottleneck, CspBottleneckConfig, SppBottleneck, SppBottleneckConfig},
 };
 use burn::{
@@ -47,7 +47,7 @@ pub struct CspDarknetConfig {
 
 impl CspDarknetConfig {
     /// Create a new instance of the CSPDarknet-53 [config](CspDarknetConfig).
-    pub fn new(depth: f64, width: f64) -> Self {
+    pub fn new(depth: f64, width: f64, depthwise: bool) -> Self {
         assert!(
             [0.33, 0.67, 1.0, 1.33].contains(&depth),
             "invalid depth value {depth}"
@@ -62,12 +62,34 @@ impl CspDarknetConfig {
         let base_depth = max((depth * 3_f64).round() as usize, 1);
 
         let stem = FocusConfig::new(3, base_channels, 3, 1);
-        let dark2 = CspBlockConfig::new(base_channels, base_channels * 2, base_depth, false);
-        let dark3 =
-            CspBlockConfig::new(base_channels * 2, base_channels * 4, base_depth * 3, false);
-        let dark4 =
-            CspBlockConfig::new(base_channels * 4, base_channels * 8, base_depth * 3, false);
-        let dark5 = CspBlockConfig::new(base_channels * 8, base_channels * 16, base_depth, true);
+        let dark2 = CspBlockConfig::new(
+            base_channels,
+            base_channels * 2,
+            base_depth,
+            false,
+            depthwise,
+        );
+        let dark3 = CspBlockConfig::new(
+            base_channels * 2,
+            base_channels * 4,
+            base_depth * 3,
+            false,
+            depthwise,
+        );
+        let dark4 = CspBlockConfig::new(
+            base_channels * 4,
+            base_channels * 8,
+            base_depth * 3,
+            false,
+            depthwise,
+        );
+        let dark5 = CspBlockConfig::new(
+            base_channels * 8,
+            base_channels * 16,
+            base_depth,
+            true,
+            depthwise,
+        );
 
         Self {
             stem,
@@ -105,7 +127,7 @@ impl CspDarknetConfig {
 /// The SppBottleneck layer is only used in the last block of [CSPDarknet-53](CspDarknet).
 #[derive(Module, Debug)]
 pub struct CspBlock<B: Backend> {
-    conv: BaseConv<B>,
+    conv: Conv<B>,
     c3: CspBottleneck<B>,
     spp: Option<SppBottleneck<B>>,
 }
@@ -124,16 +146,22 @@ impl<B: Backend> CspBlock<B> {
 
 /// [CSP block](CspBlock) configuration.
 pub struct CspBlockConfig {
-    conv: BaseConvConfig,
+    conv: ConvConfig,
     c3: CspBottleneckConfig,
     spp: Option<SppBottleneckConfig>,
 }
 
 impl CspBlockConfig {
     /// Create a new instance of the CSP block [config](CspBlockConfig).
-    pub fn new(in_channels: usize, out_channels: usize, depth: usize, spp: bool) -> Self {
-        let conv = BaseConvConfig::new(in_channels, out_channels, 3, 2, 1);
-        let c3 = CspBottleneckConfig::new(out_channels, out_channels, depth, 0.5, !spp);
+    pub fn new(
+        in_channels: usize,
+        out_channels: usize,
+        depth: usize,
+        spp: bool,
+        depthwise: bool,
+    ) -> Self {
+        let conv = ConvConfig::new(in_channels, out_channels, 3, 2, depthwise);
+        let c3 = CspBottleneckConfig::new(out_channels, out_channels, depth, 0.5, !spp, depthwise);
 
         let spp = if spp {
             Some(SppBottleneckConfig::new(out_channels, out_channels))

@@ -40,5 +40,5 @@ with the `NdArray` backend and performs inference on the provided input image.
 You can run the example with the following command:
 
 ```sh
-cargo run --release --features pretrained --example inference samples/dog.jpg
+cargo run --release --features pretrained --example inference samples/dog_bike_man.jpg
 ```

@@ -31,6 +31,44 @@ impl<B: Backend> Yolox<B> {
         self.head.forward(features)
     }
 
+    /// YOLOX-Nano from [`YOLOX: Exceeding YOLO Series in 2021`](https://arxiv.org/abs/2107.08430).
+    ///
+    /// # Arguments
+    ///
+    /// * `num_classes`: Number of output classes of the model.
+    /// * `device` - Device to create the module on.
+    ///
+    /// # Returns
+    ///
+    /// A YOLOX-Nano module.
+    pub fn yolox_nano(num_classes: usize, device: &Device<B>) -> Self {
+        YoloxConfig::new(0.33, 0.25, num_classes, true).init(device)
+    }
+
+    /// YOLOX-Nano from [`YOLOX: Exceeding YOLO Series in 2021`](https://arxiv.org/abs/2107.08430)
+    /// with pre-trained weights.
+    ///
+    /// # Arguments
+    ///
+    /// * `num_classes`: Number of output classes of the model.
+    /// * `device` - Device to create the module on.
+    ///
+    /// # Returns
+    ///
+    /// A YOLOX-Nano module with pre-trained weights.
+    #[cfg(feature = "pretrained")]
+    pub fn yolox_nano_pretrained(
+        weights: weights::YoloxNano,
+        device: &Device<B>,
+    ) -> Result<Self, RecorderError> {
+        let weights = weights.weights();
+        let record = Self::load_weights_record(&weights, device)?;
+
+        let model = YoloxConfig::new(0.33, 0.25, weights.num_classes, true).init_with(record);
+
+        Ok(model)
+    }
+
     /// YOLOX-Tiny from [`YOLOX: Exceeding YOLO Series in 2021`](https://arxiv.org/abs/2107.08430).
     ///
     /// # Arguments
@@ -42,7 +80,7 @@ impl<B: Backend> Yolox<B> {
     ///
     /// A YOLOX-Tiny module.
     pub fn yolox_tiny(num_classes: usize, device: &Device<B>) -> Self {
-        YoloxConfig::new(0.33, 0.375, num_classes).init(device)
+        YoloxConfig::new(0.33, 0.375, num_classes, false).init(device)
     }
 
     /// YOLOX-Tiny from [`YOLOX: Exceeding YOLO Series in 2021`](https://arxiv.org/abs/2107.08430)
@@ -64,7 +102,7 @@ impl<B: Backend> Yolox<B> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
 
-        let model = YoloxConfig::new(0.33, 0.375, weights.num_classes).init_with(record);
+        let model = YoloxConfig::new(0.33, 0.375, weights.num_classes, false).init_with(record);
 
         Ok(model)
     }
@@ -80,7 +118,7 @@ impl<B: Backend> Yolox<B> {
     ///
     /// A YOLOX-S module.
     pub fn yolox_s(num_classes: usize, device: &Device<B>) -> Self {
-        YoloxConfig::new(0.33, 0.50, num_classes).init(device)
+        YoloxConfig::new(0.33, 0.50, num_classes, false).init(device)
     }
 
     /// YOLOX-S from [`YOLOX: Exceeding YOLO Series in 2021`](https://arxiv.org/abs/2107.08430)
@@ -102,7 +140,7 @@ impl<B: Backend> Yolox<B> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
 
-        let model = YoloxConfig::new(0.33, 0.50, weights.num_classes).init_with(record);
+        let model = YoloxConfig::new(0.33, 0.50, weights.num_classes, false).init_with(record);
 
         Ok(model)
     }
@@ -118,7 +156,7 @@ impl<B: Backend> Yolox<B> {
     ///
     /// A YOLOX-M module.
     pub fn yolox_m(num_classes: usize, device: &Device<B>) -> Self {
-        YoloxConfig::new(0.67, 0.75, num_classes).init(device)
+        YoloxConfig::new(0.67, 0.75, num_classes, false).init(device)
     }
 
     /// YOLOX-M from [`YOLOX: Exceeding YOLO Series in 2021`](https://arxiv.org/abs/2107.08430)
@@ -140,7 +178,7 @@ impl<B: Backend> Yolox<B> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
 
-        let model = YoloxConfig::new(0.67, 0.75, weights.num_classes).init_with(record);
+        let model = YoloxConfig::new(0.67, 0.75, weights.num_classes, false).init_with(record);
 
         Ok(model)
     }
@@ -156,7 +194,7 @@ impl<B: Backend> Yolox<B> {
     ///
     /// A YOLOX-L module.
     pub fn yolox_l(num_classes: usize, device: &Device<B>) -> Self {
-        YoloxConfig::new(1., 1., num_classes).init(device)
+        YoloxConfig::new(1., 1., num_classes, false).init(device)
     }
 
     /// YOLOX-L from [`YOLOX: Exceeding YOLO Series in 2021`](https://arxiv.org/abs/2107.08430)
@@ -178,7 +216,7 @@ impl<B: Backend> Yolox<B> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
 
-        let model = YoloxConfig::new(1., 1., weights.num_classes).init_with(record);
+        let model = YoloxConfig::new(1., 1., weights.num_classes, false).init_with(record);
 
         Ok(model)
     }
@@ -194,7 +232,7 @@ impl<B: Backend> Yolox<B> {
     ///
     /// A YOLOX-X module.
     pub fn yolox_x(num_classes: usize, device: &Device<B>) -> Self {
-        YoloxConfig::new(1.33, 1.25, num_classes).init(device)
+        YoloxConfig::new(1.33, 1.25, num_classes, false).init(device)
     }
 
     /// YOLOX-X from [`YOLOX: Exceeding YOLO Series in 2021`](https://arxiv.org/abs/2107.08430)
@@ -216,7 +254,7 @@ impl<B: Backend> Yolox<B> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
 
-        let model = YoloxConfig::new(1.33, 1.25, weights.num_classes).init_with(record);
+        let model = YoloxConfig::new(1.33, 1.25, weights.num_classes, false).init_with(record);
 
         Ok(model)
     }
@@ -250,6 +288,23 @@ impl<B: Backend> Yolox<B> {
                 "(head\\.(cls|reg)_convs\\.[0-9]+)\\.([0-9]+)\\.(.+)",
                 "$1.conv$3.$4",
             );
+
+        // if depthwise {
+        //     load_args = load_args
+        //         // Map backbone.backbone.dark[i].0.{dconv | pconv}.* -> backbone.backbone.dark[i].conv.*
+        //         .with_key_remap(
+        //             "(backbone\\.backbone\\.dark[2-5])\\.0\\.([dp]conv\\.+)",
+        //             "$1.conv.$2",
+        //         )
+        //         // Map backbone.backbone.dark[i].1.* -> backbone.backbone.dark[i].c3.*
+        //         .with_key_remap("(backbone\\.backbone\\.dark[2-4])\\.1\\.(.+)", "$1.c3.$2")
+        // } else {
+        //     load_args = load_args
+        //         // Map backbone.backbone.dark[i].0.* -> backbone.backbone.dark[i].conv.*
+        //         .with_key_remap("(backbone\\.backbone\\.dark[2-5])\\.0\\.(.+)", "$1.conv.$2")
+        //         // Map backbone.backbone.dark[i].1.* -> backbone.backbone.dark[i].c3.*
+        //         .with_key_remap("(backbone\\.backbone\\.dark[2-4])\\.1\\.(.+)", "$1.c3.$2")
+        // }
         let record = PyTorchFileRecorder::<FullPrecisionSettings>::new().load(load_args, device)?;
 
         Ok(record)
@@ -264,9 +319,9 @@ pub struct YoloxConfig {
 
 impl YoloxConfig {
     /// Create a new instance of the YOLOX detector [config](YoloxConfig).
-    pub fn new(depth: f64, width: f64, num_classes: usize) -> Self {
-        let backbone = PafpnConfig::new(depth, width);
-        let head = HeadConfig::new(num_classes, width);
+    pub fn new(depth: f64, width: f64, num_classes: usize, depthwise: bool) -> Self {
+        let backbone = PafpnConfig::new(depth, width, depthwise);
+        let head = HeadConfig::new(num_classes, width, depthwise);
 
         Self { backbone, head }
     }

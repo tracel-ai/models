@@ -12,9 +12,11 @@ pretrained = ["burn/network", "std", "dep:dirs"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std
-burn = { git = "https://github.com/tracel-ai/burn.git", default-features = false }
-burn-import = { git = "https://github.com/tracel-ai/burn.git" }
-itertools = { version = "0.12.1", default-features = false, features = ["use_alloc"]}
+burn = { git = "https://github.com/tracel-ai/burn.git", default-features = false, rev = "0138e16af6a85c746035632b2a2df0df8098ebc2" }
+burn-import = { git = "https://github.com/tracel-ai/burn.git", rev = "0138e16af6a85c746035632b2a2df0df8098ebc2" }
+itertools = { version = "0.12.1", default-features = false, features = [
+    "use_alloc",
+] }
 dirs = { version = "5.0.1", optional = true }
 serde = { version = "1.0.192", default-features = false, features = [
     "derive",
@@ -24,5 +26,5 @@ serde = { version = "1.0.192", default-features = false, features = [
 [dev-dependencies]
 burn = { git = "https://github.com/tracel-ai/burn.git", features = [
     "ndarray",
-] }
+], rev = "0138e16af6a85c746035632b2a2df0df8098ebc2" }
 image = { version = "0.24.7", features = ["png", "jpeg"] }

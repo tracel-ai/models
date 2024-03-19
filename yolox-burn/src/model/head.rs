@@ -135,7 +135,7 @@ pub struct HeadConfig {
 
 impl HeadConfig {
     /// Create a new instance of the YOLOX head [config](HeadConfig).
-    pub fn new(num_classes: usize, width: f64) -> Self {
+    pub fn new(num_classes: usize, width: f64, depthwise: bool) -> Self {
         let hidden_channels: usize = 256;
         // Initialize conv2d biases for classification and objectness heads
         let bias = -f64::ln((1.0 - PRIOR_PROB) / PRIOR_PROB);
@@ -150,8 +150,10 @@ impl HeadConfig {
                     1,
                 );
 
-                let cls_conv = ConvBlockConfig::new(expand(hidden_channels, width), 3, 1);
-                let reg_conv = ConvBlockConfig::new(expand(hidden_channels, width), 3, 1);
+                let cls_conv =
+                    ConvBlockConfig::new(expand(hidden_channels, width), 3, 1, depthwise);
+                let reg_conv =
+                    ConvBlockConfig::new(expand(hidden_channels, width), 3, 1, depthwise);
 
                 let cls_pred =
                     Conv2dConfig::new([expand(hidden_channels, width), num_classes], [1, 1])

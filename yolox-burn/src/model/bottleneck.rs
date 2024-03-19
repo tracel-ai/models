@@ -5,13 +5,13 @@ use burn::{
     tensor::{backend::Backend, Device, Tensor},
 };
 
-use super::blocks::{expand, BaseConv, BaseConvConfig};
+use super::blocks::{expand, BaseConv, BaseConvConfig, Conv, ConvConfig};
 
 /// Standard bottleneck block.
 #[derive(Module, Debug)]
 pub struct Bottleneck<B: Backend> {
     conv1: BaseConv<B>,
-    conv2: BaseConv<B>,
+    conv2: Conv<B>,
     shortcut: bool,
 }
 
@@ -33,18 +33,18 @@ impl<B: Backend> Bottleneck<B> {
 /// [Bottleneck block](Bottleneck) configuration.
 struct BottleneckConfig {
     conv1: BaseConvConfig,
-    conv2: BaseConvConfig,
+    conv2: ConvConfig,
     shortcut: bool,
 }
 
 impl BottleneckConfig {
     /// Create a new instance of the bottleneck block [config](BottleneckConfig).
-    pub fn new(in_channels: usize, out_channels: usize, shortcut: bool) -> Self {
+    pub fn new(in_channels: usize, out_channels: usize, shortcut: bool, depthwise: bool) -> Self {
         // In practice, expansion = 1.0 and no shortcut connection is used
         let hidden_channels = out_channels;
 
         let conv1 = BaseConvConfig::new(in_channels, hidden_channels, 1, 1, 1);
-        let conv2 = BaseConvConfig::new(hidden_channels, out_channels, 3, 1, 1);
+        let conv2 = ConvConfig::new(hidden_channels, out_channels, 3, 1, depthwise);
 
         Self {
             conv1,
@@ -186,6 +186,7 @@ impl CspBottleneckConfig {
         num_blocks: usize,
         expansion: f64,
         shortcut: bool,
+        depthwise: bool,
     ) -> Self {
         assert!(
             expansion > 0.0 && expansion <= 1.0,
@@ -198,7 +199,7 @@ impl CspBottleneckConfig {
         let conv2 = BaseConvConfig::new(in_channels, hidden_channels, 1, 1, 1);
         let conv3 = BaseConvConfig::new(2 * hidden_channels, out_channels, 1, 1, 1);
         let m = (0..num_blocks)
-            .map(|_| BottleneckConfig::new(hidden_channels, hidden_channels, shortcut))
+            .map(|_| BottleneckConfig::new(hidden_channels, hidden_channels, shortcut, depthwise))
             .collect();
 
         Self {
