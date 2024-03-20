@@ -5,11 +5,12 @@ examples constructed using the [Burn](https://github.com/burn-rs/burn) deep lear
 
 ## Collection of Official Models
 
-| Model                                          | Description                                           | Repository Link                              |
-|------------------------------------------------|-------------------------------------------------------|----------------------------------------------|
-| [SqueezeNet](https://arxiv.org/abs/1602.07360) | A small CNN-based model for image classification.     | [squeezenet-burn](squeezenet-burn/README.md) |
-| [ResNet](https://arxiv.org/abs/1512.03385)     | A CNN based on residual blocks with skip connections. | [resnet-burn](resnet-burn/README.md)         |
-| [RoBERTa](https://arxiv.org/abs/1907.11692)    | A robustly optimized BERT pretraining approach.       | [bert-burn](bert-burn/README.md)             |
+| Model                                          | Description                                              | Repository Link                              |
+|------------------------------------------------|----------------------------------------------------------|----------------------------------------------|
+| [SqueezeNet](https://arxiv.org/abs/1602.07360) | A small CNN-based model for image classification.        | [squeezenet-burn](squeezenet-burn/README.md) |
+| [ResNet](https://arxiv.org/abs/1512.03385)     | A CNN based on residual blocks with skip connections.    | [resnet-burn](resnet-burn/README.md)         |
+| [RoBERTa](https://arxiv.org/abs/1907.11692)    | A robustly optimized BERT pretraining approach.          | [bert-burn](bert-burn/README.md)             |
+| [YOLOX](https://arxiv.org/abs/2107.08430)      | A single-stage object detector based on the YOLO series. | [yolox-burn](yolox-burn/README.md)         |
 
 ## Community Contributions
 
