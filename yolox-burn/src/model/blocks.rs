@@ -19,9 +19,9 @@ pub fn expand(num_channels: usize, factor: f64) -> usize {
 /// architecture.
 #[derive(Module, Debug)]
 pub enum Conv<B: Backend> {
-    /// Basic convolution block, used for all variants except YOLOX-Nano.
+    /// Basic convolution block used for all variants.
     BaseConv(BaseConv<B>),
-    /// Depthwise separable convolution block, used by YOLOX-Nano.
+    /// Depthwise separable convolution block, used for some blocks by YOLOX-Nano.
     DwsConv(DwsConv<B>),
 }
 
