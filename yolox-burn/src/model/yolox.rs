@@ -15,9 +15,6 @@ use {
     burn_import::pytorch::{LoadArgs, PyTorchFileRecorder},
 };
 
-// TODO: YOLOX
-// Only YOLOX-Nano uses depthwise=True (DwsConv)
-
 /// [YOLOX](https://paperswithcode.com/method/yolox) object detection architecture.
 #[derive(Module, Debug)]
 pub struct Yolox<B: Backend> {
@@ -289,22 +286,6 @@ impl<B: Backend> Yolox<B> {
                 "$1.conv$3.$4",
             );
 
-        // if depthwise {
-        //     load_args = load_args
-        //         // Map backbone.backbone.dark[i].0.{dconv | pconv}.* -> backbone.backbone.dark[i].conv.*
-        //         .with_key_remap(
-        //             "(backbone\\.backbone\\.dark[2-5])\\.0\\.([dp]conv\\.+)",
-        //             "$1.conv.$2",
-        //         )
-        //         // Map backbone.backbone.dark[i].1.* -> backbone.backbone.dark[i].c3.*
-        //         .with_key_remap("(backbone\\.backbone\\.dark[2-4])\\.1\\.(.+)", "$1.c3.$2")
-        // } else {
-        //     load_args = load_args
-        //         // Map backbone.backbone.dark[i].0.* -> backbone.backbone.dark[i].conv.*
-        //         .with_key_remap("(backbone\\.backbone\\.dark[2-5])\\.0\\.(.+)", "$1.conv.$2")
-        //         // Map backbone.backbone.dark[i].1.* -> backbone.backbone.dark[i].c3.*
-        //         .with_key_remap("(backbone\\.backbone\\.dark[2-4])\\.1\\.(.+)", "$1.c3.$2")
-        // }
         let record = PyTorchFileRecorder::<FullPrecisionSettings>::new().load(load_args, device)?;
 
         Ok(record)

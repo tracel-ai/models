@@ -19,7 +19,9 @@ pub fn expand(num_channels: usize, factor: f64) -> usize {
 /// architecture.
 #[derive(Module, Debug)]
 pub enum Conv<B: Backend> {
+    /// Basic convolution block, used for all variants except YOLOX-Nano.
     BaseConv(BaseConv<B>),
+    /// Depthwise separable convolution block, used by YOLOX-Nano.
     DwsConv(DwsConv<B>),
 }
 
@@ -107,7 +109,6 @@ impl<B: Backend> BaseConv<B> {
         let x = self.conv.forward(x);
         let x = self.bn.forward(x);
 
-        // SiLU not in nn yet
         silu(x)
     }
 }
