@@ -29,7 +29,7 @@ pub fn main() {
 
     // Create ResNet-18
     let device = Default::default();
-    let model: ResNet<NdArray, _> =
+    let model: ResNet<NdArray> =
         ResNet::resnet18_pretrained(weights::ResNet18::ImageNet1kV1, &device)
             .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
             .unwrap();
