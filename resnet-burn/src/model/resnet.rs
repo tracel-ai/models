@@ -6,12 +6,13 @@ use burn::{
     nn::{
         conv::{Conv2d, Conv2dConfig},
         pool::{AdaptiveAvgPool2d, AdaptiveAvgPool2dConfig, MaxPool2d, MaxPool2dConfig},
-        BatchNorm, BatchNormConfig, Initializer, Linear, LinearConfig, PaddingConfig2d, ReLU,
+        BatchNorm, BatchNormConfig, Initializer, Linear, LinearConfig, PaddingConfig2d, Relu,
     },
     tensor::{backend::Backend, Device, Tensor},
 };
 
-use super::block::{BasicBlock, Bottleneck, LayerBlock, LayerBlockConfig, ResidualBlock};
+pub use super::block::{BasicBlock, Bottleneck, ResidualBlock};
+use super::block::{LayerBlock, LayerBlockConfig};
 
 #[cfg(feature = "pretrained")]
 use {
@@ -30,10 +31,10 @@ const RESNET152_BLOCKS: [usize; 4] = [3, 8, 36, 3];
 /// ResNet implementation.
 /// Derived from [torchivision.models.resnet.ResNet](https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py)
 #[derive(Module, Debug)]
-pub struct ResNet<B: Backend, M> {
+pub struct ResNet<B: Backend, M: Module<B>> {
     conv1: Conv2d<B>,
     bn1: BatchNorm<B, 2>,
-    relu: ReLU,
+    relu: Relu,
     maxpool: MaxPool2d,
     layer1: LayerBlock<B, M>,
     layer2: LayerBlock<B, M>,
@@ -43,7 +44,7 @@ pub struct ResNet<B: Backend, M> {
     fc: Linear<B>,
 }
 
-impl<B: Backend, M: ResidualBlock<B>> ResNet<B, M> {
+impl<B: Backend, M: ResidualBlock<B> + Module<B>> ResNet<B, M> {
     pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 2> {
         // First block
         let out = self.conv1.forward(input);
@@ -124,9 +125,8 @@ impl<B: Backend> ResNet<B, BasicBlock<B>> {
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-
-        let model = ResNetConfig::<B, BasicBlock<B>>::new(RESNET18_BLOCKS, weights.num_classes, 1)
-            .init_with(record);
+        let model =
+            ResNet::<B, BasicBlock<B>>::resnet18(weights.num_classes, &device).load_record(record);
 
         Ok(model)
     }
@@ -163,8 +163,8 @@ impl<B: Backend> ResNet<B, BasicBlock<B>> {
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNetConfig::<B, BasicBlock<B>>::new(RESNET34_BLOCKS, weights.num_classes, 1)
-            .init_with(record);
+        let model =
+            ResNet::<B, BasicBlock<B>>::resnet34(weights.num_classes, &device).load_record(record);
 
         Ok(model)
     }
@@ -203,8 +203,8 @@ impl<B: Backend> ResNet<B, Bottleneck<B>> {
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNetConfig::<B, Bottleneck<B>>::new(RESNET50_BLOCKS, weights.num_classes, 4)
-            .init_with(record);
+        let model =
+            ResNet::<B, Bottleneck<B>>::resnet50(weights.num_classes, &device).load_record(record);
 
         Ok(model)
     }
@@ -241,8 +241,8 @@ impl<B: Backend> ResNet<B, Bottleneck<B>> {
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNetConfig::<B, Bottleneck<B>>::new(RESNET101_BLOCKS, weights.num_classes, 4)
-            .init_with(record);
+        let model =
+            ResNet::<B, Bottleneck<B>>::resnet101(weights.num_classes, &device).load_record(record);
 
         Ok(model)
     }
@@ -279,8 +279,8 @@ impl<B: Backend> ResNet<B, Bottleneck<B>> {
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNetConfig::<B, Bottleneck<B>>::new(RESNET152_BLOCKS, weights.num_classes, 4)
-            .init_with(record);
+        let model =
+            ResNet::<B, Bottleneck<B>>::resnet152(weights.num_classes, &device).load_record(record);
 
         Ok(model)
     }
@@ -360,7 +360,7 @@ impl<B: Backend> ResNetConfig<B, BasicBlock<B>> {
         ResNet {
             conv1: self.conv1.with_initializer(initializer).init(device),
             bn1: self.bn1.init(device),
-            relu: ReLU::new(),
+            relu: Relu::new(),
             maxpool: self.maxpool.init(),
             layer1: self.layer1.init(device),
             layer2: self.layer2.init(device),
@@ -368,22 +368,6 @@ impl<B: Backend> ResNetConfig<B, BasicBlock<B>> {
             layer4: self.layer4.init(device),
             avgpool: self.avgpool.init(),
             fc: self.fc.init(device),
-        }
-    }
-
-    /// Initialize a new [ResNet](ResNet) module with a [record](ResNetRecord).
-    fn init_with(&self, record: ResNetRecord<B, BasicBlock<B>>) -> ResNet<B, BasicBlock<B>> {
-        ResNet {
-            conv1: self.conv1.init_with(record.conv1),
-            bn1: self.bn1.init_with(record.bn1),
-            relu: ReLU::new(),
-            maxpool: self.maxpool.init(),
-            layer1: self.layer1.init_with(record.layer1),
-            layer2: self.layer2.init_with(record.layer2),
-            layer3: self.layer3.init_with(record.layer3),
-            layer4: self.layer4.init_with(record.layer4),
-            avgpool: self.avgpool.init(),
-            fc: self.fc.init_with(record.fc),
         }
     }
 }
@@ -400,7 +384,7 @@ impl<B: Backend> ResNetConfig<B, Bottleneck<B>> {
         ResNet {
             conv1: self.conv1.with_initializer(initializer).init(device),
             bn1: self.bn1.init(device),
-            relu: ReLU::new(),
+            relu: Relu::new(),
             maxpool: self.maxpool.init(),
             layer1: self.layer1.init(device),
             layer2: self.layer2.init(device),
@@ -408,22 +392,6 @@ impl<B: Backend> ResNetConfig<B, Bottleneck<B>> {
             layer4: self.layer4.init(device),
             avgpool: self.avgpool.init(),
             fc: self.fc.init(device),
-        }
-    }
-
-    /// Initialize a new [ResNet](ResNet) module with a [record](ResNetRecord).
-    fn init_with(&self, record: ResNetRecord<B, Bottleneck<B>>) -> ResNet<B, Bottleneck<B>> {
-        ResNet {
-            conv1: self.conv1.init_with(record.conv1),
-            bn1: self.bn1.init_with(record.bn1),
-            relu: ReLU::new(),
-            maxpool: self.maxpool.init(),
-            layer1: self.layer1.init_with(record.layer1),
-            layer2: self.layer2.init_with(record.layer2),
-            layer3: self.layer3.init_with(record.layer3),
-            layer4: self.layer4.init_with(record.layer4),
-            avgpool: self.avgpool.init(),
-            fc: self.fc.init_with(record.fc),
         }
     }
 }
