@@ -19,14 +19,14 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-yolox-burn = { git = "https://github.com/burn-rs/models", package = "yolox-burn", default-features = false }
+yolox-burn = { git = "https://github.com/tracel-ai/models", package = "yolox-burn", default-features = false }
 ```
 
 If you want to get the COCO pre-trained weights, enable the `pretrained` feature flag.
 
 ```toml
 [dependencies]
-yolox-burn = { git = "https://github.com/burn-rs/models", package = "yolox-burn", features = ["pretrained"] }
+yolox-burn = { git = "https://github.com/tracel-ai/models", package = "yolox-burn", features = ["pretrained"] }
 ```
 
 **Important:** this feature requires `std`.
