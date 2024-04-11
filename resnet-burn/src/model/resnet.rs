@@ -247,6 +247,13 @@ impl<B: Backend> ResNet<B> {
 
         Ok(model)
     }
+
+    /// Re-initialize the last layer with the specified number of output classes.
+    pub fn with_classes(mut self, num_classes: usize) -> Self {
+        let [d_input, _d_output] = self.fc.weight.dims();
+        self.fc = LinearConfig::new(d_input, num_classes).init(&self.fc.weight.device());
+        self
+    }
 }
 
 #[cfg(feature = "pretrained")]
