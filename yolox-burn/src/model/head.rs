@@ -185,50 +185,8 @@ impl HeadConfig {
             cls_convs: self.cls_convs.iter().map(|m| m.init(device)).collect(),
             reg_convs: self.reg_convs.iter().map(|m| m.init(device)).collect(),
             cls_preds: self.cls_preds.iter().map(|m| m.init(device)).collect(),
-            reg_preds: self.cls_preds.iter().map(|m| m.init(device)).collect(),
-            obj_preds: self.cls_preds.iter().map(|m| m.init(device)).collect(),
-        }
-    }
-
-    /// Initialize a new [YOLOX head](Head) module with a [record](HeadRecord).
-    pub fn init_with<B: Backend>(&self, record: HeadRecord<B>) -> Head<B> {
-        Head {
-            stems: self
-                .stems
-                .iter()
-                .zip(record.stems)
-                .map(|(m, r)| m.init_with(r))
-                .collect(),
-            cls_convs: self
-                .cls_convs
-                .iter()
-                .zip(record.cls_convs)
-                .map(|(m, r)| m.init_with(r))
-                .collect(),
-            reg_convs: self
-                .reg_convs
-                .iter()
-                .zip(record.reg_convs)
-                .map(|(m, r)| m.init_with(r))
-                .collect(),
-            cls_preds: self
-                .cls_preds
-                .iter()
-                .zip(record.cls_preds)
-                .map(|(m, r)| m.init_with(r))
-                .collect(),
-            reg_preds: self
-                .reg_preds
-                .iter()
-                .zip(record.reg_preds)
-                .map(|(m, r)| m.init_with(r))
-                .collect(),
-            obj_preds: self
-                .obj_preds
-                .iter()
-                .zip(record.obj_preds)
-                .map(|(m, r)| m.init_with(r))
-                .collect(),
+            reg_preds: self.reg_preds.iter().map(|m| m.init(device)).collect(),
+            obj_preds: self.obj_preds.iter().map(|m| m.init(device)).collect(),
         }
     }
 }

@@ -110,17 +110,6 @@ impl CspDarknetConfig {
             dark5: self.dark5.init(device),
         }
     }
-
-    /// Initialize a new [CspDarknet](CspDarknet) module with a [record](CspDarknetRecord).
-    pub fn init_with<B: Backend>(&self, record: CspDarknetRecord<B>) -> CspDarknet<B> {
-        CspDarknet {
-            stem: self.stem.init_with(record.stem),
-            dark2: self.dark2.init_with(record.dark2),
-            dark3: self.dark3.init_with(record.dark3),
-            dark4: self.dark4.init_with(record.dark4),
-            dark5: self.dark5.init_with(record.dark5),
-        }
-    }
 }
 
 /// A BaseConv -> CspBottleneck block.
@@ -178,21 +167,6 @@ impl CspBlockConfig {
             conv: self.conv.init(device),
             c3: self.c3.init(device),
             spp: self.spp.as_ref().map(|spp| spp.init(device)),
-        }
-    }
-
-    /// Initialize a new [CSP block](CspBlock) module with a [record](CspBlockRecord).
-    pub fn init_with<B: Backend>(&self, record: CspBlockRecord<B>) -> CspBlock<B> {
-        CspBlock {
-            conv: self.conv.init_with(record.conv),
-            c3: self.c3.init_with(record.c3),
-            spp: self.spp.as_ref().map(|d| {
-                d.init_with(
-                    record
-                        .spp
-                        .expect("Should initialize SppBottleneck block with record."),
-                )
-            }),
         }
     }
 }

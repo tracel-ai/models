@@ -174,19 +174,4 @@ impl PafpnConfig {
             bu_conv2: self.bu_conv2.init(device),
         }
     }
-
-    /// Initialize a new [PAFPN](Pafpn) module with a [record](PafpnRecord).
-    pub fn init_with<B: Backend>(&self, record: PafpnRecord<B>) -> Pafpn<B> {
-        Pafpn {
-            backbone: self.backbone.init_with(record.backbone),
-            lateral_conv0: self.lateral_conv0.init_with(record.lateral_conv0),
-            c3_n3: self.c3_n3.init_with(record.c3_n3),
-            c3_n4: self.c3_n4.init_with(record.c3_n4),
-            c3_p3: self.c3_p3.init_with(record.c3_p3),
-            c3_p4: self.c3_p4.init_with(record.c3_p4),
-            reduce_conv1: self.reduce_conv1.init_with(record.reduce_conv1),
-            bu_conv1: self.bu_conv1.init_with(record.bu_conv1),
-            bu_conv2: self.bu_conv2.init_with(record.bu_conv2),
-        }
-    }
 }

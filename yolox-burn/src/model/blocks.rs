@@ -69,32 +69,6 @@ impl ConvConfig {
             )
         }
     }
-
-    /// Initialize a new [convolution block](Conv) module with a [record](ConvRecord).
-    pub fn init_with<B: Backend>(&self, record: ConvRecord<B>) -> Conv<B> {
-        match record {
-            ConvRecord::DwsConv(rec) if self.depthwise => Conv::DwsConv(
-                DwsConvConfig::new(
-                    self.in_channels,
-                    self.out_channels,
-                    self.kernel_size,
-                    self.stride,
-                )
-                .init_with(rec),
-            ),
-            ConvRecord::BaseConv(rec) if !self.depthwise => Conv::BaseConv(
-                BaseConvConfig::new(
-                    self.in_channels,
-                    self.out_channels,
-                    self.kernel_size,
-                    self.stride,
-                    1,
-                )
-                .init_with(rec),
-            ),
-            _ => panic!("Invalid record for depthwise={}", self.depthwise),
-        }
-    }
 }
 
 /// A Conv2d -> BatchNorm -> activation block.
@@ -150,14 +124,6 @@ impl BaseConvConfig {
             bn: self.bn.init(device),
         }
     }
-
-    /// Initialize a new [base convolution block](BaseConv) module with a [record](BaseConvRecord).
-    pub fn init_with<B: Backend>(&self, record: BaseConvRecord<B>) -> BaseConv<B> {
-        BaseConv {
-            conv: self.conv.init_with(record.conv),
-            bn: self.bn.init_with(record.bn),
-        }
-    }
 }
 
 /// A [depthwise separable convolution](https://paperswithcode.com/method/depthwise-separable-convolution)
@@ -197,14 +163,6 @@ impl DwsConvConfig {
         DwsConv {
             dconv: self.dconv.init(device),
             pconv: self.pconv.init(device),
-        }
-    }
-
-    /// Initialize a new [depthwise separable convolution block](DwsConv) module with a [record](DwsConvRecord).
-    pub fn init_with<B: Backend>(&self, record: DwsConvRecord<B>) -> DwsConv<B> {
-        DwsConv {
-            dconv: self.dconv.init_with(record.dconv),
-            pconv: self.pconv.init_with(record.pconv),
         }
     }
 }
@@ -272,13 +230,6 @@ impl FocusConfig {
             conv: self.conv.init(device),
         }
     }
-
-    /// Initialize a new [focus block](Focus) module with a [record](FocusRecord).
-    pub fn init_with<B: Backend>(&self, record: FocusRecord<B>) -> Focus<B> {
-        Focus {
-            conv: self.conv.init_with(record.conv),
-        }
-    }
 }
 
 /// Dual convolution block used for feature extraction in the prediction head.
@@ -315,14 +266,6 @@ impl ConvBlockConfig {
         ConvBlock {
             conv0: self.conv0.init(device),
             conv1: self.conv1.init(device),
-        }
-    }
-
-    /// Initialize a new [dual convolution block](ConvBlock) module with a [record](ConvBlockRecord).
-    pub fn init_with<B: Backend>(&self, record: ConvBlockRecord<B>) -> ConvBlock<B> {
-        ConvBlock {
-            conv0: self.conv0.init_with(record.conv0),
-            conv1: self.conv1.init_with(record.conv1),
         }
     }
 }

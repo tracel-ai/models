@@ -7,6 +7,8 @@ use burn::{
 
 use super::blocks::{expand, BaseConv, BaseConvConfig, Conv, ConvConfig};
 
+pub(crate) const SPP_POOLING: [usize; 3] = [5, 9, 13];
+
 /// Standard bottleneck block.
 #[derive(Module, Debug)]
 pub struct Bottleneck<B: Backend> {
@@ -61,15 +63,6 @@ impl BottleneckConfig {
             shortcut: self.shortcut,
         }
     }
-
-    /// Initialize a new [bottleneck block](Bottleneck) module with a [record](BottleneckRecord).
-    pub fn init_with<B: Backend>(&self, record: BottleneckRecord<B>) -> Bottleneck<B> {
-        Bottleneck {
-            conv1: self.conv1.init_with(record.conv1),
-            conv2: self.conv2.init_with(record.conv2),
-            shortcut: self.shortcut,
-        }
-    }
 }
 
 /// Spatial pyramid pooling layer used in YOLOv3-SPP.
@@ -113,7 +106,7 @@ impl SppBottleneckConfig {
 
         let conv1 = BaseConvConfig::new(in_channels, hidden_channels, 1, 1, 1);
         let conv2 = BaseConvConfig::new(conv2_channels, out_channels, 1, 1, 1);
-        let m: Vec<_> = [5, 9, 13]
+        let m: Vec<_> = SPP_POOLING
             .into_iter()
             .map(|k| {
                 let pad = k / 2;
@@ -130,15 +123,6 @@ impl SppBottleneckConfig {
         SppBottleneck {
             conv1: self.conv1.init(device),
             conv2: self.conv2.init(device),
-            m: self.m.iter().map(|m| m.init()).collect(),
-        }
-    }
-
-    /// Initialize a new [bottleneck block](SppBottleneck) module with a [record](SppBottleneckRecord).
-    pub fn init_with<B: Backend>(&self, record: SppBottleneckRecord<B>) -> SppBottleneck<B> {
-        SppBottleneck {
-            conv1: self.conv1.init_with(record.conv1),
-            conv2: self.conv2.init_with(record.conv2),
             m: self.m.iter().map(|m| m.init()).collect(),
         }
     }
@@ -217,21 +201,6 @@ impl CspBottleneckConfig {
             conv2: self.conv2.init(device),
             conv3: self.conv3.init(device),
             m: self.m.iter().map(|b| b.init(device)).collect(),
-        }
-    }
-
-    /// Initialize a new [bottleneck block](CspBottleneck) module with a [record](CspBottleneckRecord).
-    pub fn init_with<B: Backend>(&self, record: CspBottleneckRecord<B>) -> CspBottleneck<B> {
-        CspBottleneck {
-            conv1: self.conv1.init_with(record.conv1),
-            conv2: self.conv2.init_with(record.conv2),
-            conv3: self.conv3.init_with(record.conv3),
-            m: self
-                .m
-                .iter()
-                .zip(record.m)
-                .map(|(b, r)| b.init_with(r))
-                .collect(),
         }
     }
 }

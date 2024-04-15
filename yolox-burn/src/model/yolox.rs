@@ -1,7 +1,9 @@
 use burn::{
-    module::Module,
+    module::{ConstantRecord, Module},
     tensor::{backend::Backend, Device, Tensor},
 };
+
+use crate::model::bottleneck::SPP_POOLING;
 
 use super::{
     head::{Head, HeadConfig},
@@ -61,7 +63,7 @@ impl<B: Backend> Yolox<B> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
 
-        let model = YoloxConfig::new(0.33, 0.25, weights.num_classes, true).init_with(record);
+        let model = Self::yolox_nano(weights.num_classes, device).load_record(record);
 
         Ok(model)
     }
@@ -99,7 +101,7 @@ impl<B: Backend> Yolox<B> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
 
-        let model = YoloxConfig::new(0.33, 0.375, weights.num_classes, false).init_with(record);
+        let model = Self::yolox_tiny(weights.num_classes, device).load_record(record);
 
         Ok(model)
     }
@@ -137,7 +139,7 @@ impl<B: Backend> Yolox<B> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
 
-        let model = YoloxConfig::new(0.33, 0.50, weights.num_classes, false).init_with(record);
+        let model = Self::yolox_s(weights.num_classes, device).load_record(record);
 
         Ok(model)
     }
@@ -175,7 +177,7 @@ impl<B: Backend> Yolox<B> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
 
-        let model = YoloxConfig::new(0.67, 0.75, weights.num_classes, false).init_with(record);
+        let model = Self::yolox_m(weights.num_classes, device).load_record(record);
 
         Ok(model)
     }
@@ -213,7 +215,7 @@ impl<B: Backend> Yolox<B> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
 
-        let model = YoloxConfig::new(1., 1., weights.num_classes, false).init_with(record);
+        let model = Self::yolox_l(weights.num_classes, device).load_record(record);
 
         Ok(model)
     }
@@ -251,7 +253,7 @@ impl<B: Backend> Yolox<B> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
 
-        let model = YoloxConfig::new(1.33, 1.25, weights.num_classes, false).init_with(record);
+        let model = Self::yolox_x(weights.num_classes, device).load_record(record);
 
         Ok(model)
     }
@@ -286,7 +288,17 @@ impl<B: Backend> Yolox<B> {
                 "$1.conv$3.$4",
             );
 
-        let record = PyTorchFileRecorder::<FullPrecisionSettings>::new().load(load_args, device)?;
+        let mut record: YoloxRecord<B> =
+            PyTorchFileRecorder::<FullPrecisionSettings>::new().load(load_args, device)?;
+
+        if let Some(ref mut spp) = record.backbone.backbone.dark5.spp {
+            // Handle the initialization for Vec<MaxPool2d>, which has no parameters.
+            // Without this, the vector would be initialized as empty and thus no MaxPool2d
+            // layers would be applied, which is incorrect.
+            if spp.m.is_empty() {
+                spp.m = vec![ConstantRecord; SPP_POOLING.len()];
+            }
+        }
 
         Ok(record)
     }
@@ -312,14 +324,6 @@ impl YoloxConfig {
         Yolox {
             backbone: self.backbone.init(device),
             head: self.head.init(device),
-        }
-    }
-
-    /// Initialize a new [YOLOX detector](Yolox) module with a [record](YoloxRecord).
-    pub fn init_with<B: Backend>(&self, record: YoloxRecord<B>) -> Yolox<B> {
-        Yolox {
-            backbone: self.backbone.init_with(record.backbone),
-            head: self.head.init_with(record.head),
         }
     }
 }
