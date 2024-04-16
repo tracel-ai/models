@@ -33,7 +33,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-squeezenet-burn = { git = "https://github.com/burn-rs/models", package = "squeezenet-burn", features = ["weights_embedded"], default-features = false }
+squeezenet-burn = { git = "https://github.com/tracel-ai/models", package = "squeezenet-burn", features = ["weights_embedded"], default-features = false }
 ```
 
 ### To run the example

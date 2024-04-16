@@ -1,19 +1,56 @@
 use core::f64::consts::SQRT_2;
-use core::marker::PhantomData;
 
 use alloc::vec::Vec;
 
 use burn::{
+    config::Config,
     module::Module,
     nn::{
         conv::{Conv2d, Conv2dConfig},
-        BatchNorm, BatchNormConfig, Initializer, PaddingConfig2d, ReLU,
+        BatchNorm, BatchNormConfig, Initializer, PaddingConfig2d, Relu,
     },
     tensor::{backend::Backend, Device, Tensor},
 };
 
-pub trait ResidualBlock<B: Backend> {
-    fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4>;
+#[derive(Module, Debug)]
+pub enum ResidualBlock<B: Backend> {
+    /// A bottleneck residual block.
+    Bottleneck(Bottleneck<B>),
+    /// A basic residual block.
+    Basic(BasicBlock<B>),
+}
+
+impl<B: Backend> ResidualBlock<B> {
+    fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
+        match self {
+            Self::Basic(block) => block.forward(input),
+            Self::Bottleneck(block) => block.forward(input),
+        }
+    }
+}
+
+#[derive(Config)]
+struct ResidualBlockConfig {
+    in_channels: usize,
+    out_channels: usize,
+    stride: usize,
+    bottleneck: bool,
+}
+
+impl ResidualBlockConfig {
+    fn init<B: Backend>(&self, device: &Device<B>) -> ResidualBlock<B> {
+        if self.bottleneck {
+            ResidualBlock::Bottleneck(
+                BottleneckConfig::new(self.in_channels, self.out_channels, self.stride)
+                    .init(device),
+            )
+        } else {
+            ResidualBlock::Basic(
+                BasicBlockConfig::new(self.in_channels, self.out_channels, self.stride)
+                    .init(device),
+            )
+        }
+    }
 }
 
 /// ResNet [basic residual block](https://paperswithcode.com/method/residual-block) implementation.
@@ -22,13 +59,13 @@ pub trait ResidualBlock<B: Backend> {
 pub struct BasicBlock<B: Backend> {
     conv1: Conv2d<B>,
     bn1: BatchNorm<B, 2>,
-    relu: ReLU,
+    relu: Relu,
     conv2: Conv2d<B>,
     bn2: BatchNorm<B, 2>,
     downsample: Option<Downsample<B>>,
 }
 
-impl<B: Backend> ResidualBlock<B> for BasicBlock<B> {
+impl<B: Backend> BasicBlock<B> {
     fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
         let identity = input.clone();
 
@@ -63,7 +100,7 @@ impl<B: Backend> ResidualBlock<B> for BasicBlock<B> {
 pub struct Bottleneck<B: Backend> {
     conv1: Conv2d<B>,
     bn1: BatchNorm<B, 2>,
-    relu: ReLU,
+    relu: Relu,
     conv2: Conv2d<B>,
     bn2: BatchNorm<B, 2>,
     conv3: Conv2d<B>,
@@ -71,7 +108,7 @@ pub struct Bottleneck<B: Backend> {
     downsample: Option<Downsample<B>>,
 }
 
-impl<B: Backend> ResidualBlock<B> for Bottleneck<B> {
+impl<B: Backend> Bottleneck<B> {
     fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
         let identity = input.clone();
 
@@ -114,12 +151,11 @@ impl<B: Backend> Downsample<B> {
 
 /// Collection of sequential residual blocks.
 #[derive(Module, Debug)]
-pub struct LayerBlock<B: Backend, M> {
-    blocks: Vec<M>,
-    _backend: PhantomData<B>,
+pub struct LayerBlock<B: Backend> {
+    blocks: Vec<ResidualBlock<B>>,
 }
 
-impl<B: Backend, M: ResidualBlock<B>> LayerBlock<B, M> {
+impl<B: Backend> LayerBlock<B> {
     pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
         let mut out = input;
         for block in &self.blocks {
@@ -187,7 +223,7 @@ impl BasicBlockConfig {
                 .with_initializer(initializer.clone())
                 .init(device),
             bn1: self.bn1.init(device),
-            relu: ReLU::new(),
+            relu: Relu::new(),
             conv2: self
                 .conv2
                 .clone()
@@ -195,24 +231,6 @@ impl BasicBlockConfig {
                 .init(device),
             bn2: self.bn2.init(device),
             downsample: self.downsample.as_ref().map(|d| d.init(device)),
-        }
-    }
-
-    /// Initialize a new [basic residual block](BasicBlock) module with a [record](BasicBlockRecord).
-    fn init_with<B: Backend>(&self, record: BasicBlockRecord<B>) -> BasicBlock<B> {
-        BasicBlock {
-            conv1: self.conv1.init_with(record.conv1),
-            bn1: self.bn1.init_with(record.bn1),
-            relu: ReLU::new(),
-            conv2: self.conv2.init_with(record.conv2),
-            bn2: self.bn2.init_with(record.bn2),
-            downsample: self.downsample.as_ref().map(|d| {
-                d.init_with(
-                    record
-                        .downsample
-                        .expect("Should initialize downsample block with record."),
-                )
-            }),
         }
     }
 }
@@ -286,7 +304,7 @@ impl BottleneckConfig {
                 .with_initializer(initializer.clone())
                 .init(device),
             bn1: self.bn1.init(device),
-            relu: ReLU::new(),
+            relu: Relu::new(),
             conv2: self
                 .conv2
                 .clone()
@@ -300,26 +318,6 @@ impl BottleneckConfig {
                 .init(device),
             bn3: self.bn3.init(device),
             downsample: self.downsample.as_ref().map(|d| d.init(device)),
-        }
-    }
-
-    /// Initialize a new [bottleneck residual block](Bottleneck) module with a [record](BottleneckRecord).
-    fn init_with<B: Backend>(&self, record: BottleneckRecord<B>) -> Bottleneck<B> {
-        Bottleneck {
-            conv1: self.conv1.init_with(record.conv1),
-            bn1: self.bn1.init_with(record.bn1),
-            relu: ReLU::new(),
-            conv2: self.conv2.init_with(record.conv2),
-            bn2: self.bn2.init_with(record.bn2),
-            conv3: self.conv3.init_with(record.conv3),
-            bn3: self.bn3.init_with(record.bn3),
-            downsample: self.downsample.as_ref().map(|d| {
-                d.init_with(
-                    record
-                        .downsample
-                        .expect("Should initialize downsample block with record."),
-                )
-            }),
         }
     }
 }
@@ -356,132 +354,45 @@ impl DownsampleConfig {
             bn: self.bn.init(device),
         }
     }
-
-    /// Initialize a new [downsample](Downsample) module with a [record](DownsampleRecord).
-    fn init_with<B: Backend>(&self, record: DownsampleRecord<B>) -> Downsample<B> {
-        Downsample {
-            conv: self.conv.init_with(record.conv),
-            bn: self.bn.init_with(record.bn),
-        }
-    }
 }
 
 /// [Residual layer block](LayerBlock) configuration.
-pub struct LayerBlockConfig<M> {
+#[derive(Config)]
+pub struct LayerBlockConfig {
     num_blocks: usize,
     in_channels: usize,
     out_channels: usize,
     stride: usize,
-    _block: PhantomData<M>,
+    bottleneck: bool,
 }
 
-impl<M> LayerBlockConfig<M> {
-    /// Create a new instance of the layer block [config](LayerBlockConfig).
-    pub fn new(num_blocks: usize, in_channels: usize, out_channels: usize, stride: usize) -> Self {
-        Self {
-            num_blocks,
-            in_channels,
-            out_channels,
-            stride,
-            _block: PhantomData,
-        }
-    }
-}
-
-impl<B: Backend> LayerBlockConfig<BasicBlock<B>> {
-    /// Initialize a new [LayerBlock](LayerBlock) module with [basic residual blocks](BasicBlock).
-    pub fn init(&self, device: &Device<B>) -> LayerBlock<B, BasicBlock<B>> {
+impl LayerBlockConfig {
+    /// Initialize a new [LayerBlock](LayerBlock) module.
+    pub fn init<B: Backend>(&self, device: &Device<B>) -> LayerBlock<B> {
         let blocks = (0..self.num_blocks)
             .map(|b| {
                 if b == 0 {
                     // First block uses the specified stride
-                    BasicBlockConfig::new(self.in_channels, self.out_channels, self.stride)
-                        .init(device)
+                    ResidualBlockConfig::new(
+                        self.in_channels,
+                        self.out_channels,
+                        self.stride,
+                        self.bottleneck,
+                    )
+                    .init(device)
                 } else {
                     // Other blocks use a stride of 1
-                    BasicBlockConfig::new(self.out_channels, self.out_channels, 1).init(device)
+                    ResidualBlockConfig::new(
+                        self.out_channels,
+                        self.out_channels,
+                        1,
+                        self.bottleneck,
+                    )
+                    .init(device)
                 }
             })
             .collect();
 
-        LayerBlock {
-            blocks,
-            _backend: PhantomData,
-        }
-    }
-
-    /// Initialize a new [LayerBlock](LayerBlock) module with a [record](LayerBlockRecord) for
-    /// [basic residual blocks](BasicBlock).
-    pub fn init_with(
-        &self,
-        record: LayerBlockRecord<B, BasicBlock<B>>,
-    ) -> LayerBlock<B, BasicBlock<B>> {
-        let blocks = (0..self.num_blocks)
-            .zip(record.blocks)
-            .map(|(b, rec)| {
-                if b == 0 {
-                    // First block uses the specified stride
-                    BasicBlockConfig::new(self.in_channels, self.out_channels, self.stride)
-                        .init_with(rec)
-                } else {
-                    // Other blocks use a stride of 1
-                    BasicBlockConfig::new(self.out_channels, self.out_channels, 1).init_with(rec)
-                }
-            })
-            .collect();
-
-        LayerBlock {
-            blocks,
-            _backend: PhantomData,
-        }
-    }
-}
-
-impl<B: Backend> LayerBlockConfig<Bottleneck<B>> {
-    /// Initialize a new [LayerBlock](LayerBlock) module with [bottleneck residual blocks](Bottleneck).
-    pub fn init(&self, device: &Device<B>) -> LayerBlock<B, Bottleneck<B>> {
-        let blocks = (0..self.num_blocks)
-            .map(|b| {
-                if b == 0 {
-                    // First block uses the specified stride
-                    BottleneckConfig::new(self.in_channels, self.out_channels, self.stride)
-                        .init(device)
-                } else {
-                    // Other blocks use a stride of 1
-                    BottleneckConfig::new(self.out_channels, self.out_channels, 1).init(device)
-                }
-            })
-            .collect();
-
-        LayerBlock {
-            blocks,
-            _backend: PhantomData,
-        }
-    }
-
-    /// Initialize a new [LayerBlock](LayerBlock) module with a [record](LayerBlockRecord) for
-    /// [bottleneck residual blocks](Bottleneck).
-    pub fn init_with(
-        &self,
-        record: LayerBlockRecord<B, Bottleneck<B>>,
-    ) -> LayerBlock<B, Bottleneck<B>> {
-        let blocks = (0..self.num_blocks)
-            .zip(record.blocks)
-            .map(|(b, rec)| {
-                if b == 0 {
-                    // First block uses the specified stride
-                    BottleneckConfig::new(self.in_channels, self.out_channels, self.stride)
-                        .init_with(rec)
-                } else {
-                    // Other blocks use a stride of 1
-                    BottleneckConfig::new(self.out_channels, self.out_channels, 1).init_with(rec)
-                }
-            })
-            .collect();
-
-        LayerBlock {
-            blocks,
-            _backend: PhantomData,
-        }
+        LayerBlock { blocks }
     }
 }
