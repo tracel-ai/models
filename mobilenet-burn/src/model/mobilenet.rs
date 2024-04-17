@@ -149,34 +149,6 @@ impl MobileNetV2Config {
             avg_pool: AdaptiveAvgPool2dConfig::new([1, 1]).init(),
         }
     }
-    // fn init_with<B: Backend>(&self, record: MobileNetV2Record<B>) -> MobileNetV2<B> {
-    //     let num_features = record.features.len();
-    //     let features = (0..num_features)
-    //         .zip(record.features)
-    //         .map(|(b, r)| match r {
-    //             FeatureLayersType::Block(block) => FeatureLayersType::Block(block.init_with(&r)),
-    //             FeatureLayersType::Conv(conv) => FeatureLayersType::Conv(conv.init_with(&r)),
-    //         })
-    //         .collect();
-    //     let num_classifier = record.classifier.len();
-    //     let classifier = (0..num_classifier)
-    //         .zip(record.classifier)
-    //         .map(|b, r| match r {
-    //             ClassifierLayersType::Dropout(dropout) => {
-    //                 ClassifierLayersType::Dropout(dropout.init_with(&r))
-    //             }
-    //             ClassifierLayersType::Linear(linear) => {
-    //                 ClassifierLayersType::Linear(linear.init_with(&r))
-    //             }
-    //         })
-    //         .collect();
-    //
-    //     MobileNetV2 {
-    //         features,
-    //         classifier,
-    //         avg_pool: AdaptiveAvgPool2dConfig::new([1, 1]).init(),
-    //     }
-    // }
 }
 impl<B: Backend> MobileNetV2<B> {
     pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
