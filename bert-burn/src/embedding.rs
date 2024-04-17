@@ -76,14 +76,15 @@ impl<B: Backend> BertEmbeddings<B> {
 
         let seq_length = input_shape.dims[1];
         let mut position_ids_tensor: Tensor<B, 2, Int> =
-            Tensor::arange(0..seq_length, device).reshape([1, seq_length]);
+            Tensor::arange(0..seq_length as i64, device).reshape([1, seq_length]);
 
         if self.max_position_embeddings != 512 {
             // RoBERTa use a different scheme than BERT to create position indexes where padding tokens are given
             // a fixed positional index. Check: create_position_ids_from_input_ids() in
             // https://github.com/huggingface/transformers/blob/main/src/transformers/models/roberta/modeling_roberta.py
             let position_ids = Tensor::arange(
-                self.pad_token_idx + 1..seq_length + self.pad_token_idx + 1,
+                (self.pad_token_idx as i64) + 1
+                    ..(seq_length as i64) + (self.pad_token_idx as i64) + 1,
                 device,
             )
             .reshape([1, seq_length]);
