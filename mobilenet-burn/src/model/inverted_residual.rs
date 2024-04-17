@@ -56,11 +56,9 @@ impl InvertedResidualConfig {
                     .init(device),
             ),
             match self.norm_type {
-                crate::model::conv_norm::NormalizationType::BatchNorm(_) => {
-                    InvertedResidualSequentialType::NormLayer(NormalizationLayer::BatchNorm(
-                        BatchNormConfig::new(self.oup).init(device),
-                    ))
-                }
+                NormalizationType::BatchNorm(_) => InvertedResidualSequentialType::NormLayer(
+                    NormalizationLayer::BatchNorm(BatchNormConfig::new(self.oup).init(device)),
+                ),
             },
         ];
         layers.append(&mut temp_layer);

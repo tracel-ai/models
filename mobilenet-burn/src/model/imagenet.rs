@@ -1,14 +1,5 @@
 use burn::tensor::{backend::Backend, Device, Tensor};
 
-// ResNet18_Weights.DEFAULT.transforms()
-// NOTE: we simply resize to 256 instead of resize + center crop
-// ImageClassification(
-//     crop_size=[224]
-//     resize_size=[256]
-//     interpolation=InterpolationMode.BILINEAR
-//     mean=[0.485, 0.456, 0.406]
-//     std=[0.229, 0.224, 0.225]
-// )
 const MEAN: [f32; 3] = [0.485, 0.456, 0.406];
 const STD: [f32; 3] = [0.229, 0.224, 0.225];
 
