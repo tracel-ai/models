@@ -1,9 +1,8 @@
 use super::tokenizer::Tokenizer;
-use burn::{
-    data::dataloader::batcher::Batcher,
-    nn::attention::generate_padding_mask,
-    tensor::{backend::Backend, Bool, Int, Tensor},
-};
+use burn::data::dataloader::batcher::Batcher;
+use burn::nn::attention::generate_padding_mask;
+use burn::tensor::backend::Backend;
+use burn::tensor::{Bool, Int, Tensor};
 use std::sync::Arc;
 
 #[derive(new)]

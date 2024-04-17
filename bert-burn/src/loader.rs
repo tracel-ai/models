@@ -5,17 +5,14 @@ use crate::model::BertModelConfig;
 
 use crate::embedding::BertEmbeddingsRecord;
 use burn::config::Config;
-use burn::module::Param;
+use burn::module::{ConstantRecord, Param};
 use burn::nn::attention::MultiHeadAttentionRecord;
 use burn::nn::transformer::{
     PositionWiseFeedForwardRecord, TransformerEncoderLayerRecord, TransformerEncoderRecord,
 };
-use burn::{
-    module::ConstantRecord,
-    nn::LayerNormRecord,
-    nn::{EmbeddingRecord, LinearRecord},
-    tensor::{backend::Backend, Data, Shape, Tensor},
-};
+use burn::nn::{EmbeddingRecord, LayerNormRecord, LinearRecord};
+use burn::tensor::backend::Backend;
+use burn::tensor::{Data, Shape, Tensor};
 use candle_core::Tensor as CandleTensor;
 use std::collections::HashMap;
 use std::path::PathBuf;

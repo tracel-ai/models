@@ -1,15 +1,14 @@
 use crate::data::BertInferenceBatch;
 use crate::embedding::{BertEmbeddings, BertEmbeddingsConfig};
 use crate::loader::{load_embeddings_from_safetensors, load_encoder_from_safetensors};
+use burn::config::Config;
+use burn::module::Module;
 use burn::nn::transformer::{
     TransformerEncoder, TransformerEncoderConfig, TransformerEncoderInput,
 };
 use burn::nn::Initializer::KaimingUniform;
-use burn::{
-    config::Config,
-    module::Module,
-    tensor::{backend::Backend, Tensor},
-};
+use burn::tensor::backend::Backend;
+use burn::tensor::Tensor;
 use candle_core::{safetensors, Device, Tensor as CandleTensor};
 use std::collections::HashMap;
 use std::path::PathBuf;
