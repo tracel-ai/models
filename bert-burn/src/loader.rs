@@ -5,6 +5,7 @@ use crate::model::BertModelConfig;
 
 use crate::embedding::BertEmbeddingsRecord;
 use burn::config::Config;
+use burn::module::Param;
 use burn::nn::attention::MultiHeadAttentionRecord;
 use burn::nn::transformer::{
     PositionWiseFeedForwardRecord, TransformerEncoderLayerRecord, TransformerEncoderRecord,
@@ -57,8 +58,8 @@ fn load_layer_norm_safetensor<B: Backend>(
     let gamma = load_1d_tensor_from_candle::<B>(weight, device);
 
     let layer_norm_record = LayerNormRecord {
-        beta: beta.into(),
-        gamma: gamma.into(),
+        beta: Param::from_tensor(beta),
+        gamma: Param::from_tensor(gamma),
         epsilon: ConstantRecord::new(),
     };
     layer_norm_record
@@ -75,8 +76,8 @@ fn load_linear_safetensor<B: Backend>(
     let weight = weight.transpose();
 
     let linear_record = LinearRecord {
-        weight: weight.into(),
-        bias: Some(bias.into()),
+        weight: Param::from_tensor(weight),
+        bias: Some(Param::from_tensor(bias)),
     };
     linear_record
 }
@@ -237,7 +238,7 @@ fn load_embedding_safetensor<B: Backend>(
     let weight = load_2d_tensor_from_candle(weight, device);
 
     let embedding = EmbeddingRecord {
-        weight: weight.into(),
+        weight: Param::from_tensor(weight),
     };
 
     embedding
