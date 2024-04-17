@@ -2,7 +2,7 @@
 authors = ["Aasheesh Singh aasheeshdtu@gmail.com"]
 license = "MIT OR Apache-2.0"
 name = "bert-burn"
-version="0.1.0"
+version = "0.1.0"
 edition = "2021"
 
 [features]
@@ -19,14 +19,14 @@ safetensors = ["candle-core/default"]
 
 [dependencies]
 # Burn
-burn = {version = "0.12.1", default-features = false}
-candle-core = { version = "0.3.2", optional = true}
+burn = { version = "0.13", default-features = false }
+candle-core = { version = "0.3.2", optional = true }
 # Tokenizer
 tokenizers = { version = "0.15.0", default-features = false, features = [
   "onig",
   "http",
 ] }
-burn-import = "0.12.1"
+burn-import = "0.13"
 derive-new = "0.6.0"
 hf-hub = { version = "0.3.2", features = ["tokio"] }
 

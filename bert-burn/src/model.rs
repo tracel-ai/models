@@ -84,40 +84,6 @@ impl BertModelConfig {
             encoder,
         }
     }
-
-    /// Initializes a Bert model with provided weights
-    pub fn init_with<B: Backend>(&self, record: BertModelRecord<B>) -> BertModel<B> {
-        let embeddings = BertEmbeddingsConfig {
-            vocab_size: self.vocab_size,
-            max_position_embeddings: self.max_position_embeddings,
-            type_vocab_size: self.type_vocab_size,
-            hidden_size: self.hidden_size,
-            hidden_dropout_prob: self.hidden_dropout_prob,
-            layer_norm_eps: self.layer_norm_eps,
-            pad_token_idx: self.pad_token_id,
-        }
-        .init_with(record.embeddings);
-
-        let encoder = TransformerEncoderConfig {
-            n_heads: self.num_attention_heads,
-            n_layers: self.num_hidden_layers,
-            d_model: self.hidden_size,
-            d_ff: self.intermediate_size,
-            dropout: self.hidden_dropout_prob,
-            norm_first: true,
-            quiet_softmax: false,
-            initializer: KaimingUniform {
-                gain: 1.0 / libm::sqrt(3.0),
-                fan_out_only: false,
-            },
-        }
-        .init_with(record.encoder);
-
-        BertModel {
-            encoder,
-            embeddings,
-        }
-    }
 }
 
 impl<B: Backend> BertModel<B> {
@@ -137,7 +103,7 @@ impl<B: Backend> BertModel<B> {
         file_path: PathBuf,
         device: &B::Device,
         config: BertModelConfig,
-    ) -> BertModel<B> {
+    ) -> BertModelRecord<B> {
         let model_name = config.model_type.as_str();
         let weight_result = safetensors::load::<PathBuf>(file_path, &Device::Cpu);
 
@@ -173,8 +139,6 @@ impl<B: Backend> BertModel<B> {
             embeddings: embeddings_record,
             encoder: encoder_record,
         };
-
-        let model = config.init_with::<B>(model_record);
-        model
+        model_record
     }
 }

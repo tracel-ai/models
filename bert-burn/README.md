@@ -11,7 +11,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-bert-burn = { git = "https://github.com/burn-rs/models", package = "bert-burn", default-features = false }
+bert-burn = { git = "https://github.com/tracel-ai/models", package = "bert-burn", default-features = false }
 ```
 
 ## Example Usage

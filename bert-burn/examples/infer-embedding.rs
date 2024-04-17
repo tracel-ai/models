@@ -1,6 +1,6 @@
 use bert_burn::data::{BertInputBatcher, BertTokenizer};
 use bert_burn::loader::{download_hf_model, load_model_config};
-use bert_burn::model::BertModel;
+use bert_burn::model::{BertModel, BertModelRecord};
 use burn::data::dataloader::batcher::Batcher;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
@@ -46,8 +46,10 @@ pub fn launch<B: Backend>(device: B::Device) {
     let (config_file, model_file) = download_hf_model(model_variant);
     let model_config = load_model_config(config_file);
 
-    let model: BertModel<B> =
+    let model_record: BertModelRecord<B> =
         BertModel::from_safetensors(model_file, &device, model_config.clone());
+
+    let model = BertModel::init(device).load_record(model_record);
 
     let tokenizer = Arc::new(BertTokenizer::new(
         model_variant.to_string(),

@@ -51,32 +51,6 @@ impl BertEmbeddingsConfig {
             pad_token_idx: self.pad_token_idx,
         }
     }
-
-    /// Initializes BertEmbeddings with provided weights
-    pub fn init_with<B: Backend>(&self, record: BertEmbeddingsRecord<B>) -> BertEmbeddings<B> {
-        let word_embeddings = EmbeddingConfig::new(self.vocab_size, self.hidden_size)
-            .init_with(record.word_embeddings);
-        let position_embeddings =
-            EmbeddingConfig::new(self.max_position_embeddings, self.hidden_size)
-                .init_with(record.position_embeddings);
-        let token_type_embeddings = EmbeddingConfig::new(self.type_vocab_size, self.hidden_size)
-            .init_with(record.token_type_embeddings);
-        let layer_norm = LayerNormConfig::new(self.hidden_size)
-            .with_epsilon(self.layer_norm_eps)
-            .init_with(record.layer_norm);
-
-        let dropout = DropoutConfig::new(self.hidden_dropout_prob).init();
-
-        BertEmbeddings {
-            word_embeddings,
-            position_embeddings,
-            token_type_embeddings,
-            layer_norm,
-            dropout,
-            max_position_embeddings: self.max_position_embeddings,
-            pad_token_idx: self.pad_token_idx,
-        }
-    }
 }
 
 impl<B: Backend> BertEmbeddings<B> {
