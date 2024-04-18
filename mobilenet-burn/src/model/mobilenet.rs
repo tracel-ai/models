@@ -44,8 +44,8 @@ pub struct MobileNetV2Config {
     #[config(default = "1.0")]
     width_mult: f32,
 
-    #[config(default = "vec![vec![]]")]
-    inverted_residual_setting: Vec<Vec<usize>>,
+    #[config(default = "vec![]")]
+    inverted_residual_setting: Vec<[usize;4]>,
 
     #[config(default = "8")]
     round_nearest: usize,
@@ -76,20 +76,14 @@ impl MobileNetV2Config {
         if inverted_residual_setting.is_empty() {
             inverted_residual_setting = vec![
                 // t, c, n, s
-                vec![1, 16, 1, 1],
-                vec![6, 24, 2, 2],
-                vec![6, 32, 3, 2],
-                vec![6, 64, 4, 2],
-                vec![6, 96, 3, 1],
-                vec![6, 160, 3, 2],
-                vec![6, 320, 1, 1],
+                [1, 16, 1, 1],
+                [6, 24, 2, 2],
+                [6, 32, 3, 2],
+                [6, 64, 4, 2],
+                [6, 96, 3, 1],
+                [6, 160, 3, 2],
+                [6, 320, 1, 1],
             ]
-        }
-        if inverted_residual_setting[0].len() != 4 {
-            panic!(
-                "inverted_residual_setting should be non-empty or a 4-element list, got {:#?}",
-                self.inverted_residual_setting
-            )
         }
         let mut input_channel = make_divisble(
             input_channel as f32 * self.width_mult,
