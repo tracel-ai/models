@@ -14,14 +14,14 @@ enum InvertedResidualSequentialType<B: Backend> {
     ConvNormActivation(Conv2dNormActivation<B>),
     NormLayer(NormalizationLayer<B, 4>),
 }
-
+/// Inverted Residual Block
+/// Ref: https://paperswithcode.com/method/inverted-residual-block
 #[derive(Module, Debug)]
 pub struct InvertedResidual<B: Backend> {
     use_res_connect: bool,
     layers: Vec<InvertedResidualSequentialType<B>>,
-    out_channels: usize,
-    is_cn: bool,
 }
+
 #[derive(Config, Debug)]
 pub struct InvertedResidualConfig {
     pub inp: usize,
@@ -30,6 +30,7 @@ pub struct InvertedResidualConfig {
     pub expand_ratio: usize,
     pub norm_type: NormalizationType,
 }
+
 impl InvertedResidualConfig {
     pub fn init<B: Backend>(&self, device: &B::Device) -> InvertedResidual<B> {
         let mut layers = Vec::new();
@@ -65,8 +66,6 @@ impl InvertedResidualConfig {
         InvertedResidual {
             use_res_connect: self.stride == 1 && self.inp == self.oup,
             layers,
-            out_channels: self.oup,
-            is_cn: self.stride > 1,
         }
     }
 }
