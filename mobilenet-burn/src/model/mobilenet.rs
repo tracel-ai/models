@@ -45,7 +45,7 @@ pub struct MobileNetV2Config {
     width_mult: f32,
 
     #[config(default = "vec![]")]
-    inverted_residual_setting: Vec<[usize;4]>,
+    inverted_residual_setting: Vec<[usize; 4]>,
 
     #[config(default = "8")]
     round_nearest: usize,
@@ -88,12 +88,10 @@ impl MobileNetV2Config {
         let mut input_channel = make_divisble(
             input_channel as f32 * self.width_mult,
             self.round_nearest as i32,
-            None,
         ) as usize;
         let last_channel = make_divisble(
             last_channel as f32 * f32::max(1.0, self.width_mult),
             self.round_nearest as i32,
-            None,
         ) as usize;
         let mut features = vec![ConvBlock::Conv(
             Conv2dNormActivationConfig::new(3, input_channel, self.norm_layer.clone())
@@ -108,7 +106,7 @@ impl MobileNetV2Config {
             let n = setting[2];
             let s = setting[3];
             let output_channel =
-                make_divisble(c as f32 * self.width_mult, self.round_nearest as i32, None) as usize;
+                make_divisble(c as f32 * self.width_mult, self.round_nearest as i32) as usize;
             for i in 0..n {
                 let stride = if i == 0 { s } else { 1 };
                 features.push(ConvBlock::InvertedResidual(
