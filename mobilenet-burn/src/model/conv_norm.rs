@@ -7,7 +7,7 @@ use burn::{
     },
     tensor::{self, backend::Backend, Tensor},
 };
-use serde::{Deserialize, Serialize};
+
 #[derive(Module, Debug, Clone, Default)]
 pub struct ReLU6 {}
 impl ReLU6 {
@@ -15,16 +15,14 @@ impl ReLU6 {
         tensor::activation::relu(input).clamp_max(6)
     }
 }
+
 #[derive(Module, Debug)]
 pub struct Conv2dNormActivation<B: Backend> {
     conv: Conv2d<B>,
-    norm_layer: NormalizationLayer<B, 4>,
+    norm_layer: BatchNorm<B, 4>,
     activation: ReLU6,
 }
-#[derive(Module, Debug)]
-pub enum NormalizationLayer<B: Backend, const D: usize> {
-    BatchNorm(BatchNorm<B, D>),
-}
+
 #[derive(Config, Debug)]
 pub struct Conv2dNormActivationConfig {
     pub in_channels: usize,
@@ -48,20 +46,12 @@ pub struct Conv2dNormActivationConfig {
     #[config(default = false)]
     pub bias: bool,
 
-    pub norm_type: NormalizationType,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum NormalizationType {
-    BatchNorm(BatchNormConfig),
+    pub batch_norm_config: BatchNormConfig,
 }
 
 impl Conv2dNormActivationConfig {
     pub fn init<B: Backend>(&self, device: &B::Device) -> Conv2dNormActivation<B> {
-        let norm_layer = match &self.norm_type {
-            NormalizationType::BatchNorm(config) => {
-                NormalizationLayer::BatchNorm(config.init(device))
-            }
-        };
+        let norm_layer = self.batch_norm_config.init(device);
         Conv2dNormActivation {
             conv: Conv2dConfig::new(
                 [self.in_channels, self.out_channels],
@@ -81,9 +71,7 @@ impl Conv2dNormActivationConfig {
 impl<B: Backend> Conv2dNormActivation<B> {
     pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
         let x = self.conv.forward(input);
-        let x = match &self.norm_layer {
-            NormalizationLayer::BatchNorm(norm) => norm.forward(x),
-        };
+        let x = self.norm_layer.forward(x);
         self.activation.forward(x)
     }
 }
