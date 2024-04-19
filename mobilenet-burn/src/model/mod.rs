@@ -1,6 +1,6 @@
-pub mod conv_norm;
+mod conv_norm;
 pub mod imagenet;
-pub mod inverted_residual;
+mod inverted_residual;
 pub mod mobilenet;
-pub mod utils;
+#[cfg(feature = "pretrained")]
 pub mod weights;

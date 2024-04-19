@@ -8,11 +8,16 @@ use burn::{module::Module, nn::conv::Conv2d, tensor::backend::Backend};
 #[derive(Module, Debug)]
 pub struct PointWiseLinear<B: Backend> {
     conv: Conv2d<B>,
-    norm: BatchNorm<B, 4>,
+    norm: BatchNorm<B, 2>,
 }
 
-/// Inverted Residual Block
-/// Ref: https://paperswithcode.com/method/inverted-residual-block
+impl<B: Backend> PointWiseLinear<B> {
+    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+        self.norm.forward(self.conv.forward(x))
+    }
+}
+
+/// [Inverted Residual Block](https://paperswithcode.com/method/inverted-residual-block).
 #[derive(Module, Debug)]
 pub struct InvertedResidual<B: Backend> {
     use_res_connect: bool,
@@ -21,28 +26,29 @@ pub struct InvertedResidual<B: Backend> {
     pw_linear: PointWiseLinear<B>,
 }
 
+/// [InvertedResidual](InvertedResidual) configuration.
 #[derive(Config, Debug)]
 pub struct InvertedResidualConfig {
     pub inp: usize,
     pub oup: usize,
     pub stride: usize,
     pub expand_ratio: usize,
-    pub norm_type:BatchNormConfig,
 }
 
 impl InvertedResidualConfig {
+    /// Initialize a new [InvertedResidual](InvertedResidual) module.
     pub fn init<B: Backend>(&self, device: &B::Device) -> InvertedResidual<B> {
         let hidden_dim = self.inp * self.expand_ratio;
         let pw = if self.expand_ratio != 1 {
             Some(
-                Conv2dNormActivationConfig::new(self.inp, hidden_dim, self.norm_type.clone())
+                Conv2dNormActivationConfig::new(self.inp, hidden_dim)
                     .with_kernel_size(1)
                     .init(device),
             )
         } else {
             None
         };
-        let dw = Conv2dNormActivationConfig::new(hidden_dim, hidden_dim, self.norm_type.clone())
+        let dw = Conv2dNormActivationConfig::new(hidden_dim, hidden_dim)
             .with_stride(self.stride)
             .with_groups(hidden_dim)
             .init(device);
@@ -62,6 +68,7 @@ impl InvertedResidualConfig {
         }
     }
 }
+
 impl<B: Backend> InvertedResidual<B> {
     pub fn forward(&self, x: &Tensor<B, 4>) -> Tensor<B, 4> {
         let mut out = x.clone();
@@ -75,11 +82,5 @@ impl<B: Backend> InvertedResidual<B> {
             out = out + x.clone();
         }
         out
-    }
-}
-
-impl<B: Backend> PointWiseLinear<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
-        self.norm.forward(self.conv.forward(x))
     }
 }

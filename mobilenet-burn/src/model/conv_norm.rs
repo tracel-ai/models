@@ -8,6 +8,7 @@ use burn::{
     tensor::{self, backend::Backend, Tensor},
 };
 
+/// A rectified linear unit where the activation is limited to a maximum of 6.
 #[derive(Module, Debug, Clone, Default)]
 pub struct ReLU6 {}
 impl ReLU6 {
@@ -16,13 +17,15 @@ impl ReLU6 {
     }
 }
 
+/// A Conv2d -> BatchNorm -> activation block.
 #[derive(Module, Debug)]
 pub struct Conv2dNormActivation<B: Backend> {
     conv: Conv2d<B>,
-    norm_layer: BatchNorm<B, 4>,
+    norm: BatchNorm<B, 2>,
     activation: ReLU6,
 }
 
+/// [Conv2dNormActivation] configuration.
 #[derive(Config, Debug)]
 pub struct Conv2dNormActivationConfig {
     pub in_channels: usize,
@@ -34,8 +37,8 @@ pub struct Conv2dNormActivationConfig {
     #[config(default = "1")]
     pub stride: usize,
 
-    #[config(default = "0")]
-    pub padding: usize,
+    #[config(default = "None")]
+    pub padding: Option<usize>,
 
     #[config(default = "1")]
     pub groups: usize,
@@ -45,25 +48,28 @@ pub struct Conv2dNormActivationConfig {
 
     #[config(default = false)]
     pub bias: bool,
-
-    pub batch_norm_config: BatchNormConfig,
 }
 
 impl Conv2dNormActivationConfig {
     pub fn init<B: Backend>(&self, device: &B::Device) -> Conv2dNormActivation<B> {
-        let norm_layer = self.batch_norm_config.init(device);
+        let padding = if let Some(padding) = self.padding {
+            padding
+        } else {
+            (self.kernel_size - 1) / 2 * self.dilation
+        };
+
         Conv2dNormActivation {
             conv: Conv2dConfig::new(
                 [self.in_channels, self.out_channels],
                 [self.kernel_size, self.kernel_size],
             )
-            .with_padding(PaddingConfig2d::Explicit(self.padding, self.padding))
+            .with_padding(PaddingConfig2d::Explicit(padding, padding))
             .with_stride([self.stride, self.stride])
             .with_bias(self.bias)
             .with_dilation([self.dilation, self.dilation])
             .with_groups(self.groups)
             .init(device),
-            norm_layer,
+            norm: BatchNormConfig::new(self.out_channels).init(device),
             activation: ReLU6 {},
         }
     }
@@ -71,7 +77,7 @@ impl Conv2dNormActivationConfig {
 impl<B: Backend> Conv2dNormActivation<B> {
     pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
         let x = self.conv.forward(input);
-        let x = self.norm_layer.forward(x);
+        let x = self.norm.forward(x);
         self.activation.forward(x)
     }
 }
