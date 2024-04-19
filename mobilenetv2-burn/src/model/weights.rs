@@ -54,10 +54,6 @@ pub trait WeightsMeta {
 
 /// MobileNetV2 pre-trained weights.
 pub enum MobileNetV2 {
-    // /// These weights reproduce closely the results of the original paper.
-    // /// Top-1 accuracy: 71.878%.
-    // /// Top-5 accuracy: 90.286%.
-    // ImageNet1kV1,
     /// These weights improve upon the results of the original paper with a new training
     /// [recipe](https://pytorch.org/blog/how-to-train-state-of-the-art-models-using-torchvision-latest-primitives).
     /// Top-1 accuracy: 72.154%.
@@ -67,12 +63,6 @@ pub enum MobileNetV2 {
 impl WeightsMeta for MobileNetV2 {
     fn weights(&self) -> Weights {
         let url = match *self {
-            // https://download.pytorch.org/models/mobilenet_v2-b0353104.pth
-            // MobileNetV2::ImageNet1kV1 => {
-            //     // NOTE: The zip file at this URL cannot be properly parsed with zip-rs
-            //     // Invalid Zip archive: Could not find central directory end
-            //     "https://download.pytorch.org/models/mobilenet_v2-b0353104.pth"
-            // }
             MobileNetV2::ImageNet1kV2 => {
                 "https://download.pytorch.org/models/mobilenet_v2-7ebf99e0.pth"
             }
