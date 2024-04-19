@@ -23,7 +23,7 @@ pub fn main() {
     // Parse arguments
     let img_path = std::env::args().nth(1).expect("No image path provided");
 
-    // Create ResNet-18
+    // Create MobileNetV2
     let device = Default::default();
     let model: MobileNetV2<NdArray> =
         MobileNetV2::pretrained(weights::MobileNetV2::ImageNet1kV2, &device)
