@@ -15,14 +15,14 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-resnet-burn = { git = "https://github.com/tracel-ai/models", package = "mobilenetv2-burn", default-features = false }
+mobilenetv2-burn = { git = "https://github.com/tracel-ai/models", package = "mobilenetv2-burn", default-features = false }
 ```
 
 If you want to get the pre-trained ImageNet weights, enable the `pretrained` feature flag.
 
 ```toml
 [dependencies]
-resnet-burn = { git = "https://github.com/tracel-ai/models", package = "mobilenetv2-burn", features = ["pretrained"] }
+mobilenetv2-burn = { git = "https://github.com/tracel-ai/models", package = "mobilenetv2-burn", features = ["pretrained"] }
 ```
 
 **Important:** this feature requires `std`.
