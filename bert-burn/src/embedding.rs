@@ -51,32 +51,6 @@ impl BertEmbeddingsConfig {
             pad_token_idx: self.pad_token_idx,
         }
     }
-
-    /// Initializes BertEmbeddings with provided weights
-    pub fn init_with<B: Backend>(&self, record: BertEmbeddingsRecord<B>) -> BertEmbeddings<B> {
-        let word_embeddings = EmbeddingConfig::new(self.vocab_size, self.hidden_size)
-            .init_with(record.word_embeddings);
-        let position_embeddings =
-            EmbeddingConfig::new(self.max_position_embeddings, self.hidden_size)
-                .init_with(record.position_embeddings);
-        let token_type_embeddings = EmbeddingConfig::new(self.type_vocab_size, self.hidden_size)
-            .init_with(record.token_type_embeddings);
-        let layer_norm = LayerNormConfig::new(self.hidden_size)
-            .with_epsilon(self.layer_norm_eps)
-            .init_with(record.layer_norm);
-
-        let dropout = DropoutConfig::new(self.hidden_dropout_prob).init();
-
-        BertEmbeddings {
-            word_embeddings,
-            position_embeddings,
-            token_type_embeddings,
-            layer_norm,
-            dropout,
-            max_position_embeddings: self.max_position_embeddings,
-            pad_token_idx: self.pad_token_idx,
-        }
-    }
 }
 
 impl<B: Backend> BertEmbeddings<B> {
@@ -102,14 +76,15 @@ impl<B: Backend> BertEmbeddings<B> {
 
         let seq_length = input_shape.dims[1];
         let mut position_ids_tensor: Tensor<B, 2, Int> =
-            Tensor::arange(0..seq_length, device).reshape([1, seq_length]);
+            Tensor::arange(0..seq_length as i64, device).reshape([1, seq_length]);
 
         if self.max_position_embeddings != 512 {
             // RoBERTa use a different scheme than BERT to create position indexes where padding tokens are given
             // a fixed positional index. Check: create_position_ids_from_input_ids() in
             // https://github.com/huggingface/transformers/blob/main/src/transformers/models/roberta/modeling_roberta.py
             let position_ids = Tensor::arange(
-                self.pad_token_idx + 1..seq_length + self.pad_token_idx + 1,
+                (self.pad_token_idx as i64) + 1
+                    ..(seq_length as i64) + (self.pad_token_idx as i64) + 1,
                 device,
             )
             .reshape([1, seq_length]);
