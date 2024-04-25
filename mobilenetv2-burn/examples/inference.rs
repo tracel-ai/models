@@ -1,13 +1,10 @@
-use resnet_burn::model::{imagenet, resnet::ResNet, weights};
+use mobilenetv2_burn::model::{imagenet, mobilenetv2::MobileNetV2, weights};
 
 use burn::{
     backend::NdArray,
-    module::Module,
-    record::{FullPrecisionSettings, NamedMpkFileRecorder},
     tensor::{backend::Backend, Data, Device, Element, Shape, Tensor},
 };
 
-const MODEL_PATH: &str = "resnet18-ImageNet1k";
 const HEIGHT: usize = 224;
 const WIDTH: usize = 224;
 
@@ -17,9 +14,8 @@ fn to_tensor<B: Backend, T: Element>(
     device: &Device<B>,
 ) -> Tensor<B, 3> {
     Tensor::<B, 3>::from_data(Data::new(data, Shape::new(shape)).convert(), device)
-        // permute(2, 0, 1)
-        .swap_dims(2, 1) // [H, C, W]
-        .swap_dims(1, 0) // [C, H, W]
+        // [H, W, C] -> [C, H, W]
+        .permute([2, 0, 1])
         / 255 // normalize between [0, 1]
 }
 
@@ -27,24 +23,12 @@ pub fn main() {
     // Parse arguments
     let img_path = std::env::args().nth(1).expect("No image path provided");
 
-    // Create ResNet-18
+    // Create MobileNetV2
     let device = Default::default();
-    let model: ResNet<NdArray> =
-        ResNet::resnet18_pretrained(weights::ResNet18::ImageNet1kV1, &device)
+    let model: MobileNetV2<NdArray> =
+        MobileNetV2::pretrained(weights::MobileNetV2::ImageNet1kV2, &device)
             .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
             .unwrap();
-
-    // Save the model to a supported format and load it back
-    let recorder = NamedMpkFileRecorder::<FullPrecisionSettings>::new();
-    model
-        .clone() // `save_file` takes ownership but we want to load the file after
-        .save_file(MODEL_PATH, &recorder)
-        .map_err(|err| format!("Failed to save weights to file {MODEL_PATH}.\nError: {err}"))
-        .unwrap();
-    let model = model
-        .load_file(MODEL_PATH, &recorder, &device)
-        .map_err(|err| format!("Failed to load weights from file {MODEL_PATH}.\nError: {err}"))
-        .unwrap();
 
     // Load image
     let img = image::open(&img_path)
