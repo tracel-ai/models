@@ -1,0 +1,25 @@
+[package]
+authors = ["Arjun31415", "guillaumelagrange <lagrange.guillaume.1@gmail.com>"]
+license = "MIT OR Apache-2.0"
+name = "mobilenetv2-burn"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+std = []
+pretrained = ["burn/network", "std", "dep:dirs"]
+
+[dependencies]
+# Note: default-features = false is needed to disable std
+burn = { version = "0.13.0" }
+burn-import = { version = "0.13.0" }
+dirs = { version = "5.0.1", optional = true }
+serde = { version = "1.0.192", default-features = false, features = [
+  "derive",
+  "alloc",
+] } # alloc is for no_std, derive is needed
+
+[dev-dependencies]
+burn = { version = "0.13.0", features = ["ndarray"] }
+image = { version = "0.24.9", features = ["png", "jpeg"] }
