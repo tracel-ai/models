@@ -5,3 +5,4 @@ pub mod data;
 mod embedding;
 pub mod loader;
 pub mod model;
+pub mod pooler;

@@ -54,14 +54,14 @@ pub fn launch<B: Backend>(device: B::Device) {
 
     let tokenizer = Arc::new(BertTokenizer::new(
         model_variant.to_string(),
-        model_config.pad_token_id.clone(),
+        model_config.pad_token_id,
     ));
 
     // Batch the input samples to max sequence length with padding
     let batcher = Arc::new(BertInputBatcher::<B>::new(
         tokenizer.clone(),
         device.clone(),
-        model_config.max_seq_len.unwrap().clone(),
+        model_config.max_seq_len.unwrap(),
     ));
 
     // Batch input samples using the batcher Shape: [Batch size, Seq_len]
@@ -75,11 +75,12 @@ pub fn launch<B: Backend>(device: B::Device) {
     let cls_token_idx = 0;
 
     // Embedding size
-    let d_model = model_config.hidden_size.clone();
-    let sentence_embedding =
-        output
-            .clone()
-            .slice([0..batch_size, cls_token_idx..cls_token_idx + 1, 0..d_model]);
+    let d_model = model_config.hidden_size;
+    let sentence_embedding = output.hidden_states.clone().slice([
+        0..batch_size,
+        cls_token_idx..cls_token_idx + 1,
+        0..d_model,
+    ]);
 
     let sentence_embedding: Tensor<B, 2> = sentence_embedding.squeeze(1);
     println!(

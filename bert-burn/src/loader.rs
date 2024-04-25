@@ -1,9 +1,9 @@
 // This file contains logic to load the BERT Model from the safetensor format available on Hugging Face Hub.
 // Some utility functions are referenced from: https://github.com/tvergho/sentence-transformers-burn/tree/main
 
-use crate::model::BertModelConfig;
-
 use crate::embedding::BertEmbeddingsRecord;
+use crate::model::BertModelConfig;
+use crate::pooler::PoolerRecord;
 use burn::config::Config;
 use burn::module::{ConstantRecord, Param};
 use burn::nn::attention::MultiHeadAttentionRecord;
@@ -142,6 +142,7 @@ fn load_attention_layer_safetensor<B: Backend>(
     attention_record
 }
 
+/// Load the BERT encoder from the safetensor format available on Hugging Face Hub
 pub fn load_encoder_from_safetensors<B: Backend>(
     encoder_tensors: HashMap<String, CandleTensor>,
     device: &B::Device,
@@ -151,15 +152,13 @@ pub fn load_encoder_from_safetensors<B: Backend>(
     let mut layers: HashMap<usize, HashMap<String, CandleTensor>> = HashMap::new();
 
     for (key, value) in encoder_tensors.iter() {
-        let layer_number = key.split(".").collect::<Vec<&str>>()[2]
+        let layer_number = key.split('.').collect::<Vec<&str>>()[2]
             .parse::<usize>()
             .unwrap();
-        if !layers.contains_key(&layer_number) {
-            layers.insert(layer_number, HashMap::new());
-        }
+
         layers
-            .get_mut(&layer_number)
-            .unwrap()
+            .entry(layer_number)
+            .or_default()
             .insert(key.to_string(), value.clone());
     }
 
@@ -241,6 +240,7 @@ fn load_embedding_safetensor<B: Backend>(
     embedding
 }
 
+/// Load the BERT embeddings from the safetensor format available on Hugging Face Hub
 pub fn load_embeddings_from_safetensors<B: Backend>(
     embedding_tensors: HashMap<String, CandleTensor>,
     device: &B::Device,
@@ -282,10 +282,24 @@ pub fn load_embeddings_from_safetensors<B: Backend>(
         max_position_embeddings: ConstantRecord::new(),
         pad_token_idx: ConstantRecord::new(),
     };
-
     embeddings_record
 }
 
+/// Load the BERT pooler from the safetensor format available on Hugging Face Hub
+pub fn load_pooler_from_safetensors<B: Backend>(
+    pooler_tensors: HashMap<String, CandleTensor>,
+    device: &B::Device,
+) -> PoolerRecord<B> {
+    let output = load_linear_safetensor(
+        &pooler_tensors["pooler.dense.bias"],
+        &pooler_tensors["pooler.dense.weight"],
+        device,
+    );
+
+    PoolerRecord { output }
+}
+
+/// Load the BERT model config from the JSON format available on Hugging Face Hub
 pub fn load_model_config(path: PathBuf) -> BertModelConfig {
     let mut model_config = BertModelConfig::load(path).expect("Config file present");
     model_config.max_seq_len = Some(512);
@@ -299,15 +313,19 @@ pub async fn download_hf_model(model_name: &str) -> (PathBuf, PathBuf) {
     let api = hf_hub::api::tokio::Api::new().unwrap();
     let repo = api.model(model_name.to_string());
 
-    let model_filepath = repo.get("model.safetensors").await.expect(&format!(
-        "Failed to download: {} weights with name: model.safetensors from HuggingFace Hub",
-        model_name
-    ));
+    let model_filepath = repo.get("model.safetensors").await.unwrap_or_else(|_| {
+        panic!(
+            "Failed to download: {} weights with name: model.safetensors from HuggingFace Hub",
+            model_name
+        )
+    });
 
-    let config_filepath = repo.get("config.json").await.expect(&format!(
-        "Failed to download: {} config with name: config.json from HuggingFace Hub",
-        model_name
-    ));
+    let config_filepath = repo.get("config.json").await.unwrap_or_else(|_| {
+        panic!(
+            "Failed to download: {} config with name: config.json from HuggingFace Hub",
+            model_name
+        )
+    });
 
     (config_filepath, model_filepath)
 }

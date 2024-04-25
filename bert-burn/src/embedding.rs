@@ -18,13 +18,13 @@ pub struct BertEmbeddingsConfig {
 
 #[derive(Module, Debug)]
 pub struct BertEmbeddings<B: Backend> {
+    pub pad_token_idx: usize,
     word_embeddings: Embedding<B>,
     position_embeddings: Embedding<B>,
     token_type_embeddings: Embedding<B>,
     layer_norm: LayerNorm<B>,
     dropout: Dropout,
     max_position_embeddings: usize,
-    pad_token_idx: usize,
 }
 
 impl BertEmbeddingsConfig {
@@ -89,7 +89,7 @@ impl<B: Backend> BertEmbeddings<B> {
             )
             .reshape([1, seq_length]);
             position_ids_tensor =
-                position_ids.mask_fill(item.mask_pad.clone(), self.pad_token_idx.clone() as i32);
+                position_ids.mask_fill(item.mask_pad.clone(), self.pad_token_idx as i32);
         }
 
         let position_embeddings = self.position_embeddings.forward(position_ids_tensor);
