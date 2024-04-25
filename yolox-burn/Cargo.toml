@@ -25,4 +25,4 @@ serde = { version = "1.0.192", default-features = false, features = [
 
 [dev-dependencies]
 burn = { version = "0.13.0", features = ["ndarray"] }
-image = { version = "0.24.7", features = ["png", "jpeg"] }
+image = { version = "0.24.9", features = ["png", "jpeg"] }
