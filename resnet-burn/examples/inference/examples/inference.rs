@@ -1,4 +1,5 @@
-use resnet_burn::model::{imagenet, resnet::ResNet, weights};
+use inference::imagenet;
+use resnet_burn::{weights, ResNet};
 
 use burn::{
     backend::NdArray,

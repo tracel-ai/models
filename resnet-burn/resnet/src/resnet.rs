@@ -95,7 +95,7 @@ impl<B: Backend> ResNet<B> {
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNet::<B>::resnet18(weights.num_classes, &device).load_record(record);
+        let model = ResNet::<B>::resnet18(weights.num_classes, device).load_record(record);
 
         Ok(model)
     }
@@ -132,7 +132,7 @@ impl<B: Backend> ResNet<B> {
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNet::<B>::resnet34(weights.num_classes, &device).load_record(record);
+        let model = ResNet::<B>::resnet34(weights.num_classes, device).load_record(record);
 
         Ok(model)
     }
@@ -169,7 +169,7 @@ impl<B: Backend> ResNet<B> {
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNet::<B>::resnet50(weights.num_classes, &device).load_record(record);
+        let model = ResNet::<B>::resnet50(weights.num_classes, device).load_record(record);
 
         Ok(model)
     }
@@ -206,7 +206,7 @@ impl<B: Backend> ResNet<B> {
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNet::<B>::resnet101(weights.num_classes, &device).load_record(record);
+        let model = ResNet::<B>::resnet101(weights.num_classes, device).load_record(record);
 
         Ok(model)
     }
@@ -243,7 +243,7 @@ impl<B: Backend> ResNet<B> {
     ) -> Result<Self, RecorderError> {
         let weights = weights.weights();
         let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNet::<B>::resnet152(weights.num_classes, &device).load_record(record);
+        let model = ResNet::<B>::resnet152(weights.num_classes, device).load_record(record);
 
         Ok(model)
     }

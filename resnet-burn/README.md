@@ -28,12 +28,13 @@ resnet-burn = { git = "https://github.com/tracel-ai/models", package = "resnet-b
 
 ### Example Usage
 
-The [inference example](examples/inference.rs) initializes a ResNet-18 from the ImageNet
+The [inference example](examples/inference/examples/inference.rs) initializes a ResNet-18 from the
+ImageNet
 [pre-trained weights](https://pytorch.org/vision/stable/models/generated/torchvision.models.resnet18.html#torchvision.models.ResNet18_Weights)
 with the `NdArray` backend and performs inference on the provided input image.
 
 You can run the example with the following command:
 
 ```sh
-cargo run --release --features pretrained --example inference samples/dog.jpg
+cargo run --release --example inference samples/dog.jpg --release
 ```
