@@ -2,7 +2,7 @@
 
 To this day, [ResNet](https://arxiv.org/abs/1512.03385)s are still a strong baseline for your image
 classification tasks. You can find the [Burn](https://github.com/tracel-ai/burn) implementation for
-the ResNet variants in [src/model/resnet.rs](src/model/resnet.rs).
+the ResNet variants in [resnet.rs](resnet/src/resnet.rs).
 
 The model is [no_std compatible](https://docs.rust-embedded.org/book/intro/no-std.html).
 
@@ -58,7 +58,7 @@ planets dataset. The training recipe used is fairly simple. The main objective i
 pre-trained model for a different downstream task.
 
 Without any bells and whistle, our model achieves over 90% multi-label accuracy (i.e., hamming
-score) on the validation set after just 5 epochs and over 95% after 10 epochs.
+score) on the validation set after just 5 epochs.
 
 Run the example with the Torch GPU backend:
 
