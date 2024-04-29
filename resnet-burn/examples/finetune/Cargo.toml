@@ -1,0 +1,24 @@
+[package]
+authors = ["guillaumelagrange <lagrange.guillaume.1@gmail.com>"]
+name = "finetune"
+license.workspace = true
+version.workspace = true
+edition.workspace = true
+
+[features]
+default = ["burn/default"]
+tch-gpu = ["burn/tch"]
+wgpu = ["burn/wgpu"]
+
+[dependencies]
+resnet-burn = { path = "../../resnet", features = ["pretrained"] }
+burn = { workspace = true, features = ["train", "vision", "network"] }
+
+# Dataset files
+csv = "1.3.0"
+flate2 = "1.0.28"
+rand = { version = "0.8.5", default-features = false, features = [
+    "std_rng",
+] }
+serde = { version = "1.0.192", features = ["std", "derive"] }
+tar = "0.4.40"
