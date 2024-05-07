@@ -1,0 +1,13 @@
+[package]
+authors = ["guillaumelagrange <lagrange.guillaume.1@gmail.com>"]
+name = "inference"
+license.workspace = true
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+resnet-burn = { path = "../../resnet", features = ["pretrained"] }
+burn = { workspace = true, features = ["ndarray"] }
+image = { version = "0.24.9", features = ["png", "jpeg"] }
+

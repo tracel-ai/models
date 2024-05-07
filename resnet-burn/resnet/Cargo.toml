@@ -1,0 +1,17 @@
+[package]
+authors = ["guillaumelagrange <lagrange.guillaume.1@gmail.com>"]
+name = "resnet-burn"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+std = []
+pretrained = ["burn/network", "std", "dep:dirs"]
+
+[dependencies]
+burn = { workspace = true }
+burn-import = { workspace = true }
+dirs = { workspace = true, optional = true }
+serde = { workspace = true }
