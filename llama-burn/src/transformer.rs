@@ -59,7 +59,7 @@ impl TransformerConfig {
         let output = LinearConfig::new(self.d_model, self.vocab_size)
             .with_bias(false)
             .init(device);
-        let rope = RotaryEncodingConfig::new(self.max_seq_len * 2, self.d_model)
+        let rope = RotaryEncodingConfig::new(self.max_seq_len * 2, self.d_model / self.n_heads)
             .with_theta(self.rope_theta)
             .init(device);
 
@@ -365,6 +365,7 @@ impl<B: Backend> MultiHeadAttention<B> {
         // NOTE: we could possibly improve the mask generation by caching masks for different sequence lengths,
         // though it is probably not necessary at this time.
         if seq_len > 1 {
+            let cache_seq_len = cache.len();
             let mask = Tensor::<B, 2, Bool>::triu_mask(
                 [seq_len, cache_seq_len],
                 cache_seq_len as i64 + 1,
