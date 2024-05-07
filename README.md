@@ -23,6 +23,7 @@ Explore the curated list of models developed by the community ♥.
 | [Whisper](https://arxiv.org/abs/2212.04356) | A general-purpose speech recognition model by OpenAI.             | [Gadersd/whisper-burn](https://github.com/Gadersd/whisper-burn)                   |
 | Stable Diffusion v1.4                       | An image generation model developed by Stability AI.              | [Gadersd/stable-diffusion-burn](https://github.com/Gadersd/stable-diffusion-burn) |
 | kord (music note predictor)                 | A music theory model that can detect notes in short audio clips.  | [twitchax/kord](https://github.com/twitchax/kord)                                 |
+| Whisper-Live                                | A fork of [Gadersd/whisper-burn](https://github.com/Gadersd/whisper-burn) which has been updated for Burn 13 and provides live transcription | [sudomonikers/whisper-burn](https://github.com/sudomonikers/whisper-burn) |
 
 ## License Information
 
