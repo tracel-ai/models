@@ -106,8 +106,7 @@ impl LlamaConfig {
                 "$1.swiglu.linear_outer.$2",
             )
             // Map norm.weight -> norm.gamma for all layers
-            .with_key_remap("(.*)norm\\.weight", "${1}norm.gamma")
-            .with_debug_print();
+            .with_key_remap("(.*)norm\\.weight", "${1}norm.gamma");
         println!("ok!");
         println!("Loading record...");
         let record = PyTorchFileRecorder::<HalfPrecisionSettings>::new()
@@ -171,7 +170,7 @@ impl<B: Backend> Llama<B> {
 
             // TODO: naive sampling w/o cumsum tensor op to first test llama implementation correctness
             if temperature > 0.0 {
-                next_token_logits = softmax(next_token_logits / temperature, 2);
+                next_token_logits = softmax(next_token_logits / temperature, 1);
             };
 
             let next_token = sampler.sample(next_token_logits);
