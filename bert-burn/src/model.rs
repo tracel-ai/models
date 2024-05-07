@@ -44,7 +44,7 @@ pub struct BertModelConfig {
     /// Maximum sequence length for the tokenizer
     pub max_seq_len: Option<usize>,
     /// Whether to add a pooling layer to the model
-    pub with_pooling_layer: bool,
+    pub with_pooling_layer: Option<bool>,
 }
 
 // Define the Bert model structure
@@ -67,7 +67,7 @@ impl BertModelConfig {
         let embeddings = self.get_embeddings_config().init(device);
         let encoder = self.get_encoder_config().init(device);
 
-        let pooler = if self.with_pooling_layer {
+        let pooler = if self.with_pooling_layer.unwrap_or(false) {
             Some(
                 PoolerConfig {
                     hidden_size: self.hidden_size,
@@ -176,7 +176,7 @@ impl<B: Backend> BertModel<B> {
         let embeddings_record = load_embeddings_from_safetensors::<B>(embeddings_layers, device);
         let encoder_record = load_encoder_from_safetensors::<B>(encoder_layers, device);
 
-        let pooler_record = if config.with_pooling_layer {
+        let pooler_record = if config.with_pooling_layer.unwrap_or(false) {
             Some(load_pooler_from_safetensors::<B>(pooler_layers, device))
         } else {
             None
