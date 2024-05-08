@@ -1,6 +1,9 @@
 use crate::data::BertInferenceBatch;
 use crate::embedding::{BertEmbeddings, BertEmbeddingsConfig};
-use crate::loader::{load_embeddings_from_safetensors, load_encoder_from_safetensors};
+use crate::loader::{
+    load_embeddings_from_safetensors, load_encoder_from_safetensors, load_pooler_from_safetensors,
+};
+use crate::pooler::{Pooler, PoolerConfig};
 use burn::config::Config;
 use burn::module::Module;
 use burn::nn::transformer::{
@@ -40,6 +43,8 @@ pub struct BertModelConfig {
     pub pad_token_id: usize,
     /// Maximum sequence length for the tokenizer
     pub max_seq_len: Option<usize>,
+    /// Whether to add a pooling layer to the model
+    pub with_pooling_layer: Option<bool>,
 }
 
 // Define the Bert model structure
@@ -47,12 +52,41 @@ pub struct BertModelConfig {
 pub struct BertModel<B: Backend> {
     pub embeddings: BertEmbeddings<B>,
     pub encoder: TransformerEncoder<B>,
+    pub pooler: Option<Pooler<B>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct BertModelOutput<B: Backend> {
+    pub hidden_states: Tensor<B, 3>,
+    pub pooled_output: Option<Tensor<B, 3>>,
 }
 
 impl BertModelConfig {
     /// Initializes a Bert model with default weights
     pub fn init<B: Backend>(&self, device: &B::Device) -> BertModel<B> {
-        let embeddings = BertEmbeddingsConfig {
+        let embeddings = self.get_embeddings_config().init(device);
+        let encoder = self.get_encoder_config().init(device);
+
+        let pooler = if self.with_pooling_layer.unwrap_or(false) {
+            Some(
+                PoolerConfig {
+                    hidden_size: self.hidden_size,
+                }
+                .init(device),
+            )
+        } else {
+            None
+        };
+
+        BertModel {
+            embeddings,
+            encoder,
+            pooler,
+        }
+    }
+
+    fn get_embeddings_config(&self) -> BertEmbeddingsConfig {
+        BertEmbeddingsConfig {
             vocab_size: self.vocab_size,
             max_position_embeddings: self.max_position_embeddings,
             type_vocab_size: self.type_vocab_size,
@@ -61,9 +95,10 @@ impl BertModelConfig {
             layer_norm_eps: self.layer_norm_eps,
             pad_token_idx: self.pad_token_id,
         }
-        .init(device);
+    }
 
-        let encoder = TransformerEncoderConfig {
+    fn get_encoder_config(&self) -> TransformerEncoderConfig {
+        TransformerEncoderConfig {
             n_heads: self.num_attention_heads,
             n_layers: self.num_hidden_layers,
             d_model: self.hidden_size,
@@ -76,26 +111,29 @@ impl BertModelConfig {
                 fan_out_only: false,
             },
         }
-        .init(device);
-
-        BertModel {
-            embeddings,
-            encoder,
-        }
     }
 }
 
 impl<B: Backend> BertModel<B> {
     /// Defines forward pass
-    pub fn forward(&self, input: BertInferenceBatch<B>) -> Tensor<B, 3> {
+    pub fn forward(&self, input: BertInferenceBatch<B>) -> BertModelOutput<B> {
         let embedding = self.embeddings.forward(input.clone());
         let device = &self.embeddings.devices()[0];
 
         let mask_pad = input.mask_pad.to_device(device);
 
         let encoder_input = TransformerEncoderInput::new(embedding).mask_pad(mask_pad);
-        let output = self.encoder.forward(encoder_input);
-        output
+        let hidden_states = self.encoder.forward(encoder_input);
+
+        let pooled_output = self
+            .pooler
+            .as_ref()
+            .map(|pooler| pooler.forward(hidden_states.clone()));
+
+        BertModelOutput {
+            hidden_states,
+            pooled_output,
+        }
     }
 
     pub fn from_safetensors(
@@ -117,6 +155,7 @@ impl<B: Backend> BertModel<B> {
         // We need to extract both.
         let mut encoder_layers: HashMap<String, CandleTensor> = HashMap::new();
         let mut embeddings_layers: HashMap<String, CandleTensor> = HashMap::new();
+        let mut pooler_layers: HashMap<String, CandleTensor> = HashMap::new();
 
         for (key, value) in weights.iter() {
             // If model name prefix present in keys, remove it to load keys consistently
@@ -129,14 +168,24 @@ impl<B: Backend> BertModel<B> {
                 encoder_layers.insert(key_without_prefix, value.clone());
             } else if key_without_prefix.starts_with("embeddings.") {
                 embeddings_layers.insert(key_without_prefix, value.clone());
+            } else if key_without_prefix.starts_with("pooler.") {
+                pooler_layers.insert(key_without_prefix, value.clone());
             }
         }
 
         let embeddings_record = load_embeddings_from_safetensors::<B>(embeddings_layers, device);
         let encoder_record = load_encoder_from_safetensors::<B>(encoder_layers, device);
+
+        let pooler_record = if config.with_pooling_layer.unwrap_or(false) {
+            Some(load_pooler_from_safetensors::<B>(pooler_layers, device))
+        } else {
+            None
+        };
+
         let model_record = BertModelRecord {
             embeddings: embeddings_record,
             encoder: encoder_record,
+            pooler: pooler_record,
         };
         model_record
     }
