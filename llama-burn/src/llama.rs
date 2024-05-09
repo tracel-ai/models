@@ -1,6 +1,9 @@
+use std::time::Instant;
+
 use burn::{
     config::Config,
     module::Module,
+    nn::{RotaryEncoding, RotaryEncodingConfig},
     record::{HalfPrecisionSettings, Recorder},
     tensor::{
         activation::softmax, backend::Backend, Data, Device, ElementConversion, Int, Shape, Tensor,
@@ -34,7 +37,7 @@ pub struct LlamaConfig {
     /// RMSNorm epsilon
     #[config(default = "1e-5")]
     pub norm_eps: f64,
-    /// RoPE theta
+    /// Rotary positional encoding (RoPE) theta.
     #[config(default = "10000.0")]
     pub rope_theta: f32,
     /// Maximum sequence length for input text.
@@ -67,17 +70,24 @@ impl LlamaConfig {
         )
         .with_max_seq_len(self.max_seq_len)
         .with_norm_eps(self.norm_eps)
-        .with_rope_theta(self.rope_theta)
         .init(device);
 
         let cache = (0..self.num_hidden_layers)
             .map(|_| KeyValueCache::new(self.max_seq_len))
             .collect::<Vec<_>>();
 
+        let rope = RotaryEncodingConfig::new(
+            self.max_seq_len * 2,
+            self.d_model / self.num_attention_heads,
+        )
+        .with_theta(self.rope_theta)
+        .init(device);
+
         Ok(Llama {
             tokenizer,
             model,
             cache,
+            rope,
             device: device.clone(),
         })
     }
@@ -88,12 +98,9 @@ impl LlamaConfig {
         checkpoint: &str,
         device: &Device<B>,
     ) -> Result<Llama<B>, String> {
-        print!("Init model on device...");
         let mut llama = self.init(device)?;
-        println!("initialized!");
 
         // Load weights from torch state_dict
-        print!("LoadArgs...");
         let load_args = LoadArgs::new(checkpoint.into())
             // Map layers.[i].feed_forward.w1.* -> layers.[i].feed_forward.swiglu.linear_inner.*
             .with_key_remap(
@@ -107,12 +114,13 @@ impl LlamaConfig {
             )
             // Map norm.weight -> norm.gamma for all layers
             .with_key_remap("(.*)norm\\.weight", "${1}norm.gamma");
-        println!("ok!");
         println!("Loading record...");
+        let now = Instant::now();
         let record = PyTorchFileRecorder::<HalfPrecisionSettings>::new()
             .load(load_args, device)
             .map_err(|e| e.to_string())?;
-        println!("loaded!");
+        let elapsed = now.elapsed().as_secs();
+        println!("Loaded in {}s", elapsed);
 
         llama.model = llama.model.load_record(record);
         println!("Llama record loaded");
@@ -129,6 +137,8 @@ pub struct Llama<B: Backend> {
     model: Transformer<B>,
     /// Key-value cache for each transformer block.
     cache: Vec<KeyValueCache<B>>,
+    /// Rotary positional encoding (RoPE).
+    rope: RotaryEncoding<B>,
     device: Device<B>,
 }
 
@@ -162,7 +172,9 @@ impl<B: Backend> Llama<B> {
         };
 
         for _ in 0..sample_len {
-            let logits = self.model.forward(tokens.clone(), &mut self.cache);
+            let logits = self
+                .model
+                .forward(tokens.clone(), &mut self.cache, &self.rope);
             let [batch_size, seq_len, _vocab_size] = logits.dims();
             let mut next_token_logits = logits
                 .slice([0..batch_size, seq_len - 1..seq_len])

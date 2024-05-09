@@ -3,7 +3,7 @@ use burn::{
     module::Module,
     nn::{
         Embedding, EmbeddingConfig, Linear, LinearConfig, RmsNorm, RmsNormConfig, RotaryEncoding,
-        RotaryEncodingConfig, SwiGlu, SwiGluConfig,
+        SwiGlu, SwiGluConfig,
     },
     tensor::{activation::softmax, backend::Backend, Bool, Device, Int, Tensor},
 };
@@ -28,9 +28,6 @@ pub struct TransformerConfig {
     /// Maximum token sequence length.
     #[config(default = "512")]
     pub max_seq_len: usize,
-    /// Rotary positional encoding (RoPE) theta.
-    #[config(default = "10000.0")]
-    pub rope_theta: f32,
     /// RMSNorm epsilon.
     #[config(default = "1e-5")]
     pub norm_eps: f64,
@@ -59,16 +56,12 @@ impl TransformerConfig {
         let output = LinearConfig::new(self.d_model, self.vocab_size)
             .with_bias(false)
             .init(device);
-        let rope = RotaryEncodingConfig::new(self.max_seq_len * 2, self.d_model / self.n_heads)
-            .with_theta(self.rope_theta)
-            .init(device);
 
         Transformer {
             tok_embeddings,
             layers,
             norm,
             output,
-            rope,
         }
     }
 }
@@ -80,7 +73,6 @@ pub struct Transformer<B: Backend> {
     layers: Vec<TransformerBlock<B>>,
     norm: RmsNorm<B>,
     output: Linear<B>,
-    rope: RotaryEncoding<B>,
 }
 
 impl<B: Backend> Transformer<B> {
@@ -88,11 +80,12 @@ impl<B: Backend> Transformer<B> {
         &self,
         input: Tensor<B, 2, Int>,
         cache: &mut Vec<KeyValueCache<B>>,
+        rope: &RotaryEncoding<B>,
     ) -> Tensor<B, 3> {
         let mut h = self.tok_embeddings.forward(input);
 
         for (layer, c) in self.layers.iter().zip(cache.into_iter()) {
-            h = layer.forward(h, c, &self.rope);
+            h = layer.forward(h, c, rope);
         }
 
         let h = self.norm.forward(h);
