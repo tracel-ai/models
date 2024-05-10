@@ -359,9 +359,9 @@ impl<B: Backend> MultiHeadAttention<B> {
         // though it is probably not necessary at this time.
         if seq_len > 1 {
             let cache_seq_len = cache.len();
-            let mask = Tensor::<B, 2, Bool>::triu_mask(
+            let mask = Tensor::<B, 2, Bool>::tril_mask(
                 [seq_len, cache_seq_len],
-                cache_seq_len as i64 + 1,
+                (cache_seq_len - seq_len) as i64, // offset
                 &device,
             );
             scores = scores.mask_fill(mask.unsqueeze::<4>(), f32::NEG_INFINITY);
