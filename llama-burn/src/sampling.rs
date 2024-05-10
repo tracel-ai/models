@@ -47,7 +47,7 @@ impl Sampling for TopP {
             "Naive top-p sampling only supports single-batch tensors"
         );
         let device = probs.device();
-        let probs_sort = probs.sort_descending(2);
+        let probs_sort = probs.sort_descending(1);
 
         // TODO: cumsum
         // let (probs_sort, probs_idx) = probs.sort_descending_with_indices(2);
