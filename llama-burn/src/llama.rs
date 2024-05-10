@@ -4,7 +4,7 @@ use burn::{
     config::Config,
     module::Module,
     nn::{RotaryEncoding, RotaryEncodingConfig},
-    record::{HalfPrecisionSettings, Recorder},
+    record::{FileRecorder, HalfPrecisionSettings, Recorder, RecorderError},
     tensor::{
         activation::softmax, backend::Backend, Data, Device, ElementConversion, Int, Shape, Tensor,
     },
@@ -216,5 +216,35 @@ impl<B: Backend> Llama<B> {
 
         let shape = Shape::new([tokens.len()]);
         Tensor::<B, 1, Int>::from_data(Data::new(tokens, shape).convert(), &self.device)
+    }
+
+    /// Save Llama model to file using the specified recorder.
+    pub fn save<R: FileRecorder<B>>(
+        self,
+        file_path: &str,
+        recorder: &R,
+    ) -> Result<(), RecorderError> {
+        println!("Saving record...");
+        let now = Instant::now();
+        self.model.save_file(file_path, recorder)?;
+        let elapsed = now.elapsed().as_secs();
+        println!("Saved in {}s", elapsed);
+
+        Ok(())
+    }
+
+    /// Load Llama model from file using the specified recorder.
+    pub fn load<R: FileRecorder<B>>(
+        mut self,
+        file_path: &str,
+        recorder: &R,
+    ) -> Result<Self, RecorderError> {
+        println!("Loading record...");
+        let now = Instant::now();
+        self.model = self.model.load_file(file_path, recorder, &self.device)?;
+        let elapsed = now.elapsed().as_secs();
+        println!("Loaded in {}s", elapsed);
+
+        Ok(self)
     }
 }
