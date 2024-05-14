@@ -17,6 +17,8 @@ use crate::{
     transformer::{KeyValueCache, Transformer, TransformerConfig},
 };
 
+const LLAMA3_VOCAB_SIZE: usize = 128256;
+
 #[derive(Config, Debug)]
 pub struct LlamaConfig {
     /// The size of the model.
@@ -52,7 +54,7 @@ impl LlamaConfig {
     #[cfg(feature = "llama3")]
     pub fn llama3_8b(tokenizer_path: &str) -> Self {
         // hidden_size = 14336; vocab_size = 128256
-        Self::new(14336, 128256, tokenizer_path.to_string())
+        Self::new(14336, LLAMA3_VOCAB_SIZE, tokenizer_path.to_string())
             .with_num_key_value_heads(Some(8))
             .with_rope_theta(500000.0)
     }
@@ -116,19 +118,79 @@ impl LlamaConfig {
         let mut llama = self.init(device)?;
 
         // Load weights from torch state_dict
-        let load_args = LoadArgs::new(checkpoint.into())
-            // Map layers.[i].feed_forward.w1.* -> layers.[i].feed_forward.swiglu.linear_inner.*
-            .with_key_remap(
-                "(layers\\.[0-9]+\\.feed_forward)\\.w1\\.(.+)",
-                "$1.swiglu.linear_inner.$2",
-            )
-            // Map layers.[i].feed_forward.w3.* -> layers.[i].feed_forward.swiglu.linear_outer.*
-            .with_key_remap(
-                "(layers\\.[0-9]+\\.feed_forward)\\.w3\\.(.+)",
-                "$1.swiglu.linear_outer.$2",
-            )
-            // Map norm.weight -> norm.gamma for all layers
-            .with_key_remap("(.*)norm\\.weight", "${1}norm.gamma");
+        let mut load_args = LoadArgs::new(checkpoint.into());
+
+        if self.vocab_size == LLAMA3_VOCAB_SIZE {
+            load_args = load_args
+                // Map layers.[i].feed_forward.w1.* -> layers.[i].feed_forward.swiglu.linear_inner.*
+                .with_key_remap(
+                    "(layers\\.[0-9]+\\.feed_forward)\\.w1\\.(.+)",
+                    "$1.swiglu.linear_inner.$2",
+                )
+                // Map layers.[i].feed_forward.w3.* -> layers.[i].feed_forward.swiglu.linear_outer.*
+                .with_key_remap(
+                    "(layers\\.[0-9]+\\.feed_forward)\\.w3\\.(.+)",
+                    "$1.swiglu.linear_outer.$2",
+                )
+                // Map norm.weight -> norm.gamma for all layers
+                .with_key_remap("(.*)norm\\.weight", "${1}norm.gamma");
+        } else {
+            // We assume Tiny Llama when != LLAMA3_VOCAB_SIZE
+            load_args = load_args
+                // Map lm_head.* -> output.*
+                .with_key_remap("lm_head\\.(.+)", "output.$1")
+                // Remove model. prefix
+                .with_key_remap("model\\.(.+)", "$1")
+                // Map embed_tokens.* -> tok_embeddings.*
+                .with_key_remap("embed_tokens\\.(.+)", "tok_embeddings.$1")
+                // Map layers.[i].input_layernorm.* -> layers.[i].attention_norm.*
+                .with_key_remap(
+                    "(layers\\.[0-9]+)\\.input_layernorm\\.(.+)",
+                    "$1.attention_norm.$2",
+                )
+                // Map layers.[i].post_attention_layernorm.* -> layers.[i].ffn_norm.*
+                .with_key_remap(
+                    "(layers\\.[0-9]+)\\.post_attention_layernorm\\.(.+)",
+                    "$1.ffn_norm.$2",
+                )
+                // Map layers.[i].mlp.down_proj.* -> layers.[i].feed_forward.w2.*
+                .with_key_remap(
+                    "(layers\\.[0-9]+)\\.mlp\\.down_proj\\.(.+)",
+                    "$1.feed_forward.w2.$2",
+                )
+                // Map layers.[i].mlp.gate_proj.* -> layers.[i].feed_forward.swiglu.linear_inner.*
+                .with_key_remap(
+                    "(layers\\.[0-9]+)\\.mlp\\.gate_proj\\.(.+)",
+                    "$1.feed_forward.swiglu.linear_inner.$2",
+                )
+                // Map layers.[i].mlp.up_proj.* -> layers.[i].feed_forward.swiglu.linear_outer.*
+                .with_key_remap(
+                    "(layers\\.[0-9]+)\\.mlp\\.up_proj\\.(.+)",
+                    "$1.feed_forward.swiglu.linear_outer.$2",
+                )
+                // Map layers.[i].self_attn.k_proj.* -> layers.[i].attention.wk.*
+                .with_key_remap(
+                    "(layers\\.[0-9]+)\\.self_attn\\.k_proj\\.(.+)",
+                    "$1.attention.wk.$2",
+                )
+                // Map layers.[i].self_attn.o_proj.* -> layers.[i].attention.wo.*
+                .with_key_remap(
+                    "(layers\\.[0-9]+)\\.self_attn\\.o_proj\\.(.+)",
+                    "$1.attention.wo.$2",
+                )
+                // Map layers.[i].self_attn.q_proj.* -> layers.[i].attention.wq.*
+                .with_key_remap(
+                    "(layers\\.[0-9]+)\\.self_attn\\.q_proj\\.(.+)",
+                    "$1.attention.wq.$2",
+                )
+                // Map layers.[i].self_attn.v_proj.* -> layers.[i].attention.wv.*
+                .with_key_remap(
+                    "(layers\\.[0-9]+)\\.self_attn\\.v_proj\\.(.+)",
+                    "$1.attention.wv.$2",
+                )
+                // Map norm.weight -> norm.gamma for all layers
+                .with_key_remap("(.*)norm\\.weight", "${1}norm.gamma");
+        }
         println!("Loading record...");
         let now = Instant::now();
         let record = PyTorchFileRecorder::<HalfPrecisionSettings>::new()
