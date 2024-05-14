@@ -13,7 +13,7 @@ use burn_import::pytorch::{LoadArgs, PyTorchFileRecorder};
 
 use crate::{
     sampling::{Sampler, TopP},
-    tokenizer::Tiktoken,
+    tokenizer::Tokenizer,
     transformer::{KeyValueCache, Transformer, TransformerConfig},
 };
 
@@ -41,7 +41,7 @@ pub struct LlamaConfig {
     #[config(default = "10000.0")]
     pub rope_theta: f32,
     /// Maximum sequence length for input text.
-    #[config(default = "512")]
+    #[config(default = "128")]
     pub max_seq_len: usize,
     /// The tokenizer path.
     pub tokenizer: String,
@@ -49,6 +49,7 @@ pub struct LlamaConfig {
 
 impl LlamaConfig {
     /// Llama-3-8B configuration.
+    #[cfg(feature = "llama3")]
     pub fn llama3_8b(tokenizer_path: &str) -> Self {
         // hidden_size = 14336; vocab_size = 128256
         Self::new(14336, 128256, tokenizer_path.to_string())
@@ -56,9 +57,23 @@ impl LlamaConfig {
             .with_rope_theta(500000.0)
     }
 
+    /// TinyLlama-1.1B Chat v1.0 configuration.
+    #[cfg(feature = "tiny")]
+    pub fn tiny_llama(tokenizer_path: &str) -> Self {
+        // hidden_size = 5632; vocab_size = 32000
+        Self::new(5632, 32000, tokenizer_path.to_string())
+            .with_d_model(2048)
+            .with_num_hidden_layers(22)
+            .with_num_key_value_heads(Some(4))
+            .with_rope_theta(10000.0)
+    }
+
     /// Initialize a new [Llama](Llama) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> Result<Llama<B>, String> {
-        let tokenizer = Tiktoken::new(&self.tokenizer)?;
+    pub fn init<B: Backend, T: Tokenizer>(
+        &self,
+        device: &Device<B>,
+    ) -> Result<Llama<B, T>, String> {
+        let tokenizer = T::new(&self.tokenizer)?;
         let num_key_value_heads = self.num_key_value_heads.unwrap_or(self.num_attention_heads);
         let model = TransformerConfig::new(
             self.vocab_size,
@@ -93,11 +108,11 @@ impl LlamaConfig {
     }
 
     /// Load pre-trained Llama checkpoint.
-    pub fn load_pretrained<B: Backend>(
+    pub fn load_pretrained<B: Backend, T: Tokenizer>(
         &self,
         checkpoint: &str,
         device: &Device<B>,
-    ) -> Result<Llama<B>, String> {
+    ) -> Result<Llama<B, T>, String> {
         let mut llama = self.init(device)?;
 
         // Load weights from torch state_dict
@@ -130,9 +145,9 @@ impl LlamaConfig {
 }
 
 /// Meta Llama large language model and tokenizer.
-pub struct Llama<B: Backend> {
+pub struct Llama<B: Backend, T: Tokenizer> {
     /// The tokenizer.
-    tokenizer: Tiktoken,
+    tokenizer: T,
     /// Llama decoder-only transformer.
     model: Transformer<B>,
     /// Key-value cache for each transformer block.
@@ -142,7 +157,7 @@ pub struct Llama<B: Backend> {
     device: Device<B>,
 }
 
-impl<B: Backend> Llama<B> {
+impl<B: Backend, T: Tokenizer> Llama<B, T> {
     /// Generate text sample based on the provided prompt.
     ///
     /// # Arguments
@@ -162,8 +177,8 @@ impl<B: Backend> Llama<B> {
         top_p: f64,
         seed: u64,
     ) -> String {
-        let mut tokens = self.tokenize(prompt).unsqueeze::<2>();
-        let eos_token = self.tokenizer.eos_id() as i64;
+        let mut tokens = self.tokenize(prompt);
+        let eos_token = self.tokenizer.eos_id();
 
         let mut sampler = if temperature > 0.0 {
             Sampler::TopP(TopP::new(top_p, seed))
@@ -171,10 +186,13 @@ impl<B: Backend> Llama<B> {
             Sampler::Argmax
         };
 
+        let now = Instant::now();
+        let mut num_tokens = 0;
+        let mut input_pos = Tensor::<B, 1, Int>::arange(0..tokens.dims()[0] as i64, &self.device);
         for _ in 0..sample_len {
-            let logits = self
-                .model
-                .forward(tokens.clone(), &mut self.cache, &self.rope);
+            let x = tokens.clone().select(0, input_pos.clone()).reshape([1, -1]);
+            let logits = self.model.forward(x, &mut self.cache, &self.rope);
+
             let [batch_size, seq_len, _vocab_size] = logits.dims();
             let mut next_token_logits = logits
                 .slice([0..batch_size, seq_len - 1..seq_len])
@@ -188,7 +206,12 @@ impl<B: Backend> Llama<B> {
             let next_token = sampler.sample(next_token_logits);
 
             // Concatenate the new generated token
-            tokens = Tensor::cat(vec![tokens, next_token.clone()], 1);
+            tokens = Tensor::cat(vec![tokens, next_token.clone().squeeze(0)], 0);
+            num_tokens += 1;
+
+            // Advance
+            let t = input_pos.dims()[0];
+            input_pos = input_pos.slice([t - 1..t]) + 1;
 
             if next_token.equal_elem(eos_token).all().into_scalar() {
                 break;
@@ -199,20 +222,25 @@ impl<B: Backend> Llama<B> {
             .into_data()
             .value
             .iter()
-            .map(|t| t.elem::<i64>() as usize)
+            .map(|t| t.elem::<i64>())
             .collect::<Vec<_>>();
 
-        self.tokenizer.decode(tokens).unwrap()
+        println!("Output tokens: {:?}", tokens);
+        let tokens = self.tokenizer.decode(tokens);
+
+        let elapsed = now.elapsed().as_secs_f64();
+        println!(
+            "{} tokens generated ({} tokens/s)",
+            num_tokens,
+            num_tokens as f64 / elapsed
+        );
+
+        tokens
     }
 
     /// Encode a string into a tensor of tokens.
     fn tokenize(&self, text: &str) -> Tensor<B, 1, Int> {
-        let tokens = self
-            .tokenizer
-            .encode(text, true, false)
-            .into_iter()
-            .map(|t| t as i64)
-            .collect::<Vec<_>>();
+        let tokens = self.tokenizer.encode(text, true, false);
 
         let shape = Shape::new([tokens.len()]);
         Tensor::<B, 1, Int>::from_data(Data::new(tokens, shape).convert(), &self.device)

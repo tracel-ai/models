@@ -5,7 +5,10 @@ use burn::{
     record::{HalfPrecisionSettings, NamedMpkFileRecorder},
 };
 use clap::Parser;
-use llama_burn::llama::{Llama, LlamaConfig};
+use llama_burn::{
+    llama::{Llama, LlamaConfig},
+    tokenizer::Tiktoken,
+};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -46,7 +49,7 @@ pub fn main() {
 
     let device = LibTorchDevice::Cuda(0);
     println!("Loading Llama...");
-    let mut llama: Llama<LibTorch> = LlamaConfig::llama3_8b(&args.tokenizer)
+    let llama: Llama<LibTorch, Tiktoken> = LlamaConfig::llama3_8b(&args.tokenizer)
         // .load_pretrained(&args.model, &device) // takes too long, let's load the pre-saved mpk record
         .init(&device)
         .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))

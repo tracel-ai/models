@@ -7,9 +7,12 @@ edition = "2021"
 description = "Llama 3 large language model with Burn"
 
 [features]
-default = ["std"] # TODO: remove std default
+default = ["std", "llama3"] # TODO: remove std default
 std = []
 pretrained = ["burn/network", "std", "dep:dirs"]
+
+llama3 = ["dep:tiktoken-rs", "dep:rustc-hash", "dep:base64"]
+tiny = ["dep:rust_tokenizers"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std
@@ -26,10 +29,13 @@ serde = { version = "1.0.192", default-features = false, features = [
     "alloc",
 ] } # alloc is for no_std, derive is needed
 
-# Tokenizer
-tiktoken-rs = { version = "0.5.8" }
-base64 = "0.22.1"
-rustc-hash = "1.1.0" # required by tiktoken
+# Tiktoken tokenizer (llama 3)
+tiktoken-rs = { version = "0.5.8", optional = true }
+base64 = { version = "0.22.1", optional = true }
+rustc-hash = {version = "1.1.0", optional = true }
+
+# SentencePiece tokenizer (tiny llama / llama 2)
+rust_tokenizers = { version = "8.1.1", optional = true }
 
 # Temporary; will be removed once we have the multinomial distribution
 rand = { version = "0.8.5", default-features = false, features = [
