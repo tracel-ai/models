@@ -46,8 +46,7 @@ impl Sampling for TopP {
             1,
             "Naive top-p sampling only supports single-batch tensors"
         );
-        let device = probs.device();
-        let probs_sort = probs.sort_descending(1);
+        let (probs_sort, probs_idx) = probs.sort_descending_with_indices(1);
 
         // TODO: cumsum
         // let (probs_sort, probs_idx) = probs.sort_descending_with_indices(2);
@@ -85,10 +84,10 @@ impl Sampling for TopP {
         // })
         // .collect::<Vec<_>>();
 
-        let next_token = WeightedIndex::new(probs_sort)
+        let next_token_idx = WeightedIndex::new(probs_sort)
             .unwrap()
-            .sample(&mut self.rng) as i32;
+            .sample(&mut self.rng);
 
-        Tensor::<B, 2, Int>::from_ints([[next_token]], &device)
+        probs_idx.slice([0..1, next_token_idx..next_token_idx + 1])
     }
 }
