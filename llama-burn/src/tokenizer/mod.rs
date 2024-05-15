@@ -1,5 +1,5 @@
-pub(crate) mod base;
-pub(crate) use base::*;
+pub mod base;
+pub use base::*;
 
 #[cfg(feature = "llama3")]
 pub mod tiktoken;

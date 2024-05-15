@@ -7,7 +7,7 @@ edition = "2021"
 description = "Llama 3 large language model with Burn"
 
 [features]
-default = ["std", "llama3"] # TODO: remove std default
+default = ["std"] # TODO: remove std default
 std = []
 pretrained = ["burn/network", "std", "dep:dirs"]
 

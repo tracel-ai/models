@@ -12,10 +12,15 @@ use burn::{
 use burn_import::pytorch::{LoadArgs, PyTorchFileRecorder};
 
 use crate::{
-    sampling::{Sampler, TopP},
+    sampling::Sampler,
     tokenizer::Tokenizer,
     transformer::{KeyValueCache, Transformer, TransformerConfig},
 };
+
+#[cfg(feature = "tiny")]
+use crate::tokenizer::SentiencePieceTokenizer;
+#[cfg(feature = "llama3")]
+use crate::tokenizer::Tiktoken;
 
 const LLAMA3_VOCAB_SIZE: usize = 128256;
 
@@ -51,7 +56,6 @@ pub struct LlamaConfig {
 
 impl LlamaConfig {
     /// Llama-3-8B configuration.
-    #[cfg(feature = "llama3")]
     pub fn llama3_8b(tokenizer_path: &str) -> Self {
         // hidden_size = 14336; vocab_size = 128256
         Self::new(14336, LLAMA3_VOCAB_SIZE, tokenizer_path.to_string())
@@ -59,8 +63,26 @@ impl LlamaConfig {
             .with_rope_theta(500000.0)
     }
 
+    /// Load pre-trained Llama-3-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
+    #[cfg(feature = "llama3")]
+    pub fn load_llama3_8b<B: Backend>(
+        checkpoint: &str,
+        tokenizer_path: &str,
+        device: &Device<B>,
+    ) -> Result<Llama<B, Tiktoken>, String> {
+        use burn::record::NamedMpkFileRecorder;
+
+        let llama = Self::llama3_8b(tokenizer_path).init::<B, Tiktoken>(device)?;
+
+        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        let llama = llama
+            .load(checkpoint, &recorder)
+            .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
+
+        Ok(llama)
+    }
+
     /// TinyLlama-1.1B Chat v1.0 configuration.
-    #[cfg(feature = "tiny")]
     pub fn tiny_llama(tokenizer_path: &str) -> Self {
         // hidden_size = 5632; vocab_size = 32000
         Self::new(5632, 32000, tokenizer_path.to_string())
@@ -68,6 +90,24 @@ impl LlamaConfig {
             .with_num_hidden_layers(22)
             .with_num_key_value_heads(Some(4))
             .with_rope_theta(10000.0)
+    }
+    /// Load pre-trained TinyLlama-1.1B Chat v1.0 model with [SentenciePiece](https://github.com/google/sentencepiece) tokenizer.
+    #[cfg(feature = "tiny")]
+    pub fn load_tiny_llama<B: Backend>(
+        checkpoint: &str,
+        tokenizer_path: &str,
+        device: &Device<B>,
+    ) -> Result<Llama<B, SentiencePieceTokenizer>, String> {
+        use burn::record::NamedMpkFileRecorder;
+
+        let llama = Self::tiny_llama(tokenizer_path).init::<B, SentiencePieceTokenizer>(device)?;
+
+        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        let llama = llama
+            .load(checkpoint, &recorder)
+            .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
+
+        Ok(llama)
     }
 
     /// Initialize a new [Llama](Llama) module.
@@ -206,6 +246,16 @@ impl LlamaConfig {
     }
 }
 
+/// Generated text sample output.
+pub struct GenerationOutput {
+    /// The generated text.
+    pub text: String,
+    /// The number of generated tokens.
+    pub tokens: usize,
+    /// The time it took to produce the output tokens (generation + decoding).
+    pub time: f64,
+}
+
 /// Meta Llama large language model and tokenizer.
 pub struct Llama<B: Backend, T: Tokenizer> {
     /// The tokenizer.
@@ -225,32 +275,26 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
     /// # Arguments
     /// - `prompt`: The prompt string to use for generating the samples.
     /// - `sample_len`: The number of new tokens to generate (i.e., the number of generation steps to take).
-    /// - `temperature`: Temperature value for controlling randomness in sampling. High values result in more random sampling.
-    /// - `top_p`: Top-p probability threshold for nucleus sampling.
-    /// - `seed`: The seed to use when generating random samples.
+    /// - `temperature`: Temperature value for controlling randomness in sampling (scales logits by `1 / temperature`).
+    ///                  High values result in more random sampling.
+    /// - `sampler`: The sampling strategy to use when selecting the next token based on the predicted probabilies.
     ///
     /// # Returns
-    /// The generated text.
+    /// The generated text along with some other metadata (see [GenerationOutput]).
     pub fn generate(
         &mut self,
         prompt: &str,
         sample_len: usize,
         temperature: f64,
-        top_p: f64,
-        seed: u64,
-    ) -> String {
+        sampler: &mut Sampler,
+    ) -> GenerationOutput {
         let mut tokens = self.tokenize(prompt);
+        let prompt_len = tokens.dims()[0];
         let eos_token = self.tokenizer.eos_id();
 
-        let mut sampler = if temperature > 0.0 {
-            Sampler::TopP(TopP::new(top_p, seed))
-        } else {
-            Sampler::Argmax
-        };
-
-        let now = Instant::now();
-        let mut num_tokens = 0;
+        let mut num_tokens: usize = 0;
         let mut input_pos = Tensor::<B, 1, Int>::arange(0..tokens.dims()[0] as i64, &self.device);
+        let now = Instant::now();
         for _ in 0..sample_len {
             let x = tokens.clone().select(0, input_pos.clone()).reshape([1, -1]);
             let logits = self.model.forward(x, &mut self.cache, &self.rope);
@@ -280,24 +324,19 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
             }
         }
 
-        let tokens = tokens
-            .into_data()
-            .value
+        let tokens = tokens.into_data().value[prompt_len..]
             .iter()
             .map(|t| t.elem::<i64>())
             .collect::<Vec<_>>();
 
-        println!("Output tokens: {:?}", tokens);
-        let tokens = self.tokenizer.decode(tokens);
-
+        let generated = self.tokenizer.decode(tokens);
         let elapsed = now.elapsed().as_secs_f64();
-        println!(
-            "{} tokens generated ({} tokens/s)",
-            num_tokens,
-            num_tokens as f64 / elapsed
-        );
 
-        tokens
+        GenerationOutput {
+            text: generated,
+            tokens: num_tokens,
+            time: elapsed,
+        }
     }
 
     /// Encode a string into a tensor of tokens.

@@ -2,19 +2,20 @@ use std::time::Instant;
 
 use burn::{
     backend::{libtorch::LibTorchDevice, LibTorch},
-    record::{HalfPrecisionSettings, NamedMpkFileRecorder},
+    tensor::backend::Backend,
 };
 use clap::Parser;
 use llama_burn::{
     llama::{Llama, LlamaConfig},
-    tokenizer::Tiktoken,
+    sampling::{Sampler, TopP},
+    tokenizer::Tokenizer,
 };
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Config {
-    // TODO: add prompt with default text?
-    /// Model checkpoint path.
+    // TODO: download checkpoint from HF hub.
+    /// Model checkpoint path (automatically downloaded from the web if not present).
     #[arg(short, long)]
     model: String,
 
@@ -41,54 +42,76 @@ pub struct Config {
     /// The seed to use when generating random samples.
     #[arg(long, default_value_t = 42)]
     seed: u64,
+
+    /// The input prompt.
+    #[arg(short, long, default_value_t = String::from("I believe the meaning of life is"))]
+    prompt: String,
 }
 
-pub fn main() {
-    // Parse arguments
-    let args = Config::parse();
-
-    let device = LibTorchDevice::Cuda(0);
-    println!("Loading Llama...");
-    let llama: Llama<LibTorch, Tiktoken> = LlamaConfig::llama3_8b(&args.tokenizer)
-        // .load_pretrained(&args.model, &device) // takes too long, let's load the pre-saved mpk record
-        .init(&device)
-        .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))
-        .unwrap();
-
-    // Load model record
-    let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
-    // llama
-    //     .save("llama_model", &recorder)
-    //     .map_err(|err| format!("Failed to save weights to file {file_path}.\nError: {err}"))
-    //     .unwrap();
-    let mut llama = llama
-        .load(&args.model, &recorder)
-        .map_err(|err| {
-            format!(
-                "Failed to load weights to file {}.\nError: {err}",
-                &args.model
-            )
-        })
-        .unwrap();
-
-    let prompt = "I believe the meaning of life is";
-
+pub fn generate<B: Backend, T: Tokenizer>(
+    llama: &mut Llama<B, T>,
+    prompt: &str,
+    sample_len: usize,
+    temperature: f64,
+    sampler: &mut Sampler,
+) {
     println!("Processing prompt: {}", prompt);
     let now = Instant::now();
-    let generated = llama.generate(
-        prompt,
-        args.sample_len,
-        args.temperature,
-        args.top_p,
-        args.seed,
-    );
+    let generated = llama.generate(prompt, sample_len, temperature, sampler);
     let elapsed = now.elapsed().as_secs();
 
-    println!("> {}\n", generated);
+    println!("> {}\n", generated.text);
+    println!(
+        "{} tokens generated ({:.4} tokens/s)\n",
+        generated.tokens,
+        generated.tokens as f64 / generated.time
+    );
 
     println!(
         "Generation completed in {}m{}s",
         (elapsed / 60),
         elapsed % 60
     );
+}
+
+pub fn main() {
+    type B = LibTorch;
+
+    // Parse arguments
+    let args = Config::parse();
+
+    let device = LibTorchDevice::Cuda(0);
+
+    // Sampling strategy
+    let mut sampler = if args.temperature > 0.0 {
+        Sampler::TopP(TopP::new(args.top_p, args.seed))
+    } else {
+        Sampler::Argmax
+    };
+
+    #[cfg(feature = "tiny")]
+    {
+        let mut llama =
+            LlamaConfig::load_tiny_llama::<B>(&args.model, &args.tokenizer, &device).unwrap();
+        generate(
+            &mut llama,
+            &args.prompt,
+            args.sample_len,
+            args.temperature,
+            &mut sampler,
+        );
+    }
+
+    #[cfg(feature = "llama3")]
+    {
+        let mut llama =
+            LlamaConfig::load_llama3_8b::<B>(&args.model, &args.tokenizer, &device).unwrap();
+        generate(
+            &mut llama,
+            &args.prompt,
+            args.sample_len,
+            args.temperature,
+            &mut sampler,
+        );
+    }
 }
