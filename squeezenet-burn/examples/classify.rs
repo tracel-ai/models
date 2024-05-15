@@ -42,11 +42,13 @@ fn main() {
         }
     }
 
-    // Create a tensor from the array
-    let image_input = Tensor::<Backend, 3>::from_data(img_array).reshape([1, 3, HEIGHT, WIDTH]);
+    let device = Default::default();
 
+    // Create a tensor from the array
+    let image_input =
+        Tensor::<Backend, 3>::from_data(img_array, &device).reshape([1, 3, HEIGHT, WIDTH]);
     // Normalize the image
-    let normalizer = Normalizer::new();
+    let normalizer = Normalizer::new(&device);
     let normalized_image = normalizer.normalize(image_input);
 
     // Create the model
@@ -59,7 +61,7 @@ fn main() {
         .join(RECORD_FILE);
 
     #[cfg(feature = "weights_file")]
-    let model = Model::<Backend>::from_file(weights_file.to_str().unwrap());
+    let model = Model::<Backend>::from_file(weights_file.to_str().unwrap(), &device);
 
     #[cfg(feature = "weights_embedded")]
     // Load model from embedded weights

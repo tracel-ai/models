@@ -47,7 +47,7 @@ fn main() {
         .run_from_script();
 
     // Copy the weights next to the executable.
-    if cfg!(feature = "weights_file") {
+    if cfg!(feature = "weights_file") && cfg!(feature = "weights_file_dump") {
         copy_weights_next_to_executable();
     }
 
