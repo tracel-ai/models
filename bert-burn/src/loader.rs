@@ -17,7 +17,7 @@ use candle_core::Tensor as CandleTensor;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-fn load_1d_tensor_from_candle<B: Backend>(
+pub(crate) fn load_1d_tensor_from_candle<B: Backend>(
     tensor: &CandleTensor,
     device: &B::Device,
 ) -> Tensor<B, 1> {
@@ -29,7 +29,7 @@ fn load_1d_tensor_from_candle<B: Backend>(
     weight
 }
 
-fn load_2d_tensor_from_candle<B: Backend>(
+pub(crate) fn load_2d_tensor_from_candle<B: Backend>(
     tensor: &CandleTensor,
     device: &B::Device,
 ) -> Tensor<B, 2> {
@@ -46,7 +46,7 @@ fn load_2d_tensor_from_candle<B: Backend>(
     weight
 }
 
-fn load_layer_norm_safetensor<B: Backend>(
+pub(crate) fn load_layer_norm_safetensor<B: Backend>(
     bias: &CandleTensor,
     weight: &CandleTensor,
     device: &B::Device,
@@ -62,7 +62,7 @@ fn load_layer_norm_safetensor<B: Backend>(
     layer_norm_record
 }
 
-fn load_linear_safetensor<B: Backend>(
+pub(crate) fn load_linear_safetensor<B: Backend>(
     bias: &CandleTensor,
     weight: &CandleTensor,
     device: &B::Device,
@@ -79,7 +79,7 @@ fn load_linear_safetensor<B: Backend>(
     linear_record
 }
 
-fn load_intermediate_layer_safetensor<B: Backend>(
+pub(crate) fn load_intermediate_layer_safetensor<B: Backend>(
     linear_inner_weight: &CandleTensor,
     linear_inner_bias: &CandleTensor,
     linear_outer_weight: &CandleTensor,
@@ -225,6 +225,22 @@ pub fn load_encoder_from_safetensors<B: Backend>(
         layers: bert_encoder_layers,
     };
     encoder_record
+}
+
+pub fn load_decoder_from_safetensors<B: Backend>(
+    bias: &CandleTensor,
+    word_embedding_weights: &CandleTensor,
+    device: &B::Device,
+) -> LinearRecord<B> {
+    let bias = load_1d_tensor_from_candle::<B>(bias, device);
+    let weight = load_2d_tensor_from_candle::<B>(word_embedding_weights, device);
+    let weight = weight.transpose();
+
+    let linear_record = LinearRecord {
+        weight: Param::from_tensor(weight),
+        bias: Some(Param::from_tensor(bias)),
+    };
+    linear_record
 }
 
 fn load_embedding_safetensor<B: Backend>(
