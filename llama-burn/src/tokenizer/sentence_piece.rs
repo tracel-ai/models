@@ -44,7 +44,9 @@ impl Tokenizer for SentiencePieceTokenizer {
     }
 
     fn decode(&self, tokens: Vec<i64>) -> String {
-        self.bpe.decode(&tokens, true, false)
+        self.bpe
+            .decode(&tokens, true, false)
+            .replace("<0x0A>", "\n")
     }
 
     fn bos_id(&self) -> i64 {

@@ -11,6 +11,8 @@ use llama_burn::{
     tokenizer::Tokenizer,
 };
 
+const DEFAULT_PROMPT: &str = "I believe the meaning of life is";
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Config {
@@ -44,7 +46,7 @@ pub struct Config {
     seed: u64,
 
     /// The input prompt.
-    #[arg(short, long, default_value_t = String::from("I believe the meaning of life is"))]
+    #[arg(short, long, default_value_t = String::from(DEFAULT_PROMPT))]
     prompt: String,
 }
 
