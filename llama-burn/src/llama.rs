@@ -17,12 +17,12 @@ use crate::{
     transformer::{KeyValueCache, Transformer, TransformerConfig},
 };
 
+#[cfg(feature = "pretrained")]
+use crate::pretrained::{self, ModelMeta};
 #[cfg(feature = "tiny")]
 use crate::tokenizer::SentiencePieceTokenizer;
 #[cfg(feature = "llama3")]
 use crate::tokenizer::Tiktoken;
-
-const LLAMA3_VOCAB_SIZE: usize = 128256;
 
 #[derive(Config, Debug)]
 pub struct LlamaConfig {
@@ -58,7 +58,7 @@ impl LlamaConfig {
     /// Llama-3-8B configuration.
     pub fn llama3_8b(tokenizer_path: &str) -> Self {
         // hidden_size = 14336; vocab_size = 128256
-        Self::new(14336, LLAMA3_VOCAB_SIZE, tokenizer_path.to_string())
+        Self::new(14336, 128256, tokenizer_path.to_string())
             .with_num_key_value_heads(Some(8))
             .with_rope_theta(500000.0)
     }
@@ -82,6 +82,27 @@ impl LlamaConfig {
         Ok(llama)
     }
 
+    /// Load pre-trained Llama-3-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
+    #[cfg(feature = "llama3")]
+    pub fn llama3_8b_pretrained<B: Backend>(
+        device: &Device<B>,
+    ) -> Result<Llama<B, Tiktoken>, String> {
+        // Download checkpoint and tokenizer
+        let model = pretrained::Llama::Llama3.pretrained();
+        let checkpoint = model
+            .download_weights()
+            .map_err(|err| format!("Could not download weights.\nError: {err}"))?;
+        let tokenizer = model
+            .download_tokenizer()
+            .map_err(|err| format!("Could not download tokenizer.\nError: {err}"))?;
+
+        Self::load_llama3_8b(
+            checkpoint.to_str().unwrap(),
+            tokenizer.to_str().unwrap(),
+            device,
+        )
+    }
+
     /// TinyLlama-1.1B Chat v1.0 configuration.
     pub fn tiny_llama(tokenizer_path: &str) -> Self {
         // hidden_size = 5632; vocab_size = 32000
@@ -91,6 +112,7 @@ impl LlamaConfig {
             .with_num_key_value_heads(Some(4))
             .with_rope_theta(10000.0)
     }
+
     /// Load pre-trained TinyLlama-1.1B Chat v1.0 model with [SentenciePiece](https://github.com/google/sentencepiece) tokenizer.
     #[cfg(feature = "tiny")]
     pub fn load_tiny_llama<B: Backend>(
@@ -108,6 +130,27 @@ impl LlamaConfig {
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
 
         Ok(llama)
+    }
+
+    /// Load pre-trained TinyLlama-1.1B Chat v1.0 model with [SentenciePiece](https://github.com/google/sentencepiece) tokenizer.
+    #[cfg(feature = "tiny")]
+    pub fn tiny_llama_pretrained<B: Backend>(
+        device: &Device<B>,
+    ) -> Result<Llama<B, SentiencePieceTokenizer>, String> {
+        // Download checkpoint and tokenizer
+        let model = pretrained::Llama::TinyLlama.pretrained();
+        let checkpoint = model
+            .download_weights()
+            .map_err(|err| format!("Could not download weights.\nError: {err}"))?;
+        let tokenizer = model
+            .download_tokenizer()
+            .map_err(|err| format!("Could not download tokenizer.\nError: {err}"))?;
+
+        Self::load_tiny_llama(
+            checkpoint.to_str().unwrap(),
+            tokenizer.to_str().unwrap(),
+            device,
+        )
     }
 
     /// Initialize a new [Llama](Llama) module.
@@ -160,7 +203,7 @@ impl LlamaConfig {
         // Load weights from torch state_dict
         let mut load_args = LoadArgs::new(checkpoint.into());
 
-        if self.vocab_size == LLAMA3_VOCAB_SIZE {
+        if !cfg!(feature = "tiny") {
             load_args = load_args
                 // Map layers.[i].feed_forward.w1.* -> layers.[i].feed_forward.swiglu.linear_inner.*
                 .with_key_remap(
@@ -175,7 +218,6 @@ impl LlamaConfig {
                 // Map norm.weight -> norm.gamma for all layers
                 .with_key_remap("(.*)norm\\.weight", "${1}norm.gamma");
         } else {
-            // We assume Tiny Llama when != LLAMA3_VOCAB_SIZE
             load_args = load_args
                 // Map lm_head.* -> output.*
                 .with_key_remap("lm_head\\.(.+)", "output.$1")

@@ -93,8 +93,8 @@ pub fn main() {
 
     #[cfg(feature = "tiny")]
     {
-        let mut llama =
-            LlamaConfig::load_tiny_llama::<B>(&args.model, &args.tokenizer, &device).unwrap();
+        let mut llama = LlamaConfig::tiny_llama_pretrained::<B>(&device).unwrap();
+
         generate(
             &mut llama,
             &args.prompt,
@@ -106,8 +106,8 @@ pub fn main() {
 
     #[cfg(feature = "llama3")]
     {
-        let mut llama =
-            LlamaConfig::load_llama3_8b::<B>(&args.model, &args.tokenizer, &device).unwrap();
+        let mut llama = LlamaConfig::llama3_8b_pretrained::<B>(&device).unwrap();
+
         generate(
             &mut llama,
             &args.prompt,

@@ -11,8 +11,8 @@ default = ["std"] # TODO: remove std default
 std = []
 pretrained = ["burn/network", "std", "dep:dirs"]
 
-llama3 = ["dep:tiktoken-rs", "dep:rustc-hash", "dep:base64"]
-tiny = ["dep:rust_tokenizers"]
+llama3 = ["pretrained", "dep:tiktoken-rs", "dep:rustc-hash", "dep:base64"]
+tiny = ["pretrained", "dep:rust_tokenizers"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std
@@ -37,7 +37,6 @@ rustc-hash = {version = "1.1.0", optional = true }
 # SentencePiece tokenizer (tiny llama / llama 2)
 rust_tokenizers = { version = "8.1.1", optional = true }
 
-# Temporary; will be removed once we have the multinomial distribution
 rand = { version = "0.8.5", default-features = false, features = [
     "std_rng",
 ] } # std_rng is for no_std
