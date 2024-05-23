@@ -85,7 +85,7 @@ impl Tokenizer for Tiktoken {
         })
     }
 
-    fn encode(&self, text: &str, bos: bool, eos: bool) -> Vec<i64> {
+    fn encode(&self, text: &str, bos: bool, eos: bool) -> Vec<u32> {
         let bos_token = if bos { vec![self.bos_token_id] } else { vec![] };
         let eos_token = if eos { vec![self.eos_token_id] } else { vec![] };
 
@@ -95,21 +95,21 @@ impl Tokenizer for Tiktoken {
         [bos_token, tokens, eos_token]
             .into_iter()
             .flat_map(|t| t.into_iter())
-            .map(|t| t as i64)
+            .map(|t| t as u32)
             .collect()
     }
 
-    fn decode(&self, tokens: Vec<i64>) -> String {
+    fn decode(&self, tokens: Vec<u32>) -> String {
         self.bpe
             .decode(tokens.into_iter().map(|t| t as usize).collect())
             .expect("Should decode tokens")
     }
 
-    fn bos_id(&self) -> i64 {
-        self.bos_token_id as i64
+    fn bos_id(&self) -> u32 {
+        self.bos_token_id as u32
     }
 
-    fn eos_id(&self) -> i64 {
-        self.eos_token_id as i64
+    fn eos_id(&self) -> u32 {
+        self.eos_token_id as u32
     }
 }

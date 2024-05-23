@@ -332,7 +332,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
     ) -> GenerationOutput {
         let mut tokens = self.tokenize(prompt);
         let prompt_len = tokens.dims()[0];
-        let eos_token = self.tokenizer.eos_id();
+        let eos_token = self.tokenizer.eos_id() as i64;
 
         let mut num_tokens: usize = 0;
         let mut input_pos = Tensor::<B, 1, Int>::arange(0..tokens.dims()[0] as i64, &self.device);
@@ -368,7 +368,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
 
         let tokens = tokens.into_data().value[prompt_len..]
             .iter()
-            .map(|t| t.elem::<i64>())
+            .map(|t| t.elem::<u32>())
             .collect::<Vec<_>>();
 
         let generated = self.tokenizer.decode(tokens);

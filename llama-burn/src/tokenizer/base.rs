@@ -5,14 +5,14 @@ pub trait Tokenizer {
         Self: Sized;
 
     /// Encode a string into a list of token identifiers.
-    fn encode(&self, text: &str, bos: bool, eos: bool) -> Vec<i64>;
+    fn encode(&self, text: &str, bos: bool, eos: bool) -> Vec<u32>;
 
     /// Decode a list of token identifiers into a string.
-    fn decode(&self, tokens: Vec<i64>) -> String;
+    fn decode(&self, tokens: Vec<u32>) -> String;
 
     /// Beginning of sentence token identifier.
-    fn bos_id(&self) -> i64;
+    fn bos_id(&self) -> u32;
 
     /// End of sentence token identifier.
-    fn eos_id(&self) -> i64;
+    fn eos_id(&self) -> u32;
 }
