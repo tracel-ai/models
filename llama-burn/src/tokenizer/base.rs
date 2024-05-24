@@ -10,8 +10,18 @@ pub trait Tokenizer {
     /// Decode a list of token identifiers into a string.
     fn decode(&self, tokens: Vec<u32>) -> String;
 
+    /// Beginning of sentence token.
+    fn bos(&self) -> String {
+        self.decode(vec![self.bos_id()])
+    }
+
     /// Beginning of sentence token identifier.
     fn bos_id(&self) -> u32;
+
+    /// End of sentence token.
+    fn eos(&self) -> String {
+        self.decode(vec![self.eos_id()])
+    }
 
     /// End of sentence token identifier.
     fn eos_id(&self) -> u32;

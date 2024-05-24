@@ -15,7 +15,7 @@ mod downloader {
 
     impl Pretrained {
         /// Download the file to the local cache directory.
-        fn download(&self, url: &str, file: &str) -> Result<PathBuf, std::io::Error> {
+        fn download(&self, url: &str) -> Result<PathBuf, std::io::Error> {
             // Model cache directory
             let model_dir = dirs::home_dir()
                 .expect("Should be able to get home directory")
@@ -27,10 +27,15 @@ mod downloader {
                 create_dir_all(&model_dir)?;
             }
 
-            let file_name = model_dir.join(file);
+            let file_base_name = url
+                .rsplit_once('/')
+                .unwrap()
+                .1
+                .replace("?download=true", "");
+            let file_name = model_dir.join(&file_base_name);
             if !file_name.exists() {
                 // Download file content
-                let bytes = downloader::download_file_as_bytes(url, file);
+                let bytes = downloader::download_file_as_bytes(url, &file_base_name);
 
                 // Write content to file
                 let mut output_file = File::create(&file_name)?;
@@ -42,12 +47,12 @@ mod downloader {
 
         /// Download the pre-trained model weights to the local cache directory.
         pub fn download_weights(&self) -> Result<PathBuf, std::io::Error> {
-            self.download(self.model, "model.mpk")
+            self.download(self.model)
         }
 
         /// Download the tokenizer to the local cache directory.
         pub fn download_tokenizer(&self) -> Result<PathBuf, std::io::Error> {
-            self.download(self.tokenizer, "tokenizer.model")
+            self.download(self.tokenizer)
         }
     }
 }
@@ -75,7 +80,7 @@ impl ModelMeta for Llama {
             Self::TinyLlama => Pretrained {
                 name: "TinyLlama-1.1B",
                 model: "https://huggingface.co/tracel-ai/tiny-llama-1.1b-burn/resolve/main/model.mpk?download=true",
-                tokenizer: "https://huggingface.co/tracel-ai/tiny-llama-1.1b-burn/resolve/main/tokenizer.model?download=true",
+                tokenizer: "https://huggingface.co/tracel-ai/tiny-llama-1.1b-burn/resolve/main/tokenizer.json?download=true",
             },
         }
     }

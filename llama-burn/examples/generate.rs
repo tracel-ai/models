@@ -11,20 +11,11 @@ use llama_burn::{
     tokenizer::Tokenizer,
 };
 
-const DEFAULT_PROMPT: &str = "I believe the meaning of life is";
+const DEFAULT_PROMPT: &str = "How many helicopters can a human eat in one sitting?";
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Config {
-    // TODO: download checkpoint from HF hub.
-    /// Model checkpoint path (automatically downloaded from the web if not present).
-    #[arg(short, long)]
-    model: String,
-
-    /// Tokenizer path.
-    #[arg(short, long)]
-    tokenizer: String,
-
     /// Top-p probability threshold.
     #[arg(long, default_value_t = 0.9)]
     top_p: f64,
@@ -48,6 +39,10 @@ pub struct Config {
     /// The input prompt.
     #[arg(short, long, default_value_t = String::from(DEFAULT_PROMPT))]
     prompt: String,
+
+    /// Chat assistant mode.
+    #[arg(short, long, default_value_t = cfg!(feature = "tiny"))]
+    chat: bool,
 }
 
 pub fn generate<B: Backend, T: Tokenizer>(
@@ -57,7 +52,6 @@ pub fn generate<B: Backend, T: Tokenizer>(
     temperature: f64,
     sampler: &mut Sampler,
 ) {
-    println!("Processing prompt: {}", prompt);
     let now = Instant::now();
     let generated = llama.generate(prompt, sample_len, temperature, sampler);
     let elapsed = now.elapsed().as_secs();
@@ -83,6 +77,7 @@ pub fn main() {
     let args = Config::parse();
 
     let device = LibTorchDevice::Cuda(0);
+    let prompt = args.prompt;
 
     // Sampling strategy
     let mut sampler = if args.temperature > 0.0 {
@@ -94,10 +89,21 @@ pub fn main() {
     #[cfg(feature = "tiny")]
     {
         let mut llama = LlamaConfig::tiny_llama_pretrained::<B>(&device).unwrap();
+        println!("Processing prompt: {}", prompt);
+
+        let prompt = if args.chat {
+            // Prompt formatting for chat model
+            format!(
+                "<|system|>\nYou are a friendly chatbot who always responds in the style of a pirate</s>\n<|user|>\n{prompt}</s>\n<|assistant|>\n"
+            )
+        } else {
+            // Prompt with BOS token
+            format!("{}{prompt}", llama.tokenizer.bos())
+        };
 
         generate(
             &mut llama,
-            &args.prompt,
+            &prompt,
             args.sample_len,
             args.temperature,
             &mut sampler,
@@ -107,10 +113,18 @@ pub fn main() {
     #[cfg(feature = "llama3")]
     {
         let mut llama = LlamaConfig::llama3_8b_pretrained::<B>(&device).unwrap();
+        println!("Processing prompt: {}", prompt);
+
+        let prompt = if args.chat {
+            panic!("Llama-8B-Instruct is not available yet.");
+        } else {
+            // Prompt with BOS token
+            format!("{}{prompt}", llama.tokenizer.bos())
+        };
 
         generate(
             &mut llama,
-            &args.prompt,
+            &prompt,
             args.sample_len,
             args.temperature,
             &mut sampler,

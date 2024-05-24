@@ -14,7 +14,7 @@ use burn_import::pytorch::{LoadArgs, PyTorchFileRecorder};
 use crate::{
     sampling::Sampler,
     tokenizer::Tokenizer,
-    transformer::{KeyValueCache, Transformer, TransformerConfig},
+    transformer::{KeyValueCache, Transformer, TransformerConfig, TransformerRecord},
 };
 
 #[cfg(feature = "pretrained")]
@@ -275,11 +275,46 @@ impl LlamaConfig {
         }
         println!("Loading record...");
         let now = Instant::now();
-        let record = PyTorchFileRecorder::<HalfPrecisionSettings>::new()
+        let mut record: TransformerRecord<B> = PyTorchFileRecorder::<HalfPrecisionSettings>::new()
             .load(load_args, device)
             .map_err(|e| e.to_string())?;
         let elapsed = now.elapsed().as_secs();
         println!("Loaded in {}s", elapsed);
+
+        if cfg!(feature = "tiny") {
+            // TinyLlama weights from HuggingFace use a different rotary positional encoding
+            // which requires weight permutation:
+            // https://github.com/huggingface/transformers/issues/25199#issuecomment-1687720247
+            // https://github.com/jzhang38/TinyLlama/issues/24
+            let n_heads = self.num_attention_heads;
+            let n_kv_heads = self.num_key_value_heads.unwrap_or(n_heads);
+            let wk_dim = self.d_model * n_kv_heads / n_heads;
+            let permute = |w: Tensor<B, 2>, n_heads: usize, dim1: usize, dim2: usize| {
+                let w = w // [2048, 256]
+                    .reshape([dim1, n_heads, 2, dim2 / n_heads / 2]) // [2048, 4, 2, 32]
+                    .swap_dims(2, 3) // [2048, 4, 32, 2]
+                    .reshape([dim1, dim2]);
+                w
+            };
+
+            record.layers = record
+                .layers
+                .into_iter()
+                .map(|mut layer| {
+                    layer.attention.wq.weight = layer
+                        .attention
+                        .wq
+                        .weight
+                        .map(|w| permute(w, n_heads, self.d_model, self.d_model));
+                    layer.attention.wk.weight = layer
+                        .attention
+                        .wk
+                        .weight
+                        .map(|w| permute(w, n_kv_heads, self.d_model, wk_dim));
+                    layer
+                })
+                .collect::<Vec<_>>();
+        }
 
         llama.model = llama.model.load_record(record);
         println!("Llama record loaded");
@@ -301,14 +336,14 @@ pub struct GenerationOutput {
 /// Meta Llama large language model and tokenizer.
 pub struct Llama<B: Backend, T: Tokenizer> {
     /// The tokenizer.
-    tokenizer: T,
+    pub tokenizer: T,
     /// Llama decoder-only transformer.
-    model: Transformer<B>,
+    pub model: Transformer<B>,
     /// Key-value cache for each transformer block.
-    cache: Vec<KeyValueCache<B>>,
+    pub cache: Vec<KeyValueCache<B>>,
     /// Rotary positional encoding (RoPE).
-    rope: RotaryEncoding<B>,
-    device: Device<B>,
+    pub rope: RotaryEncoding<B>,
+    pub device: Device<B>,
 }
 
 impl<B: Backend, T: Tokenizer> Llama<B, T> {
@@ -346,7 +381,6 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
                 .slice([0..batch_size, seq_len - 1..seq_len])
                 .squeeze(1); // [batch_size=1, vocab_size]
 
-            // TODO: naive sampling w/o cumsum tensor op to first test llama implementation correctness
             if temperature > 0.0 {
                 next_token_logits = softmax(next_token_logits / temperature, 1);
             };
@@ -383,7 +417,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
 
     /// Encode a string into a tensor of tokens.
     fn tokenize(&self, text: &str) -> Tensor<B, 1, Int> {
-        let tokens = self.tokenizer.encode(text, true, false);
+        let tokens = self.tokenizer.encode(text, false, false);
 
         let shape = Shape::new([tokens.len()]);
         Tensor::<B, 1, Int>::from_data(Data::new(tokens, shape).convert(), &self.device)
