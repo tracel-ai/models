@@ -2,10 +2,8 @@
 
 Llama-3 implementation.
 
-You can find the [Burn](https://github.com/tracel-ai/burn) implementation for the YOLOX variants in
-[src/model/yolox.rs](src/model/yolox.rs).
-
-The model is [no_std compatible](https://docs.rust-embedded.org/book/intro/no-std.html).
+You can find the [Burn](https://github.com/tracel-ai/burn) implementation for the Llama variants in
+[src/llama.rs](src/llama.rs).
 
 ## Usage
 
@@ -18,22 +16,40 @@ Add this to your `Cargo.toml`:
 llama-burn = { git = "https://github.com/tracel-ai/models", package = "llama-burn", default-features = false }
 ```
 
-If you want to get the COCO pre-trained weights, enable the `pretrained` feature flag.
+If you want to use Llama 3 or TinyLlama (including pre-trained weights if default features are
+active), enable the corresponding feature flag.
+
+**Important:** these features require `std`.
+
+#### Llama 3
 
 ```toml
 [dependencies]
-llama-burn = { git = "https://github.com/tracel-ai/models", package = "llama-burn", features = ["pretrained"] }
+llama-burn = { git = "https://github.com/tracel-ai/models", package = "llama-burn", features = ["llama3"] }
 ```
 
-**Important:** this feature requires `std`.
+#### TinyLlama
+
+```toml
+[dependencies]
+llama-burn = { git = "https://github.com/tracel-ai/models", package = "llama-burn", features = ["tiny"] }
+```
 
 ### Example Usage
 
-The [text generation example](examples/generate.rs) initializes a Llama-3-8B from the provided
-weights file with the `Wgpu` backend and generates a sequence of text based on the input prompt.
+The [text generation example](examples/generate.rs) initializes a Llama model from the provided
+weights file and generates a sequence of text based on the input prompt.
 
 You can run the example with the following command:
 
+### LLama 3
+
 ```sh
-cargo run --example generate --release -- --model Meta-Llama-3-8B/consolidated.00.pth --tokenizer Meta-Llama-3-8B/tokenizer.model
+cargo run --features llama3 --example generate --release
+```
+
+### TinyLlama
+
+```sh
+cargo run --features tiny --example generate --release
 ```

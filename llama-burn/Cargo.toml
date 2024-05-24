@@ -7,12 +7,11 @@ edition = "2021"
 description = "Llama 3 large language model with Burn"
 
 [features]
-default = ["std"] # TODO: remove std default
-std = []
-pretrained = ["burn/network", "std", "dep:dirs"]
+default = ["pretrained"]
+pretrained = ["burn/network", "dep:dirs"]
 
-llama3 = ["pretrained", "dep:tiktoken-rs", "dep:rustc-hash", "dep:base64"]
-tiny = ["pretrained", "dep:tokenizers"]
+llama3 = ["dep:tiktoken-rs", "dep:rustc-hash", "dep:base64"]
+tiny = ["dep:tokenizers"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std

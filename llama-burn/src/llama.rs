@@ -83,7 +83,7 @@ impl LlamaConfig {
     }
 
     /// Load pre-trained Llama-3-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
-    #[cfg(feature = "llama3")]
+    #[cfg(all(feature = "llama3", feature = "pretrained"))]
     pub fn llama3_8b_pretrained<B: Backend>(
         device: &Device<B>,
     ) -> Result<Llama<B, Tiktoken>, String> {
@@ -133,7 +133,7 @@ impl LlamaConfig {
     }
 
     /// Load pre-trained TinyLlama-1.1B Chat v1.0 model with [SentenciePiece](https://github.com/google/sentencepiece) tokenizer.
-    #[cfg(feature = "tiny")]
+    #[cfg(all(feature = "tiny", feature = "pretrained"))]
     pub fn tiny_llama_pretrained<B: Backend>(
         device: &Device<B>,
     ) -> Result<Llama<B, SentiencePieceTokenizer>, String> {
