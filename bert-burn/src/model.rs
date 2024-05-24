@@ -255,7 +255,7 @@ impl<B: Backend> BertLMHead<B> {
     pub fn from_safetensors(
         file_path: PathBuf,
         device: &B::Device,
-        config: BertModelConfig,
+        _config: BertModelConfig,
     ) -> BertLMHeadRecord<B> {
         let weight_result = safetensors::load::<PathBuf>(file_path, &Device::Cpu);
 

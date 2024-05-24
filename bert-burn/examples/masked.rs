@@ -1,11 +1,10 @@
 use bert_burn::data::{BertInputBatcher, BertTokenizer};
 use bert_burn::fill_mask::fill_mask;
 use bert_burn::loader::{download_hf_model, load_model_config};
-use bert_burn::model::{BertMaskedLM, BertMaskedLMRecord, BertModel, BertModelRecord};
+use bert_burn::model::{BertMaskedLM, BertMaskedLMRecord};
 use burn::data::dataloader::batcher::Batcher;
 use burn::module::Module;
 use burn::tensor::backend::Backend;
-use burn::tensor::Tensor;
 use std::env;
 use std::sync::Arc;
 
@@ -61,17 +60,23 @@ pub fn launch<B: Backend>(device: B::Device) {
     let [batch_size, _seq_len] = input.tokens.dims();
     println!("Input: {:?} // (Batch Size, Seq_len)", input.tokens.shape());
 
-    let output = fill_mask(&model, &model_config, &tokenizer, input);
+    let output = fill_mask(&model, &model_config, tokenizer.as_ref(), input);
 
     for i in 0..batch_size {
         let input = &text_samples[i];
         let result = &output[i];
         println!("Input: {}", input);
-        for (j, fill_mask_result) in result.iter().enumerate() {
+        for fill_mask_result in result.iter() {
             let mask_idx = fill_mask_result.mask_idx;
             let top_k = &fill_mask_result.top_k;
             for (k, (score, token)) in top_k.iter().enumerate() {
-                println!("Top {} Prediction: {} (Score: {:.4})", k + 1, token, score);
+                println!(
+                    "Top {} Prediction for {}: {} (Score: {:.4})",
+                    k + 1,
+                    mask_idx,
+                    token,
+                    score
+                );
             }
         }
     }
