@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use burn::{
     backend::{libtorch::LibTorchDevice, LibTorch},
-    tensor::backend::Backend,
+    tensor::{backend::Backend, f16},
 };
 use clap::Parser;
 use llama_burn::{
@@ -71,7 +71,7 @@ pub fn generate<B: Backend, T: Tokenizer>(
 }
 
 pub fn main() {
-    type B = LibTorch;
+    type B = LibTorch<f16>;
 
     // Parse arguments
     let args = Config::parse();
