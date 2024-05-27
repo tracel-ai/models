@@ -1,7 +1,8 @@
 use crate::data::BertInferenceBatch;
 use crate::embedding::{BertEmbeddings, BertEmbeddingsConfig};
 use crate::loader::{
-    load_embeddings_from_safetensors, load_encoder_from_safetensors, load_pooler_from_safetensors,
+    load_decoder_from_safetensors, load_embeddings_from_safetensors, load_encoder_from_safetensors,
+    load_layer_norm_safetensor, load_linear_safetensor, load_pooler_from_safetensors,
 };
 use crate::pooler::{Pooler, PoolerConfig};
 use burn::config::Config;
@@ -10,6 +11,8 @@ use burn::nn::transformer::{
     TransformerEncoder, TransformerEncoderConfig, TransformerEncoderInput,
 };
 use burn::nn::Initializer::KaimingUniform;
+use burn::nn::{LayerNorm, LayerNormConfig, Linear, LinearConfig};
+use burn::tensor::activation::gelu;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 use candle_core::{safetensors, Device, Tensor as CandleTensor};
@@ -85,6 +88,19 @@ impl BertModelConfig {
         }
     }
 
+    pub fn init_with_lm_head<B: Backend>(&self, device: &B::Device) -> BertMaskedLM<B> {
+        let bert = self.init(device);
+        let lm_head = BertLMHead {
+            dense: LinearConfig::new(self.hidden_size, self.hidden_size).init(device),
+            layer_norm: LayerNormConfig::new(self.hidden_size)
+                .with_epsilon(self.layer_norm_eps)
+                .init(device),
+            decoder: LinearConfig::new(self.hidden_size, self.vocab_size).init(device),
+        };
+
+        BertMaskedLM { bert, lm_head }
+    }
+
     fn get_embeddings_config(&self) -> BertEmbeddingsConfig {
         BertEmbeddingsConfig {
             vocab_size: self.vocab_size,
@@ -104,7 +120,7 @@ impl BertModelConfig {
             d_model: self.hidden_size,
             d_ff: self.intermediate_size,
             dropout: self.hidden_dropout_prob,
-            norm_first: true,
+            norm_first: false,
             quiet_softmax: false,
             initializer: KaimingUniform {
                 gain: 1.0 / libm::sqrt(3.0),
@@ -188,5 +204,91 @@ impl<B: Backend> BertModel<B> {
             pooler: pooler_record,
         };
         model_record
+    }
+}
+
+#[derive(Module, Debug)]
+pub struct BertMaskedLM<B: Backend> {
+    pub bert: BertModel<B>,
+    pub lm_head: BertLMHead<B>,
+}
+
+#[derive(Module, Debug)]
+pub struct BertLMHead<B: Backend> {
+    pub dense: Linear<B>,
+    pub layer_norm: LayerNorm<B>,
+    pub decoder: Linear<B>,
+}
+
+impl<B: Backend> BertMaskedLM<B> {
+    pub fn forward(&self, input: BertInferenceBatch<B>) -> Tensor<B, 3> {
+        let output = self.bert.forward(BertInferenceBatch {
+            tokens: input.tokens.clone(),
+            mask_pad: input.mask_pad.clone(),
+        });
+        let output = self.lm_head.forward(output.hidden_states);
+        output
+    }
+
+    pub fn from_safetensors(
+        file_path: PathBuf,
+        device: &B::Device,
+        config: BertModelConfig,
+    ) -> BertMaskedLMRecord<B> {
+        let bert = BertModel::from_safetensors(file_path.clone(), device, config.clone());
+        let lm_head = BertLMHead::from_safetensors(file_path, device, config);
+
+        BertMaskedLMRecord { bert, lm_head }
+    }
+}
+
+impl<B: Backend> BertLMHead<B> {
+    pub fn forward(&self, features: Tensor<B, 3>) -> Tensor<B, 3> {
+        let output = self.dense.forward(features);
+        let output = gelu(output);
+        let output = self.layer_norm.forward(output);
+
+        let output = self.decoder.forward(output);
+        output
+    }
+
+    pub fn from_safetensors(
+        file_path: PathBuf,
+        device: &B::Device,
+        _config: BertModelConfig,
+    ) -> BertLMHeadRecord<B> {
+        let weight_result = safetensors::load::<PathBuf>(file_path, &Device::Cpu);
+
+        // Match on the result of loading the weights
+        let weights = match weight_result {
+            Ok(weights) => weights,
+            Err(e) => panic!("Error loading weights: {:?}", e),
+        };
+
+        let dense = load_linear_safetensor::<B>(
+            &weights["lm_head.dense.bias"],
+            &weights["lm_head.dense.weight"],
+            device,
+        );
+        let layer_norm = load_layer_norm_safetensor::<B>(
+            &weights["lm_head.layer_norm.bias"],
+            &weights["lm_head.layer_norm.weight"],
+            device,
+        );
+        let decoder = load_decoder_from_safetensors::<B>(
+            &weights["lm_head.bias"],
+            &weights
+                .iter()
+                .find(|(k, _)| k.contains("word_embeddings.weight"))
+                .unwrap()
+                .1,
+            device,
+        );
+
+        BertLMHeadRecord {
+            dense,
+            layer_norm,
+            decoder,
+        }
     }
 }
