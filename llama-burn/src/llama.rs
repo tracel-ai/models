@@ -70,11 +70,11 @@ impl LlamaConfig {
         tokenizer_path: &str,
         device: &Device<B>,
     ) -> Result<Llama<B, Tiktoken>, String> {
-        use burn::record::NamedMpkFileRecorder;
+        use burn::record::BinFileRecorder;
 
         let llama = Self::llama3_8b(tokenizer_path).init::<B, Tiktoken>(device)?;
 
-        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        let recorder = BinFileRecorder::<HalfPrecisionSettings>::new();
         let llama = llama
             .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
@@ -120,11 +120,11 @@ impl LlamaConfig {
         tokenizer_path: &str,
         device: &Device<B>,
     ) -> Result<Llama<B, SentiencePieceTokenizer>, String> {
-        use burn::record::NamedMpkFileRecorder;
+        use burn::record::BinFileRecorder;
 
         let llama = Self::tiny_llama(tokenizer_path).init::<B, SentiencePieceTokenizer>(device)?;
 
-        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        let recorder = BinFileRecorder::<HalfPrecisionSettings>::new();
         let llama = llama
             .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
