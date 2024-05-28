@@ -83,12 +83,21 @@ impl LlamaConfig {
     }
 
     /// Load pre-trained Llama-3-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
+    ///
+    /// # Arguments
+    /// - `instruct`: If true, load the instruction-tuned model for dialogue applications (e.g., chat).
+    /// - `device` - The device to load the model on.
     #[cfg(all(feature = "llama3", feature = "pretrained"))]
     pub fn llama3_8b_pretrained<B: Backend>(
+        instruct: bool,
         device: &Device<B>,
     ) -> Result<Llama<B, Tiktoken>, String> {
         // Download checkpoint and tokenizer
-        let model = pretrained::Llama::Llama3.pretrained();
+        let model = if instruct {
+            pretrained::Llama::Llama3Instruct.pretrained()
+        } else {
+            pretrained::Llama::Llama3.pretrained()
+        };
         let checkpoint = model
             .download_weights()
             .map_err(|err| format!("Could not download weights.\nError: {err}"))?;

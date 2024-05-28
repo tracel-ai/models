@@ -65,7 +65,9 @@ pub trait ModelMeta {
 pub enum Llama {
     /// Llama-3-8B.
     Llama3,
-    /// TinyLlama-1.1B.
+    /// Llama-3-8B-Instruct.
+    Llama3Instruct,
+    /// TinyLlama-1.1B Chat v1.0.
     TinyLlama,
 }
 
@@ -76,6 +78,11 @@ impl ModelMeta for Llama {
                 name: "Llama-3-8B",
                 model: "https://huggingface.co/tracel-ai/llama-3-8b-burn/resolve/main/model.bin?download=true",
                 tokenizer: "https://huggingface.co/tracel-ai/llama-3-8b-burn/resolve/main/tokenizer.model?download=true",
+            },
+            Self::Llama3Instruct => Pretrained {
+                name: "Llama-3-8B-Instruct",
+                model: "https://huggingface.co/tracel-ai/llama-3-8b-instruct-burn/resolve/main/model.bin?download=true",
+                tokenizer: "https://huggingface.co/tracel-ai/llama-3-8b-instruct-burn/resolve/main/tokenizer.model?download=true",
             },
             Self::TinyLlama => Pretrained {
                 name: "TinyLlama-1.1B",

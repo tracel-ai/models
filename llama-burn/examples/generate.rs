@@ -41,7 +41,7 @@ pub struct Config {
     prompt: String,
 
     /// Chat assistant mode.
-    #[arg(short, long, default_value_t = cfg!(feature = "tiny"))]
+    #[arg(short, long, default_value_t = true)]
     chat: bool,
 }
 
@@ -109,15 +109,15 @@ pub fn main() {
 
     #[cfg(feature = "llama3")]
     {
-        let mut llama = LlamaConfig::llama3_8b_pretrained::<B>(&device).unwrap();
+        let mut llama = LlamaConfig::llama3_8b_pretrained::<B>(args.chat, &device).unwrap();
         println!("Processing prompt: {}", prompt);
 
-        let prompt = if args.chat {
-            panic!("Llama-8B-Instruct is not available yet.");
-        } else {
-            // Prompt with BOS token
-            format!("{}{prompt}", llama.tokenizer.bos())
-        };
+        if args.chat {
+            // Prompt formatting for chat model
+            prompt = format!(
+                "<|start_header_id|>system<|end_header_id|>\n\nYou are a friendly chatbot who always responds in the style of a pirate<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+            )
+        }
 
         generate(
             &mut llama,
