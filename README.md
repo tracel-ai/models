@@ -7,6 +7,7 @@ examples constructed using the [Burn](https://github.com/burn-rs/burn) deep lear
 
 | Model                                           | Description                                              | Repository Link                                |
 |-------------------------------------------------|----------------------------------------------------------|------------------------------------------------|
+| [Llama](https://github.com/meta-llama/llama3) | Llama 3 and TinyLlama large language models.                  | [llama-burn](llama-burn/README.md) |
 | [MobileNetV2](https://arxiv.org/abs/1801.04381) | A CNN model targeted at mobile devices.                  | [mobilenetv2-burn](mobilenetv2-burn/README.md) |
 | [SqueezeNet](https://arxiv.org/abs/1602.07360)  | A small CNN-based model for image classification.        | [squeezenet-burn](squeezenet-burn/README.md)   |
 | [ResNet](https://arxiv.org/abs/1512.03385)      | A CNN based on residual blocks with skip connections.    | [resnet-burn](resnet-burn/README.md)           |
