@@ -54,6 +54,7 @@ impl Tokenizer for Tiktoken {
 
             mergeable_ranks.insert(token, rank);
         }
+        let num_base_tokens = mergeable_ranks.len();
 
         let special_tokens = [
             SPECIAL_TOKENS
@@ -69,12 +70,11 @@ impl Tokenizer for Tiktoken {
         let special_tokens = special_tokens
             .into_iter()
             .enumerate()
-            .map(|(i, s)| (s, i))
+            .map(|(i, s)| (s, i + num_base_tokens))
             .collect::<HashMap<String, usize>>();
 
-        let num_base_tokens = mergeable_ranks.len();
-        let bos_token_id = special_tokens[BOS_TOKEN] + num_base_tokens;
-        let eos_token_id = special_tokens[EOS_TOKEN] + num_base_tokens;
+        let bos_token_id = special_tokens[BOS_TOKEN];
+        let eos_token_id = special_tokens[EOS_TOKEN];
 
         let bpe =
             CoreBPE::new(mergeable_ranks, special_tokens, PATTERN).map_err(|e| e.to_string())?;
