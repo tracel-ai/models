@@ -77,7 +77,7 @@ pub fn main() {
     let args = Config::parse();
 
     let device = LibTorchDevice::Cuda(0);
-    let prompt = args.prompt;
+    let mut prompt = args.prompt;
 
     // Sampling strategy
     let mut sampler = if args.temperature > 0.0 {
@@ -91,15 +91,12 @@ pub fn main() {
         let mut llama = LlamaConfig::tiny_llama_pretrained::<B>(&device).unwrap();
         println!("Processing prompt: {}", prompt);
 
-        let prompt = if args.chat {
+        if args.chat {
             // Prompt formatting for chat model
-            format!(
+            prompt = format!(
                 "<|system|>\nYou are a friendly chatbot who always responds in the style of a pirate</s>\n<|user|>\n{prompt}</s>\n<|assistant|>\n"
             )
-        } else {
-            // Prompt with BOS token
-            format!("{}{prompt}", llama.tokenizer.bos())
-        };
+        }
 
         generate(
             &mut llama,

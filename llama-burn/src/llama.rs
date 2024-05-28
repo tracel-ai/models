@@ -417,7 +417,8 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
 
     /// Encode a string into a tensor of tokens.
     fn tokenize(&self, text: &str) -> Tensor<B, 1, Int> {
-        let tokens = self.tokenizer.encode(text, false, false);
+        let bos = !cfg!(feature = "tiny"); // TinyLlama Chat doesn't prepend BOS token with the chat format
+        let tokens = self.tokenizer.encode(text, bos, false);
 
         let shape = Shape::new([tokens.len()]);
         Tensor::<B, 1, Int>::from_data(Data::new(tokens, shape).convert(), &self.device)
