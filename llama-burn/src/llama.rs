@@ -363,7 +363,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
     /// - `sample_len`: The number of new tokens to generate (i.e., the number of generation steps to take).
     /// - `temperature`: Temperature value for controlling randomness in sampling (scales logits by `1 / temperature`).
     ///                  High values result in more random sampling.
-    /// - `sampler`: The sampling strategy to use when selecting the next token based on the predicted probabilies.
+    /// - `sampler`: The sampling strategy to use when selecting the next token based on the predicted probabilities.
     ///
     /// # Returns
     /// The generated text along with some other metadata (see [GenerationOutput]).
