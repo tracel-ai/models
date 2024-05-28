@@ -1,6 +1,9 @@
 # Llama Burn
 
-Llama-3 implementation.
+The popular Llama LLM is here! This repository contains the
+[Llama-3](https://github.com/meta-llama/llama3) and
+[TinyLlama](https://github.com/jzhang38/TinyLlama) implementations with their corresponding
+tokenizers.
 
 You can find the [Burn](https://github.com/tracel-ai/burn) implementation for the Llama variants in
 [src/llama.rs](src/llama.rs).
@@ -37,19 +40,29 @@ llama-burn = { git = "https://github.com/tracel-ai/models", package = "llama-bur
 
 ### Example Usage
 
-The [text generation example](examples/generate.rs) initializes a Llama model from the provided
-weights file and generates a sequence of text based on the input prompt.
+The [chat completion example](examples/chat.rs) initializes a Llama model from the provided weights
+file and generates a sequence of text based on the input prompt. The instruction-tuned model is
+loaded for dialogue applications, so the prompt is automatically formatted for chat completion.
 
 You can run the example with the following command:
 
 ### LLama 3
 
 ```sh
-cargo run --features llama3 --example generate --release
+cargo run --release --features llama3 --example chat [-- --prompt "<your question/prompt here>"]
 ```
+
+**Built with Meta Llama 3.** This example uses the
+[Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
+instruction-tuned model. Note that the [base pre-trained Llama-3 model](./src/pretrained.rs#L77) is
+also available if you wish to use it in your application.
 
 ### TinyLlama
 
 ```sh
-cargo run --features tiny --example generate --release
+cargo run --release --features tiny --example chat [-- --prompt "<your question/prompt here>"]
 ```
+
+This example uses the
+[TinyLlama-1.1B-Chat-v1.0](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)
+instruction-tuned model based on the Llama2 architecture and tokenizer.

@@ -39,10 +39,6 @@ pub struct Config {
     /// The input prompt.
     #[arg(short, long, default_value_t = String::from(DEFAULT_PROMPT))]
     prompt: String,
-
-    /// Chat assistant mode.
-    #[arg(short, long, default_value_t = true)]
-    chat: bool,
 }
 
 pub fn generate<B: Backend, T: Tokenizer>(
@@ -88,15 +84,14 @@ pub fn main() {
 
     #[cfg(feature = "tiny")]
     {
+        // TinyLlama-1.1B Chat v1.0
         let mut llama = LlamaConfig::tiny_llama_pretrained::<B>(&device).unwrap();
         println!("Processing prompt: {}", prompt);
 
-        if args.chat {
-            // Prompt formatting for chat model
-            prompt = format!(
-                "<|system|>\nYou are a friendly chatbot who always responds in the style of a pirate</s>\n<|user|>\n{prompt}</s>\n<|assistant|>\n"
-            )
-        }
+        // Prompt formatting for chat model
+        prompt = format!(
+            "<|system|>\nYou are a friendly chatbot who always responds in the style of a pirate</s>\n<|user|>\n{prompt}</s>\n<|assistant|>\n"
+        );
 
         generate(
             &mut llama,
@@ -109,15 +104,14 @@ pub fn main() {
 
     #[cfg(feature = "llama3")]
     {
-        let mut llama = LlamaConfig::llama3_8b_pretrained::<B>(args.chat, &device).unwrap();
+        // Llama-3-8B-Instruct
+        let mut llama = LlamaConfig::llama3_8b_pretrained::<B>(true, &device).unwrap();
         println!("Processing prompt: {}", prompt);
 
-        if args.chat {
-            // Prompt formatting for chat model
-            prompt = format!(
-                "<|start_header_id|>system<|end_header_id|>\n\nYou are a friendly chatbot who always responds in the style of a pirate<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
-            )
-        }
+        // Prompt formatting for chat model
+        prompt = format!(
+            "<|start_header_id|>system<|end_header_id|>\n\nA chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+        );
 
         generate(
             &mut llama,
