@@ -1,12 +1,13 @@
 # Llama Burn
 
-The popular Llama LLM is here! This repository contains the
-[Llama-3](https://github.com/meta-llama/llama3) and
-[TinyLlama](https://github.com/jzhang38/TinyLlama) implementations with their corresponding
-tokenizers.
+<img src="./assets/llama-burn.jpeg" alt="An image of a llama surrounded by fiery colors and a gust of fire" width="500px"/>
 
-You can find the [Burn](https://github.com/tracel-ai/burn) implementation for the Llama variants in
-[src/llama.rs](src/llama.rs).
+The popular Llama LLM is here!
+
+This repository contains the [Llama-3](https://github.com/meta-llama/llama3) and
+[TinyLlama](https://github.com/jzhang38/TinyLlama) implementations with their corresponding
+tokenizers. You can find the [Burn](https://github.com/tracel-ai/burn) implementation for the Llama
+variants in [src/llama.rs](src/llama.rs).
 
 ## Usage
 
