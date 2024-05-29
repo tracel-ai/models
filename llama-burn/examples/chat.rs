@@ -1,9 +1,6 @@
 use std::time::Instant;
 
-use burn::{
-    backend::{libtorch::LibTorchDevice, LibTorch},
-    tensor::{backend::Backend, f16},
-};
+use burn::tensor::{backend::Backend, Device};
 use clap::Parser;
 use llama_burn::{
     llama::{Llama, LlamaConfig},
@@ -25,7 +22,7 @@ pub struct Config {
     temperature: f64,
 
     /// Maximum sequence length for input text.
-    #[arg(long, default_value_t = 512)]
+    #[arg(long, default_value_t = 128)]
     max_seq_len: usize,
 
     /// The number of new tokens to generate (i.e., the number of generation steps to take).
@@ -66,13 +63,7 @@ pub fn generate<B: Backend, T: Tokenizer>(
     );
 }
 
-pub fn main() {
-    type B = LibTorch<f16>;
-
-    // Parse arguments
-    let args = Config::parse();
-
-    let device = LibTorchDevice::Cuda(0);
+pub fn chat<B: Backend>(args: Config, device: Device<B>) {
     let mut prompt = args.prompt;
 
     // Sampling strategy
@@ -121,4 +112,58 @@ pub fn main() {
             &mut sampler,
         );
     }
+}
+
+#[cfg(feature = "tch-gpu")]
+mod tch_gpu {
+    use super::*;
+    use burn::{
+        backend::{libtorch::LibTorchDevice, LibTorch},
+        tensor::f16,
+    };
+
+    pub fn run(args: Config) {
+        #[cfg(not(target_os = "macos"))]
+        let device = LibTorchDevice::Cuda(0);
+        #[cfg(target_os = "macos")]
+        let device = LibTorchDevice::Mps;
+
+        chat::<LibTorch<f16>>(args, device);
+    }
+}
+
+#[cfg(feature = "tch-cpu")]
+mod tch_cpu {
+    use super::*;
+    use burn::backend::{libtorch::LibTorchDevice, LibTorch};
+
+    pub fn run(args: Config) {
+        let device = LibTorchDevice::Cpu;
+
+        chat::<LibTorch>(args, device);
+    }
+}
+
+#[cfg(feature = "wgpu")]
+mod wgpu {
+    use super::*;
+    use burn::backend::wgpu::{Wgpu, WgpuDevice};
+
+    pub fn run(args: Config) {
+        let device = WgpuDevice::default();
+
+        chat::<Wgpu>(args, device);
+    }
+}
+
+pub fn main() {
+    // Parse arguments
+    let args = Config::parse();
+
+    #[cfg(feature = "tch-gpu")]
+    tch_gpu::run(args);
+    #[cfg(feature = "tch-cpu")]
+    tch_cpu::run(args);
+    #[cfg(feature = "wgpu")]
+    wgpu::run(args);
 }

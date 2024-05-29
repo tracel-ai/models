@@ -45,12 +45,38 @@ The [chat completion example](examples/chat.rs) initializes a Llama model from t
 file and generates a sequence of text based on the input prompt. The instruction-tuned model is
 loaded for dialogue applications, so the prompt is automatically formatted for chat completion.
 
-You can run the example with the following command:
+The example can be executed on the `tch` backend (CUDA or CPU) or `wgpu`.
 
-### LLama 3
+| Argument        | Description                                                                                                    |
+|:----------------|:---------------------------------------------------------------------------------------------------------------|
+| `-p`            | The prompt or question to pass to the LLM (default: `"How many helicopters can a human eat in one sitting?"`). |
+| `-n`            | The number of new tokens to generate (default: `50`).                                                          |
+| `--top-p`       | Top-p probability threshold (default: `0.9`).                                                                  |
+| `--temperature` | Temperature value for controlling randomness in sampling. (default: `0.6`).                                    |
+| `--max-seq-len` | Maximum sequence length for input text. (default: `128`).                                                      |
+| `--seed`        | The seed to use when generating random samples.. (default: `42`).                                              |
+
+Any of the commands below can be used by appending any of the listed arguments by appending `[-- <arguments>]`. For example, you can provided your own prompt/question `-- -p "How many llamas does it take to change a lightbulb?"`.
+
+#### Llama 3
+
+Using the `tch` backend with CUDA:
 
 ```sh
-cargo run --release --features llama3 --example chat [-- --prompt "<your question/prompt here>"]
+export TORCH_CUDA_VERSION=cu121
+cargo run --release --features llama3,tch-gpu --example chat
+```
+
+Using the `tch` backend with CPU:
+
+```sh
+cargo run --release --features llama3,tch-cpu --example chat
+```
+
+Using the `wgpu` backend:
+
+```sh
+cargo run --release --features llama3,wgpu --example chat
 ```
 
 **Built with Meta Llama 3.** This example uses the
@@ -58,10 +84,25 @@ cargo run --release --features llama3 --example chat [-- --prompt "<your questio
 instruction-tuned model. Note that the [base pre-trained Llama-3 model](./src/pretrained.rs#L77) is
 also available if you wish to use it in your application.
 
-### TinyLlama
+#### TinyLlama
+
+Using the `tch` backend with CUDA:
 
 ```sh
-cargo run --release --features tiny --example chat [-- --prompt "<your question/prompt here>"]
+export TORCH_CUDA_VERSION=cu121
+cargo run --release --features tiny,tch-gpu --example chat
+```
+
+Using the `tch` backend with CPU:
+
+```sh
+cargo run --release --features tiny,tch-cpu --example chat
+```
+
+Using the `wgpu` backend:
+
+```sh
+cargo run --release --features tiny,wgpu --example chat
 ```
 
 This example uses the
