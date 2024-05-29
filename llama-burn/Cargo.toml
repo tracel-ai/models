@@ -20,8 +20,8 @@ wgpu = ["burn/wgpu"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std
-burn = { git = "https://github.com/tracel-ai/burn", rev = "e4836241e1e5d7391aa278f32a8fffeb1cdbe12a", default-features = false }
-burn-import = { git = "https://github.com/tracel-ai/burn", rev = "e4836241e1e5d7391aa278f32a8fffeb1cdbe12a" }
+burn = { git = "https://github.com/tracel-ai/burn", rev = "0d4374cfd4af073d5e1185cfc982b53c2bf92802", default-features = false }
+burn-import = { git = "https://github.com/tracel-ai/burn", rev = "0d4374cfd4af073d5e1185cfc982b53c2bf92802" }
 itertools = { version = "0.12.1", default-features = false, features = [
     "use_alloc",
 ] }
@@ -44,5 +44,5 @@ rand = { version = "0.8.5", default-features = false, features = [
 ] } # std_rng is for no_std
 
 [dev-dependencies]
-burn = { git = "https://github.com/tracel-ai/burn", rev = "e4836241e1e5d7391aa278f32a8fffeb1cdbe12a" }
+burn = { git = "https://github.com/tracel-ai/burn", rev = "0d4374cfd4af073d5e1185cfc982b53c2bf92802" }
 clap = { version = "4.5.4", features = ["derive"] }

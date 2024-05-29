@@ -4,7 +4,7 @@
 
 The popular Llama LLM is here!
 
-This repository contains the [Llama-3](https://github.com/meta-llama/llama3) and
+This repository contains the [Llama 3](https://github.com/meta-llama/llama3) and
 [TinyLlama](https://github.com/jzhang38/TinyLlama) implementations with their corresponding
 tokenizers. You can find the [Burn](https://github.com/tracel-ai/burn) implementation for the Llama
 variants in [src/llama.rs](src/llama.rs).
