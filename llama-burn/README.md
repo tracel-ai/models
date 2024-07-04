@@ -23,7 +23,9 @@ llama-burn = { git = "https://github.com/tracel-ai/models", package = "llama-bur
 If you want to use Llama 3 or TinyLlama (including pre-trained weights if default features are
 active), enable the corresponding feature flag.
 
-**Important:** these features require `std`.
+> **Important:** these features require `std`. Note that the weights have been saved in the binary
+> format, which is more compact and faster to save & load, but might not be compatible in future
+> versions if the Burn data schema were to evolve.
 
 #### Llama 3
 
@@ -48,7 +50,7 @@ loaded for dialogue applications, so the prompt is automatically formatted for c
 The example can be executed on the `tch` backend (CUDA or CPU) or `wgpu`.
 
 | Argument        | Description                                                                                                    |
-|:----------------|:---------------------------------------------------------------------------------------------------------------|
+| :-------------- | :------------------------------------------------------------------------------------------------------------- |
 | `-p`            | The prompt or question to pass to the LLM (default: `"How many helicopters can a human eat in one sitting?"`). |
 | `-n`            | The number of new tokens to generate (default: `50`).                                                          |
 | `--top-p`       | Top-p probability threshold (default: `0.9`).                                                                  |
@@ -56,7 +58,9 @@ The example can be executed on the `tch` backend (CUDA or CPU) or `wgpu`.
 | `--max-seq-len` | Maximum sequence length for input text. (default: `128`).                                                      |
 | `--seed`        | The seed to use when generating random samples.. (default: `42`).                                              |
 
-Any of the commands below can be used by appending any of the listed arguments by appending `[-- <arguments>]`. For example, you can provided your own prompt/question `-- -p "How many llamas does it take to change a lightbulb?"`.
+Any of the commands below can be used by appending any of the listed arguments by appending
+`[-- <arguments>]`. For example, you can provided your own prompt/question
+`-- -p "How many llamas does it take to change a lightbulb?"`.
 
 #### Llama 3
 
