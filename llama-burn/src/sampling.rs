@@ -1,4 +1,4 @@
-use burn::tensor::{backend::Backend, ElementConversion, Int, Tensor};
+use burn::tensor::{backend::Backend, Int, Tensor};
 use rand::{
     distributions::{Distribution, WeightedIndex},
     rngs::StdRng,
@@ -59,12 +59,7 @@ impl Sampling for TopP {
         // TODO: Distribution::Multinomial (aka https://docs.rs/rand/latest/rand/distributions/struct.WeightedIndex.html)
         // let next_token = multinomial
 
-        let mut probs_sort = probs_sort
-            .to_data()
-            .value
-            .iter()
-            .map(|e| e.elem::<f64>())
-            .collect::<Vec<_>>();
+        let mut probs_sort = probs_sort.to_data().iter::<f64>().collect::<Vec<_>>();
 
         let mut cumsum = 0.;
         probs_sort.iter_mut().for_each(|x| {

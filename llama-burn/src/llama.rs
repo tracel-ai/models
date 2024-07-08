@@ -6,7 +6,8 @@ use burn::{
     nn::{RotaryEncoding, RotaryEncodingConfig},
     record::{FileRecorder, HalfPrecisionSettings, Recorder, RecorderError},
     tensor::{
-        activation::softmax, backend::Backend, Data, Device, ElementConversion, Int, Shape, Tensor,
+        activation::softmax, backend::Backend, Device, ElementConversion, Int, Shape, Tensor,
+        TensorData,
     },
 };
 use burn_import::pytorch::{LoadArgs, PyTorchFileRecorder};
@@ -409,7 +410,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
             }
         }
 
-        let tokens = tokens.into_data().value[prompt_len..]
+        let tokens = tokens.into_data().as_slice::<B::IntElem>().unwrap()[prompt_len..]
             .iter()
             .map(|t| t.elem::<u32>())
             .collect::<Vec<_>>();
@@ -430,7 +431,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
         let tokens = self.tokenizer.encode(text, bos, false);
 
         let shape = Shape::new([tokens.len()]);
-        Tensor::<B, 1, Int>::from_data(Data::new(tokens, shape).convert(), &self.device)
+        Tensor::<B, 1, Int>::from_data(TensorData::new(tokens, shape), &self.device)
     }
 
     /// Save Llama model to file using the specified recorder.
