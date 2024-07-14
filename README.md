@@ -17,13 +17,14 @@ examples constructed using the [Burn](https://github.com/burn-rs/burn) deep lear
 
 Explore the curated list of models developed by the community ♥.
 
-| Model                                       | Description                                                       | Repository Link                                                                   |
-|---------------------------------------------|-------------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| [Llama 2](https://arxiv.org/abs/2307.09288) | LLMs by Meta AI, ranging from 7 billion to 70 billion parameters. | [Gadersd/llama2-burn](https://github.com/Gadersd/llama2-burn)                     |
-| [Whisper](https://arxiv.org/abs/2212.04356) | A general-purpose speech recognition model by OpenAI.             | [Gadersd/whisper-burn](https://github.com/Gadersd/whisper-burn)                   |
-| Stable Diffusion v1.4                       | An image generation model developed by Stability AI.              | [Gadersd/stable-diffusion-burn](https://github.com/Gadersd/stable-diffusion-burn) |
-| kord (music note predictor)                 | A music theory model that can detect notes in short audio clips.  | [twitchax/kord](https://github.com/twitchax/kord)                                 |
-| Whisper-Live                                | A fork of [Gadersd/whisper-burn](https://github.com/Gadersd/whisper-burn) which has been updated for Burn 13 and provides live transcription | [sudomonikers/whisper-burn](https://github.com/sudomonikers/whisper-burn) |
+| Model                                            | Description                                                       | Repository Link                                                                   |
+|--------------------------------------------------|-------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| [Llama 2](https://arxiv.org/abs/2307.09288)      | LLMs by Meta AI, ranging from 7 billion to 70 billion parameters. | [Gadersd/llama2-burn](https://github.com/Gadersd/llama2-burn)                     |
+| [Whisper](https://arxiv.org/abs/2212.04356)      | A general-purpose speech recognition model by OpenAI.             | [Gadersd/whisper-burn](https://github.com/Gadersd/whisper-burn)                   |
+| Stable Diffusion v1.4                            | An image generation model developed by Stability AI.              | [Gadersd/stable-diffusion-burn](https://github.com/Gadersd/stable-diffusion-burn) |
+| kord (music note predictor)                      | A music theory model that can detect notes in short audio clips.  | [twitchax/kord](https://github.com/twitchax/kord)                                 |
+| Whisper-Live                                     | A fork of [Gadersd/whisper-burn](https://github.com/Gadersd/whisper-burn) which has been updated for Burn 13 and provides live transcription | [sudomonikers/whisper-burn](https://github.com/sudomonikers/whisper-burn) |
+| [Inception V3](https://arxiv.org/abs/1512.00567) | A CNN used for calculating FID scores.                            | [varonroy/inception-v3-burn](https://github.com/varonroy/inception-v3-burn/)      |
 
 ## License Information
 
