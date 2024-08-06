@@ -76,17 +76,17 @@ impl ModelMeta for Llama {
         match self {
             Self::Llama3 => Pretrained {
                 name: "Llama-3-8B",
-                model: "https://huggingface.co/tracel-ai/llama-3-8b-burn/resolve/main/model.bin?download=true",
+                model: "https://huggingface.co/tracel-ai/llama-3-8b-burn/resolve/main/model.mpk?download=true",
                 tokenizer: "https://huggingface.co/tracel-ai/llama-3-8b-burn/resolve/main/tokenizer.model?download=true",
             },
             Self::Llama3Instruct => Pretrained {
                 name: "Llama-3-8B-Instruct",
-                model: "https://huggingface.co/tracel-ai/llama-3-8b-instruct-burn/resolve/main/model.bin?download=true",
+                model: "https://huggingface.co/tracel-ai/llama-3-8b-instruct-burn/resolve/main/model.mpk?download=true",
                 tokenizer: "https://huggingface.co/tracel-ai/llama-3-8b-instruct-burn/resolve/main/tokenizer.model?download=true",
             },
             Self::TinyLlama => Pretrained {
                 name: "TinyLlama-1.1B",
-                model: "https://huggingface.co/tracel-ai/tiny-llama-1.1b-burn/resolve/main/model.bin?download=true",
+                model: "https://huggingface.co/tracel-ai/tiny-llama-1.1b-burn/resolve/main/model.mpk?download=true",
                 tokenizer: "https://huggingface.co/tracel-ai/tiny-llama-1.1b-burn/resolve/main/tokenizer.json?download=true",
             },
         }
