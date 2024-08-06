@@ -35,7 +35,7 @@ fn main() {
     };
 
     // Check if half precision is enabled.
-    let half_precision = cfg!(feature = "half_precision");
+    let half_precision = cfg!(feature = "weights_f16");
 
     // Generate the model code from the ONNX file.
     ModelGen::new()
