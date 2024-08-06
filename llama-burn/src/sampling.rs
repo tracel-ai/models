@@ -48,16 +48,7 @@ impl Sampling for TopP {
         );
         let (probs_sort, probs_idx) = probs.sort_descending_with_indices(1);
 
-        // TODO: cumsum
-        // let (probs_sort, probs_idx) = probs.sort_descending_with_indices(2);
-        // probs_sum = probs_sort.cumsum_dim(2);
-        // Clamp smaller probabilities to zero
-        // let mask = (probs_sum - probs_sort).greater_elem(self.p);
-        // probs_sort.mask_fill(mask, 0.0);
-        // let probs_sort = probs_sort / probs_sort.sum_dim(1);
-
-        // TODO: Distribution::Multinomial (aka https://docs.rs/rand/latest/rand/distributions/struct.WeightedIndex.html)
-        // let next_token = multinomial
+        // TODO: cumsum + Distribution::Multinomial support
 
         let mut probs_sort = probs_sort.to_data().iter::<f64>().collect::<Vec<_>>();
 
@@ -69,15 +60,6 @@ impl Sampling for TopP {
                 cumsum += *x;
             }
         });
-        // .scan(0.0, |acc, (idx, x)| {
-        //     *acc = *acc + x;
-        //     // Clamp smaller probabilities to zero.
-        //     if *acc >= self.p {
-        //         probs_sort[idx] = 0.0.elem();
-        //     }
-        //     Some(*acc)
-        // })
-        // .collect::<Vec<_>>();
 
         let next_token_idx = WeightedIndex::new(probs_sort)
             .unwrap()
