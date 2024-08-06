@@ -20,10 +20,8 @@ wgpu = ["burn/wgpu"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std
-burn = { git = "https://github.com/tracel-ai/burn", rev = "c0211e2f949ab34e8da803919e4e3802e582e78b", default-features = false }
-burn-import = { git = "https://github.com/tracel-ai/burn", rev = "c0211e2f949ab34e8da803919e4e3802e582e78b" }
-# burn = { path = "../../burn/crates/burn", default-features = false}#, features = ["record-backward-compat"]}
-# burn-import = { path = "../../burn/crates/burn-import" }
+burn = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c", default-features = false }
+burn-import = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c" }
 itertools = { version = "0.12.1", default-features = false, features = [
     "use_alloc",
 ] }
@@ -36,16 +34,17 @@ serde = { version = "1.0.192", default-features = false, features = [
 # Tiktoken tokenizer (llama 3)
 tiktoken-rs = { version = "0.5.8", optional = true }
 base64 = { version = "0.22.1", optional = true }
-rustc-hash = {version = "1.1.0", optional = true }
+rustc-hash = { version = "1.1.0", optional = true }
 
 # SentencePiece tokenizer (tiny llama / llama 2)
-tokenizers = { version = "0.19.1", default-features = false, features = ["onig"], optional = true }
+tokenizers = { version = "0.19.1", default-features = false, features = [
+    "onig",
+], optional = true }
 
 rand = { version = "0.8.5", default-features = false, features = [
     "std_rng",
 ] } # std_rng is for no_std
 
 [dev-dependencies]
-burn = { git = "https://github.com/tracel-ai/burn", rev = "c0211e2f949ab34e8da803919e4e3802e582e78b" }
-# burn-import = { path = "../../burn/crates/burn-import" }
+burn = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c" }
 clap = { version = "4.5.4", features = ["derive"] }
