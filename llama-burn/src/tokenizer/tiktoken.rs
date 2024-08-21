@@ -1,5 +1,4 @@
 use std::{
-    collections::HashSet,
     fs::File,
     io::{BufRead, BufReader},
 };
@@ -89,8 +88,7 @@ impl Tokenizer for Tiktoken {
         let bos_token = if bos { vec![self.bos_token_id] } else { vec![] };
         let eos_token = if eos { vec![self.eos_token_id] } else { vec![] };
 
-        // `allowed_special` is an empty set
-        let tokens = self.bpe.encode(text, HashSet::new());
+        let tokens = self.bpe.encode_with_special_tokens(text);
 
         [bos_token, tokens, eos_token]
             .into_iter()
