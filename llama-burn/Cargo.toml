@@ -11,6 +11,7 @@ default = ["pretrained"]
 pretrained = ["burn/network", "dep:dirs"]
 
 llama3 = ["dep:tiktoken-rs", "dep:rustc-hash", "dep:base64"]
+llama3_1 = ["llama3"]
 tiny = ["dep:tokenizers"]
 
 # Example feature flags (backend selection)
@@ -20,8 +21,10 @@ wgpu = ["burn/wgpu"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std
-burn = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c", default-features = false }
-burn-import = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c" }
+burn = { path = "../../burn/crates/burn", default-features = false }
+burn-import = { path = "../../burn/crates/burn-import" }
+# burn = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c", default-features = false }
+# burn-import = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c" }
 itertools = { version = "0.12.1", default-features = false, features = [
     "use_alloc",
 ] }
@@ -46,5 +49,6 @@ rand = { version = "0.8.5", default-features = false, features = [
 ] } # std_rng is for no_std
 
 [dev-dependencies]
-burn = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c" }
+burn = { path = "../../burn/crates/burn", default-features = false }
+# burn = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c" }
 clap = { version = "4.5.4", features = ["derive"] }

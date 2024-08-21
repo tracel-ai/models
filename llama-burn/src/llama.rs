@@ -48,6 +48,9 @@ pub struct LlamaConfig {
     /// Rotary positional encoding (RoPE) theta.
     #[config(default = "10000.0")]
     pub rope_theta: f32,
+    /// Use scaled RoPE.
+    #[config(default = "false")]
+    pub rope_scaled: bool,
     /// Maximum sequence length for input text.
     #[config(default = "128")]
     pub max_seq_len: usize,
@@ -56,6 +59,58 @@ pub struct LlamaConfig {
 }
 
 impl LlamaConfig {
+    /// Llama-3.1-8B configuration.
+    pub fn llama3_1_8b(tokenizer_path: &str) -> Self {
+        // hidden_size = 14336; vocab_size = 128256
+        Self::new(14336, 128256, tokenizer_path.to_string())
+            .with_num_key_value_heads(Some(8))
+            .with_rope_theta(500000.0)
+            .with_rope_scaled(true)
+    }
+
+    /// Load pre-trained Llama-3.1-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
+    #[cfg(feature = "llama3_1")]
+    pub fn load_llama3_1_8b<B: Backend>(
+        checkpoint: &str,
+        tokenizer_path: &str,
+        device: &Device<B>,
+    ) -> Result<Llama<B, Tiktoken>, String> {
+        use burn::record::NamedMpkFileRecorder;
+
+        let llama = Self::llama3_1_8b(tokenizer_path).init::<B, Tiktoken>(device)?;
+
+        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        let llama = llama
+            .load(checkpoint, &recorder)
+            .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
+
+        Ok(llama)
+    }
+
+    /// Load pre-trained Llama-3.1-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
+    ///
+    /// # Arguments
+    /// - `device` - The device to load the model on.
+    #[cfg(all(feature = "llama3_1", feature = "pretrained"))]
+    pub fn llama3_1_8b_pretrained<B: Backend>(
+        device: &Device<B>,
+    ) -> Result<Llama<B, Tiktoken>, String> {
+        // Download checkpoint and tokenizer
+        let model = pretrained::Llama::Llama31Instruct.pretrained();
+        let checkpoint = model
+            .download_weights()
+            .map_err(|err| format!("Could not download weights.\nError: {err}"))?;
+        let tokenizer = model
+            .download_tokenizer()
+            .map_err(|err| format!("Could not download tokenizer.\nError: {err}"))?;
+
+        Self::load_llama3_1_8b(
+            checkpoint.to_str().unwrap(),
+            tokenizer.to_str().unwrap(),
+            device,
+        )
+    }
+
     /// Llama-3-8B configuration.
     pub fn llama3_8b(tokenizer_path: &str) -> Self {
         // hidden_size = 14336; vocab_size = 128256
@@ -190,8 +245,13 @@ impl LlamaConfig {
             self.max_seq_len * 2,
             self.d_model / self.num_attention_heads,
         )
-        .with_theta(self.rope_theta)
-        .init(device);
+        .with_theta(self.rope_theta);
+
+        let rope = if self.rope_scaled {
+            rope.init_with_frequency_scaling(freq_scaling_by_parts, device)
+        } else {
+            rope.init(device)
+        };
 
         Ok(Llama {
             tokenizer,
@@ -463,4 +523,46 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
 
         Ok(self)
     }
+}
+
+/// Applies frequency scaling by parts following Llama 3.1's scheme.
+///
+/// Adapted from: https://github.com/meta-llama/llama-models/blob/main/models/llama3/reference_impl/model.py#L45
+fn freq_scaling_by_parts<B: Backend>(freqs: Tensor<B, 1>) -> Tensor<B, 1> {
+    let scale_factor = 8.;
+    let low_freq_factor = 1.;
+    let high_freq_factor = 4.;
+    let old_context_len = 8192.;
+
+    let low_freq_wavelen = old_context_len / low_freq_factor;
+    let high_freq_wavelen = old_context_len / high_freq_factor;
+
+    let wavelen = freqs.clone().recip().mul_scalar(2. * core::f32::consts::PI);
+
+    // if wavelen >= high_freq_wavelen
+    let cond = wavelen.clone().greater_equal_elem(high_freq_wavelen);
+    let smooth = wavelen
+        .clone()
+        .recip()
+        .mul_scalar(old_context_len)
+        .sub_scalar(low_freq_factor)
+        .div_scalar(high_freq_factor - low_freq_factor);
+    // (1 - smooth) * freq / scale_factor + smooth * freq
+    let new_freqs = smooth
+        .clone()
+        .neg()
+        .add_scalar(1.)
+        .mul(freqs.clone().div_scalar(scale_factor))
+        .add(smooth.clone().mul(freqs.clone()));
+    let new_freqs = freqs.clone().mask_where(cond, new_freqs);
+
+    // if wavelen > low_freq_wavelen
+    let cond = wavelen.clone().greater_elem(low_freq_wavelen);
+    let new_freqs = new_freqs.mask_where(cond, freqs.clone().div_scalar(scale_factor));
+
+    // if wavelen < high_freq_wavelen
+    let cond = wavelen.lower_elem(high_freq_wavelen);
+    let new_freqs = new_freqs.mask_where(cond, freqs);
+
+    new_freqs
 }

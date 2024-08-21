@@ -1,10 +1,11 @@
 use burn::tensor::{backend::Backend, Tensor};
 
-/// All Llama-3 models support sequence length up to 8192 tokens.
+/// All Llama-3 models support sequence length up to 8K tokens.
+#[cfg(not(feature = "llama3_1"))]
 pub(crate) const MAX_SEQ_LEN: usize = 8192;
-
-// /// All Llama-2 models support sequence length up to 4096 tokens.
-// pub(crate) const MAX_SEQ_LEN_V2: usize = 4096;
+/// All Llama-3.1 models support sequence length up to 128K tokens.
+#[cfg(feature = "llama3_1")]
+pub(crate) const MAX_SEQ_LEN: usize = 131072;
 
 // Adapted from `burn::nn::cache`
 enum CacheState<T> {
