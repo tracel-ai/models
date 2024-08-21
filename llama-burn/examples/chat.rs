@@ -76,7 +76,7 @@ pub fn chat<B: Backend>(args: Config, device: Device<B>) {
     #[cfg(feature = "tiny")]
     {
         // TinyLlama-1.1B Chat v1.0
-        let mut llama = LlamaConfig::tiny_llama_pretrained::<B>(&device).unwrap();
+        let mut llama = LlamaConfig::tiny_llama_pretrained::<B>(args.max_seq_len, &device).unwrap();
         println!("Processing prompt: {}", prompt);
 
         // Prompt formatting for chat model
@@ -96,7 +96,7 @@ pub fn chat<B: Backend>(args: Config, device: Device<B>) {
     #[cfg(feature = "llama3")]
     {
         // Llama-3-8B-Instruct
-        let mut llama = LlamaConfig::llama3_8b_pretrained::<B>(true, &device).unwrap();
+        let mut llama = LlamaConfig::llama3_8b_pretrained::<B>(args.max_seq_len, &device).unwrap();
         println!("Processing prompt: {}", prompt);
 
         // Prompt formatting for chat model

@@ -1,12 +1,5 @@
 use burn::tensor::{backend::Backend, Tensor};
 
-/// All Llama-3 models support sequence length up to 8K tokens.
-#[cfg(not(feature = "llama3_1"))]
-pub(crate) const MAX_SEQ_LEN: usize = 8192;
-/// All Llama-3.1 models support sequence length up to 128K tokens.
-#[cfg(feature = "llama3_1")]
-pub(crate) const MAX_SEQ_LEN: usize = 131072;
-
 // Adapted from `burn::nn::cache`
 enum CacheState<T> {
     Value(T),
@@ -40,11 +33,6 @@ pub(crate) struct AutoregressiveCache<B: Backend> {
 impl<B: Backend> AutoregressiveCache<B> {
     /// Creates a new empty cache.
     pub fn new(max_seq_len: usize) -> Self {
-        assert!(
-            max_seq_len <= MAX_SEQ_LEN,
-            "Maximum sequence length must not exceed {MAX_SEQ_LEN}"
-        );
-
         Self {
             cache: TensorCache::empty(),
             max_seq_len,

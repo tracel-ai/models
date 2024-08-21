@@ -11,7 +11,6 @@ default = ["pretrained"]
 pretrained = ["burn/network", "dep:dirs"]
 
 llama3 = ["dep:tiktoken-rs", "dep:rustc-hash", "dep:base64"]
-llama3_1 = ["llama3"]
 tiny = ["dep:tokenizers"]
 
 # Example feature flags (backend selection)
