@@ -84,8 +84,9 @@ cargo run --release --features llama3,wgpu --example chat
 ```
 
 **Built with Meta Llama 3.** This example uses the
-[Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
-instruction-tuned model. Note that the [base pre-trained Llama-3 model](./src/pretrained.rs#L77) is
+[Meta-Llama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct) (default)
+and [Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
+instruction-tuned models. Note that the [base pre-trained Llama-3 model](./src/pretrained.rs#L77) is
 also available if you wish to use it in your application.
 
 #### TinyLlama
