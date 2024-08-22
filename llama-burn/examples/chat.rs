@@ -8,6 +8,9 @@ use llama_burn::{
     tokenizer::Tokenizer,
 };
 
+#[cfg(feature = "llama3")]
+use clap::ValueEnum;
+
 const DEFAULT_PROMPT: &str = "How many helicopters can a human eat in one sitting?";
 
 #[derive(Parser, Debug)]
@@ -26,7 +29,7 @@ pub struct Config {
     max_seq_len: usize,
 
     /// The number of new tokens to generate (i.e., the number of generation steps to take).
-    #[arg(long, short = 'n', default_value_t = 50)]
+    #[arg(long, short = 'n', default_value_t = 65)]
     sample_len: usize,
 
     /// The seed to use when generating random samples.
@@ -36,6 +39,23 @@ pub struct Config {
     /// The input prompt.
     #[arg(short, long, default_value_t = String::from(DEFAULT_PROMPT))]
     prompt: String,
+
+    /// The Llama 3 model version.
+    #[cfg(feature = "llama3")]
+    #[arg(long, default_value = "llama-3.1-8b-instruct")]
+    version: Llama3,
+}
+
+#[cfg(feature = "llama3")]
+#[derive(Clone, Debug, ValueEnum)]
+/// Llama-3 model variants to load.
+enum Llama3 {
+    /// Llama-3-8B-Instruct.
+    #[value(name = "llama-3-8b-instruct")]
+    V3Instruct,
+    /// Llama-3.1-8B-Instruct.
+    #[value(name = "llama-3.1-8b-instruct")]
+    V31Instruct,
 }
 
 pub fn generate<B: Backend, T: Tokenizer>(
@@ -95,8 +115,15 @@ pub fn chat<B: Backend>(args: Config, device: Device<B>) {
 
     #[cfg(feature = "llama3")]
     {
-        // Llama-3-8B-Instruct
-        let mut llama = LlamaConfig::llama3_8b_pretrained::<B>(args.max_seq_len, &device).unwrap();
+        // Llama-3-8B-Instruct or Llama-3.1-8B-Instruct
+        let mut llama = match args.version {
+            Llama3::V3Instruct => {
+                LlamaConfig::llama3_8b_pretrained::<B>(args.max_seq_len, &device).unwrap()
+            }
+            Llama3::V31Instruct => {
+                LlamaConfig::llama3_1_8b_pretrained::<B>(args.max_seq_len, &device).unwrap()
+            }
+        };
         println!("Processing prompt: {}", prompt);
 
         // Prompt formatting for chat model
