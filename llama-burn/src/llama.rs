@@ -464,7 +464,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
     ) -> GenerationOutput {
         let mut tokens = self.tokenize(prompt);
         let prompt_len = tokens.dims()[0];
-        let eos_token = self.tokenizer.eos_id() as i64;
+        let stop_tokens = Tensor::from_ints(self.tokenizer.stop_ids().as_slice(), &self.device);
 
         let mut num_tokens: usize = 0;
         let mut input_pos = Tensor::<B, 1, Int>::arange(0..tokens.dims()[0] as i64, &self.device);
@@ -482,19 +482,25 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
                 next_token_logits = softmax(next_token_logits / temperature, 1);
             };
 
-            let next_token = sampler.sample(next_token_logits);
+            let next_token = sampler.sample(next_token_logits).squeeze(0);
+
+            // Stop when any of the valid stop tokens is encountered
+            if stop_tokens
+                .clone()
+                .equal(next_token.clone())
+                .any()
+                .into_scalar()
+            {
+                break;
+            }
 
             // Concatenate the new generated token
-            tokens = Tensor::cat(vec![tokens, next_token.clone().squeeze(0)], 0);
+            tokens = Tensor::cat(vec![tokens, next_token], 0);
             num_tokens += 1;
 
             // Advance
             let t = input_pos.dims()[0];
             input_pos = input_pos.slice([t - 1..t]) + 1;
-
-            if next_token.equal_elem(eos_token).all().into_scalar() {
-                break;
-            }
         }
 
         let tokens = tokens.into_data().as_slice::<B::IntElem>().unwrap()[prompt_len..]

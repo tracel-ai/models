@@ -51,4 +51,8 @@ impl Tokenizer for SentiencePieceTokenizer {
     fn eos_id(&self) -> u32 {
         self.eos_token_id
     }
+
+    fn stop_ids(&self) -> Vec<u32> {
+        vec![self.eos_id()]
+    }
 }
