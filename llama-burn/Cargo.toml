@@ -18,12 +18,12 @@ tch-cpu = ["burn/tch"]
 tch-gpu = ["burn/tch"]
 wgpu = ["burn/wgpu"]
 
+# To import pytorch weights
+import = ["burn-import"]
+
 [dependencies]
-# Note: default-features = false is needed to disable std
-burn = { path = "../../burn/crates/burn", default-features = false }
-burn-import = { path = "../../burn/crates/burn-import" }
-# burn = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c", default-features = false }
-# burn-import = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c" }
+burn = { version = "0.14.0", default-features = false, features = ["std"] }
+burn-import = { version = "0.14.0", optional = true }
 itertools = { version = "0.12.1", default-features = false, features = [
     "use_alloc",
 ] }
@@ -48,6 +48,5 @@ rand = { version = "0.8.5", default-features = false, features = [
 ] } # std_rng is for no_std
 
 [dev-dependencies]
-burn = { path = "../../burn/crates/burn", default-features = false }
-# burn = { git = "https://github.com/tracel-ai/burn", rev = "a53f459f205889a22ecea3713bbae12d3de7eb0c" }
+burn = { version = "0.14.0", default-features = false }
 clap = { version = "4.5.4", features = ["derive"] }

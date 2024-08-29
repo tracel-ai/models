@@ -4,18 +4,24 @@ use burn::{
     config::Config,
     module::Module,
     nn::{RotaryEncoding, RotaryEncodingConfig},
-    record::{FileRecorder, HalfPrecisionSettings, Recorder, RecorderError},
+    record::{FileRecorder, HalfPrecisionSettings, RecorderError},
     tensor::{
         activation::softmax, backend::Backend, Device, ElementConversion, Int, Shape, Tensor,
         TensorData,
     },
 };
-use burn_import::pytorch::{LoadArgs, PyTorchFileRecorder};
+
+#[cfg(feature = "import")]
+use {
+    crate::transformer::TransformerRecord,
+    burn::record::Recorder,
+    burn_import::pytorch::{LoadArgs, PyTorchFileRecorder},
+};
 
 use crate::{
     sampling::Sampler,
     tokenizer::Tokenizer,
-    transformer::{KeyValueCache, Transformer, TransformerConfig, TransformerRecord},
+    transformer::{KeyValueCache, Transformer, TransformerConfig},
 };
 
 #[cfg(feature = "pretrained")]
@@ -133,6 +139,8 @@ impl LlamaConfig {
         Self::load_llama3_1_8b(
             checkpoint.to_str().unwrap(),
             tokenizer.to_str().unwrap(),
+            // "/home/laggui/workspace/llama-models/models/llama3_1/Meta-Llama-3.1-8B-Instruct/model",
+            // "/home/laggui/workspace/llama-models/models/llama3_1/Meta-Llama-3.1-8B-Instruct/tokenizer.model",
             max_seq_len,
             device,
         )
@@ -283,6 +291,7 @@ impl LlamaConfig {
     }
 
     /// Load pre-trained Llama checkpoint.
+    #[cfg(feature = "import")]
     pub fn load_pretrained<B: Backend, T: Tokenizer>(
         &self,
         checkpoint: &str,
