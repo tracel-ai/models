@@ -183,6 +183,19 @@ mod wgpu {
     }
 }
 
+#[cfg(feature = "cuda")]
+mod cuda {
+    use super::*;
+    use burn::backend::{cuda_jit::CudaDevice, CudaJit};
+
+    pub fn run(args: Config) {
+        let device = CudaDevice::default();
+
+        // NOTE: compilation errors in f16
+        chat::<CudaJit<f32, i32>>(args, device);
+    }
+}
+
 pub fn main() {
     // Parse arguments
     let args = Config::parse();
@@ -193,4 +206,6 @@ pub fn main() {
     tch_cpu::run(args);
     #[cfg(feature = "wgpu")]
     wgpu::run(args);
+    #[cfg(feature = "cuda")]
+    cuda::run(args);
 }

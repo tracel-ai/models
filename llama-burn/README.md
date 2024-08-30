@@ -83,6 +83,12 @@ Using the `wgpu` backend:
 cargo run --release --features llama3,wgpu --example chat
 ```
 
+Using the `cuda` backend:
+
+```sh
+cargo run --release --features llama3,cuda --example chat
+```
+
 **Built with Meta Llama 3.** This example uses the
 [Meta-Llama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct) (default)
 and [Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
