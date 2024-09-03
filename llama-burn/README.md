@@ -24,9 +24,7 @@ llama-burn = { git = "https://github.com/tracel-ai/models", package = "llama-bur
 If you want to use Llama 3 or TinyLlama (including pre-trained weights if default features are
 active), enable the corresponding feature flag.
 
-> **Important:** these features require `std`. Note that the weights have been saved in the binary
-> format, which is more compact and faster to save & load, but might not be compatible in future
-> versions if the Burn data schema were to evolve.
+> **Important:** these features require `std`.
 
 #### Llama 3
 
