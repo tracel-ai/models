@@ -453,6 +453,10 @@ pub struct Llama<B: Backend, T: Tokenizer> {
 }
 
 impl<B: Backend, T: Tokenizer> Llama<B, T> {
+    /// Clear the cache state.
+    pub fn clear(&mut self) {
+        self.cache.iter_mut().for_each(|cache| cache.clear());
+    }
     /// Generate text sample based on the provided prompt.
     ///
     /// # Arguments

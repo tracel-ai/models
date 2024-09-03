@@ -39,6 +39,10 @@ impl<B: Backend> AutoregressiveCache<B> {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.cache = TensorCache::empty();
+    }
+
     pub fn forward(&mut self, tensor: Tensor<B, 4>) -> Tensor<B, 4> {
         let mut tensor_old = CacheState::Empty;
         core::mem::swap(&mut self.cache.state, &mut tensor_old);

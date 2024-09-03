@@ -219,6 +219,12 @@ impl<B: Backend> KeyValueCache<B> {
         }
     }
 
+    /// Clear the cache state.
+    pub fn clear(&mut self) {
+        self.key.clear();
+        self.value.clear();
+    }
+
     /// Computes the complete keys and values.
     pub fn forward(
         &mut self,
