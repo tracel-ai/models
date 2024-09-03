@@ -46,7 +46,7 @@ The [chat completion example](examples/chat.rs) initializes a Llama model from t
 file and generates a sequence of text based on the input prompt. The instruction-tuned model is
 loaded for dialogue applications, so the prompt is automatically formatted for chat completion.
 
-The example can be executed on the `tch` backend (CUDA or CPU) or `wgpu`.
+The example can be executed on the `tch` backend (CUDA or CPU), `cuda` or `wgpu`.
 
 | Argument        | Description                                                                                                    |
 | :-------------- | :------------------------------------------------------------------------------------------------------------- |
