@@ -116,6 +116,18 @@ Using the `wgpu` backend:
 cargo run --release --features tiny,wgpu --example chat
 ```
 
+Using the `cuda` backend:
+
+```sh
+cargo run --release --features tiny,cuda --example chat
+```
+
 This example uses the
 [TinyLlama-1.1B-Chat-v1.0](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)
 instruction-tuned model based on the Llama2 architecture and tokenizer.
+
+## Known Issues
+
+Based on your hardware and the model selected, the `wgpu` backend might not be able to successfully
+run the model due to the current memory management strategy. With `cuda` selected, the precision is
+set to `f32` due to compilation errors with `f16`.
