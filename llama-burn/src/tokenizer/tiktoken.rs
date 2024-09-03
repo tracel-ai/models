@@ -1,5 +1,4 @@
 use std::{
-    collections::HashSet,
     fs::File,
     io::{BufRead, BufReader},
 };
@@ -12,19 +11,22 @@ use super::Tokenizer;
 
 const BOS_TOKEN: &str = "<|begin_of_text|>";
 const EOS_TOKEN: &str = "<|end_of_text|>";
+const EOT_TOKEN: &str = "<|eot_id|>";
+const EOM_TOKEN: &str = "<|eom_id|>";
 
 const NUM_RESERVED_SPECIAL_TOKENS: usize = 256;
-const SPECIAL_TOKENS: [&str; 10] = [
+const SPECIAL_TOKENS: [&str; 11] = [
     BOS_TOKEN,
     EOS_TOKEN,
     "<|reserved_special_token_0|>",
     "<|reserved_special_token_1|>",
-    "<|reserved_special_token_2|>",
-    "<|reserved_special_token_3|>",
+    "<|finetune_right_pad_id|>",
+    "<|step_id|>",
     "<|start_header_id|>",
     "<|end_header_id|>",
-    "<|reserved_special_token_4|>",
-    "<|eot_id|>", // end of turn
+    EOM_TOKEN, // end of message
+    EOT_TOKEN, // end of turn
+    "<|python_tag|>",
 ];
 const PATTERN: &str = r#"(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"#;
 
@@ -33,6 +35,8 @@ pub struct Tiktoken {
     bpe: CoreBPE,
     bos_token_id: usize,
     eos_token_id: usize,
+    eot_token_id: usize,
+    eom_token_id: usize,
 }
 
 impl Tokenizer for Tiktoken {
@@ -61,9 +65,9 @@ impl Tokenizer for Tiktoken {
                 .iter()
                 .map(|t| t.to_string())
                 .collect::<Vec<_>>(),
-            (5..NUM_RESERVED_SPECIAL_TOKENS - 5)
+            (0..NUM_RESERVED_SPECIAL_TOKENS - SPECIAL_TOKENS.len())
                 .into_iter()
-                .map(|i| format!("<|reserved_special_token_{i}|>"))
+                .map(|i| format!("<|reserved_special_token_{}|>", i + 2))
                 .collect::<Vec<_>>(),
         ]
         .concat();
@@ -75,6 +79,8 @@ impl Tokenizer for Tiktoken {
 
         let bos_token_id = special_tokens[BOS_TOKEN];
         let eos_token_id = special_tokens[EOS_TOKEN];
+        let eot_token_id = special_tokens[EOT_TOKEN];
+        let eom_token_id = special_tokens[EOM_TOKEN];
 
         let bpe =
             CoreBPE::new(mergeable_ranks, special_tokens, PATTERN).map_err(|e| e.to_string())?;
@@ -82,6 +88,8 @@ impl Tokenizer for Tiktoken {
             bpe,
             bos_token_id,
             eos_token_id,
+            eot_token_id,
+            eom_token_id,
         })
     }
 
@@ -89,8 +97,7 @@ impl Tokenizer for Tiktoken {
         let bos_token = if bos { vec![self.bos_token_id] } else { vec![] };
         let eos_token = if eos { vec![self.eos_token_id] } else { vec![] };
 
-        // `allowed_special` is an empty set
-        let tokens = self.bpe.encode(text, HashSet::new());
+        let tokens = self.bpe.encode_with_special_tokens(text);
 
         [bos_token, tokens, eos_token]
             .into_iter()
@@ -111,5 +118,13 @@ impl Tokenizer for Tiktoken {
 
     fn eos_id(&self) -> u32 {
         self.eos_token_id as u32
+    }
+
+    fn stop_ids(&self) -> Vec<u32> {
+        vec![
+            self.eos_id(),
+            self.eom_token_id as u32,
+            self.eot_token_id as u32,
+        ]
     }
 }

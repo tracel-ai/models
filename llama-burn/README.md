@@ -4,7 +4,8 @@
 
 The popular Llama LLM is here!
 
-This repository contains the [Llama 3](https://github.com/meta-llama/llama3) and
+This repository contains the [Llama 3.1](https://github.com/meta-llama/llama-models/),
+[Llama 3](https://github.com/meta-llama/llama3) and
 [TinyLlama](https://github.com/jzhang38/TinyLlama) implementations with their corresponding
 tokenizers. You can find the [Burn](https://github.com/tracel-ai/burn) implementation for the Llama
 variants in [src/llama.rs](src/llama.rs).
@@ -23,9 +24,7 @@ llama-burn = { git = "https://github.com/tracel-ai/models", package = "llama-bur
 If you want to use Llama 3 or TinyLlama (including pre-trained weights if default features are
 active), enable the corresponding feature flag.
 
-> **Important:** these features require `std`. Note that the weights have been saved in the binary
-> format, which is more compact and faster to save & load, but might not be compatible in future
-> versions if the Burn data schema were to evolve.
+> **Important:** these features require `std`.
 
 #### Llama 3
 
@@ -47,7 +46,7 @@ The [chat completion example](examples/chat.rs) initializes a Llama model from t
 file and generates a sequence of text based on the input prompt. The instruction-tuned model is
 loaded for dialogue applications, so the prompt is automatically formatted for chat completion.
 
-The example can be executed on the `tch` backend (CUDA or CPU) or `wgpu`.
+The example can be executed on the `tch` backend (CUDA or CPU), `cuda` or `wgpu`.
 
 | Argument        | Description                                                                                                    |
 | :-------------- | :------------------------------------------------------------------------------------------------------------- |
@@ -83,9 +82,16 @@ Using the `wgpu` backend:
 cargo run --release --features llama3,wgpu --example chat
 ```
 
+Using the `cuda` backend:
+
+```sh
+cargo run --release --features llama3,cuda --example chat
+```
+
 **Built with Meta Llama 3.** This example uses the
-[Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
-instruction-tuned model. Note that the [base pre-trained Llama-3 model](./src/pretrained.rs#L77) is
+[Meta-Llama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct) (default)
+and [Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
+instruction-tuned models. Note that the [base pre-trained Llama-3 model](./src/pretrained.rs#L77) is
 also available if you wish to use it in your application.
 
 #### TinyLlama
@@ -109,6 +115,18 @@ Using the `wgpu` backend:
 cargo run --release --features tiny,wgpu --example chat
 ```
 
+Using the `cuda` backend:
+
+```sh
+cargo run --release --features tiny,cuda --example chat
+```
+
 This example uses the
 [TinyLlama-1.1B-Chat-v1.0](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)
 instruction-tuned model based on the Llama2 architecture and tokenizer.
+
+## Known Issues
+
+Based on your hardware and the model selected, the `wgpu` backend might not be able to successfully
+run the model due to the current memory management strategy. With `cuda` selected, the precision is
+set to `f32` due to compilation errors with `f16`.

@@ -25,4 +25,7 @@ pub trait Tokenizer {
 
     /// End of sentence token identifier.
     fn eos_id(&self) -> u32;
+
+    /// Stop token identifiers.
+    fn stop_ids(&self) -> Vec<u32>;
 }

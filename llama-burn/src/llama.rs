@@ -4,18 +4,24 @@ use burn::{
     config::Config,
     module::Module,
     nn::{RotaryEncoding, RotaryEncodingConfig},
-    record::{FileRecorder, HalfPrecisionSettings, Recorder, RecorderError},
+    record::{FileRecorder, HalfPrecisionSettings, RecorderError},
     tensor::{
         activation::softmax, backend::Backend, Device, ElementConversion, Int, Shape, Tensor,
         TensorData,
     },
 };
-use burn_import::pytorch::{LoadArgs, PyTorchFileRecorder};
+
+#[cfg(feature = "import")]
+use {
+    crate::transformer::TransformerRecord,
+    burn::record::Recorder,
+    burn_import::pytorch::{LoadArgs, PyTorchFileRecorder},
+};
 
 use crate::{
     sampling::Sampler,
     tokenizer::Tokenizer,
-    transformer::{KeyValueCache, Transformer, TransformerConfig, TransformerRecord},
+    transformer::{KeyValueCache, Transformer, TransformerConfig},
 };
 
 #[cfg(feature = "pretrained")]
@@ -48,6 +54,9 @@ pub struct LlamaConfig {
     /// Rotary positional encoding (RoPE) theta.
     #[config(default = "10000.0")]
     pub rope_theta: f32,
+    /// Use scaled RoPE.
+    #[config(default = "false")]
+    pub rope_scaled: bool,
     /// Maximum sequence length for input text.
     #[config(default = "128")]
     pub max_seq_len: usize,
@@ -56,61 +65,21 @@ pub struct LlamaConfig {
 }
 
 impl LlamaConfig {
+    /// Llama-3.1-8B configuration.
+    pub fn llama3_1_8b(tokenizer_path: &str) -> Self {
+        // hidden_size = 14336; vocab_size = 128256
+        Self::new(14336, 128256, tokenizer_path.to_string())
+            .with_num_key_value_heads(Some(8))
+            .with_rope_theta(500000.0)
+            .with_rope_scaled(true)
+    }
+
     /// Llama-3-8B configuration.
     pub fn llama3_8b(tokenizer_path: &str) -> Self {
         // hidden_size = 14336; vocab_size = 128256
         Self::new(14336, 128256, tokenizer_path.to_string())
             .with_num_key_value_heads(Some(8))
             .with_rope_theta(500000.0)
-    }
-
-    /// Load pre-trained Llama-3-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
-    #[cfg(feature = "llama3")]
-    pub fn load_llama3_8b<B: Backend>(
-        checkpoint: &str,
-        tokenizer_path: &str,
-        device: &Device<B>,
-    ) -> Result<Llama<B, Tiktoken>, String> {
-        use burn::record::NamedMpkFileRecorder;
-
-        let llama = Self::llama3_8b(tokenizer_path).init::<B, Tiktoken>(device)?;
-
-        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
-        let llama = llama
-            .load(checkpoint, &recorder)
-            .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
-
-        Ok(llama)
-    }
-
-    /// Load pre-trained Llama-3-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
-    ///
-    /// # Arguments
-    /// - `instruct`: If true, load the instruction-tuned model for dialogue applications (e.g., chat).
-    /// - `device` - The device to load the model on.
-    #[cfg(all(feature = "llama3", feature = "pretrained"))]
-    pub fn llama3_8b_pretrained<B: Backend>(
-        instruct: bool,
-        device: &Device<B>,
-    ) -> Result<Llama<B, Tiktoken>, String> {
-        // Download checkpoint and tokenizer
-        let model = if instruct {
-            pretrained::Llama::Llama3Instruct.pretrained()
-        } else {
-            pretrained::Llama::Llama3.pretrained()
-        };
-        let checkpoint = model
-            .download_weights()
-            .map_err(|err| format!("Could not download weights.\nError: {err}"))?;
-        let tokenizer = model
-            .download_tokenizer()
-            .map_err(|err| format!("Could not download tokenizer.\nError: {err}"))?;
-
-        Self::load_llama3_8b(
-            checkpoint.to_str().unwrap(),
-            tokenizer.to_str().unwrap(),
-            device,
-        )
     }
 
     /// TinyLlama-1.1B Chat v1.0 configuration.
@@ -123,16 +92,125 @@ impl LlamaConfig {
             .with_rope_theta(10000.0)
     }
 
+    /// Load pre-trained Llama-3.1-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
+    #[cfg(feature = "llama3")]
+    pub fn load_llama3_1_8b<B: Backend>(
+        checkpoint: &str,
+        tokenizer_path: &str,
+        max_seq_len: usize,
+        device: &Device<B>,
+    ) -> Result<Llama<B, Tiktoken>, String> {
+        use burn::record::NamedMpkFileRecorder;
+
+        let llama = Self::llama3_1_8b(tokenizer_path)
+            .with_max_seq_len(max_seq_len)
+            .init::<B, Tiktoken>(device)?;
+
+        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        let llama = llama
+            .load(checkpoint, &recorder)
+            .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
+
+        Ok(llama)
+    }
+
+    /// Load pre-trained Llama-3.1-8B-Instruct model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
+    ///
+    /// # Arguments
+    /// - `max_seq_len` - The maximum sequence length for input text.
+    /// - `device` - The device to load the model on.
+    #[cfg(all(feature = "llama3", feature = "pretrained"))]
+    pub fn llama3_1_8b_pretrained<B: Backend>(
+        max_seq_len: usize,
+        device: &Device<B>,
+    ) -> Result<Llama<B, Tiktoken>, String> {
+        // Llama-3.1 models support context length up to 128K tokens.
+        check_context_length(max_seq_len, 128 * 1024);
+
+        // Download checkpoint and tokenizer
+        let model = pretrained::Llama::Llama31Instruct.pretrained();
+        let checkpoint = model
+            .download_weights()
+            .map_err(|err| format!("Could not download weights.\nError: {err}"))?;
+        let tokenizer = model
+            .download_tokenizer()
+            .map_err(|err| format!("Could not download tokenizer.\nError: {err}"))?;
+
+        Self::load_llama3_1_8b(
+            checkpoint.to_str().unwrap(),
+            tokenizer.to_str().unwrap(),
+            // "/home/laggui/workspace/llama-models/models/llama3_1/Meta-Llama-3.1-8B-Instruct/model",
+            // "/home/laggui/workspace/llama-models/models/llama3_1/Meta-Llama-3.1-8B-Instruct/tokenizer.model",
+            max_seq_len,
+            device,
+        )
+    }
+
+    /// Load pre-trained Llama-3-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
+    #[cfg(feature = "llama3")]
+    pub fn load_llama3_8b<B: Backend>(
+        checkpoint: &str,
+        tokenizer_path: &str,
+        max_seq_len: usize,
+        device: &Device<B>,
+    ) -> Result<Llama<B, Tiktoken>, String> {
+        use burn::record::NamedMpkFileRecorder;
+
+        let llama = Self::llama3_8b(tokenizer_path)
+            .with_max_seq_len(max_seq_len)
+            .init::<B, Tiktoken>(device)?;
+
+        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        let llama = llama
+            .load(checkpoint, &recorder)
+            .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
+
+        Ok(llama)
+    }
+
+    /// Load pre-trained Llama-3-8B-Instruct model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
+    ///
+    /// # Arguments
+    /// - `max_seq_len` - The maximum sequence length for input text.
+    /// - `device` - The device to load the model on.
+    #[cfg(all(feature = "llama3", feature = "pretrained"))]
+    pub fn llama3_8b_pretrained<B: Backend>(
+        max_seq_len: usize,
+        device: &Device<B>,
+    ) -> Result<Llama<B, Tiktoken>, String> {
+        // Llama-3 models support context length up to 8K tokens.
+        check_context_length(max_seq_len, 8 * 1024);
+
+        // Download checkpoint and tokenizer
+        let model = pretrained::Llama::Llama3Instruct.pretrained();
+        let checkpoint = model
+            .download_weights()
+            .map_err(|err| format!("Could not download weights.\nError: {err}"))?;
+        let tokenizer = model
+            .download_tokenizer()
+            .map_err(|err| format!("Could not download tokenizer.\nError: {err}"))?;
+
+        Self::load_llama3_8b(
+            checkpoint.to_str().unwrap(),
+            tokenizer.to_str().unwrap(),
+            max_seq_len,
+            device,
+        )
+    }
+
     /// Load pre-trained TinyLlama-1.1B Chat v1.0 model with [SentenciePiece](https://github.com/google/sentencepiece) tokenizer.
     #[cfg(feature = "tiny")]
     pub fn load_tiny_llama<B: Backend>(
         checkpoint: &str,
         tokenizer_path: &str,
+        max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, SentiencePieceTokenizer>, String> {
         use burn::record::NamedMpkFileRecorder;
 
-        let llama = Self::tiny_llama(tokenizer_path).init::<B, SentiencePieceTokenizer>(device)?;
+        let llama = Self::tiny_llama(tokenizer_path)
+            .with_max_seq_len(max_seq_len)
+            .init::<B, SentiencePieceTokenizer>(device)?;
 
         let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
         let llama = llama
@@ -145,8 +223,12 @@ impl LlamaConfig {
     /// Load pre-trained TinyLlama-1.1B Chat v1.0 model with [SentenciePiece](https://github.com/google/sentencepiece) tokenizer.
     #[cfg(all(feature = "tiny", feature = "pretrained"))]
     pub fn tiny_llama_pretrained<B: Backend>(
+        max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, SentiencePieceTokenizer>, String> {
+        // TinyLlama models support context length up to 2K tokens.
+        check_context_length(max_seq_len, 2 * 1024);
+
         // Download checkpoint and tokenizer
         let model = pretrained::Llama::TinyLlama.pretrained();
         let checkpoint = model
@@ -159,6 +241,7 @@ impl LlamaConfig {
         Self::load_tiny_llama(
             checkpoint.to_str().unwrap(),
             tokenizer.to_str().unwrap(),
+            max_seq_len,
             device,
         )
     }
@@ -190,8 +273,13 @@ impl LlamaConfig {
             self.max_seq_len * 2,
             self.d_model / self.num_attention_heads,
         )
-        .with_theta(self.rope_theta)
-        .init(device);
+        .with_theta(self.rope_theta);
+
+        let rope = if self.rope_scaled {
+            rope.init_with_frequency_scaling(freq_scaling_by_parts, device)
+        } else {
+            rope.init(device)
+        };
 
         Ok(Llama {
             tokenizer,
@@ -203,6 +291,7 @@ impl LlamaConfig {
     }
 
     /// Load pre-trained Llama checkpoint.
+    #[cfg(feature = "import")]
     pub fn load_pretrained<B: Backend, T: Tokenizer>(
         &self,
         checkpoint: &str,
@@ -333,6 +422,13 @@ impl LlamaConfig {
     }
 }
 
+fn check_context_length(max_seq_len: usize, max_context_len: usize) {
+    assert!(
+        max_seq_len <= max_context_len,
+        "Maximum sequence length must not exceed {max_context_len}"
+    );
+}
+
 /// Generated text sample output.
 pub struct GenerationOutput {
     /// The generated text.
@@ -377,7 +473,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
     ) -> GenerationOutput {
         let mut tokens = self.tokenize(prompt);
         let prompt_len = tokens.dims()[0];
-        let eos_token = self.tokenizer.eos_id() as i64;
+        let stop_tokens = Tensor::from_ints(self.tokenizer.stop_ids().as_slice(), &self.device);
 
         let mut num_tokens: usize = 0;
         let mut input_pos = Tensor::<B, 1, Int>::arange(0..tokens.dims()[0] as i64, &self.device);
@@ -395,19 +491,25 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
                 next_token_logits = softmax(next_token_logits / temperature, 1);
             };
 
-            let next_token = sampler.sample(next_token_logits);
+            let next_token = sampler.sample(next_token_logits).squeeze(0);
+
+            // Stop when any of the valid stop tokens is encountered
+            if stop_tokens
+                .clone()
+                .equal(next_token.clone())
+                .any()
+                .into_scalar()
+            {
+                break;
+            }
 
             // Concatenate the new generated token
-            tokens = Tensor::cat(vec![tokens, next_token.clone().squeeze(0)], 0);
+            tokens = Tensor::cat(vec![tokens, next_token], 0);
             num_tokens += 1;
 
             // Advance
             let t = input_pos.dims()[0];
             input_pos = input_pos.slice([t - 1..t]) + 1;
-
-            if next_token.equal_elem(eos_token).all().into_scalar() {
-                break;
-            }
         }
 
         let tokens = tokens.into_data().as_slice::<B::IntElem>().unwrap()[prompt_len..]
@@ -463,4 +565,46 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
 
         Ok(self)
     }
+}
+
+/// Applies frequency scaling by parts following Llama 3.1's scheme.
+///
+/// Adapted from: https://github.com/meta-llama/llama-models/blob/main/models/llama3/reference_impl/model.py#L45
+fn freq_scaling_by_parts<B: Backend>(freqs: Tensor<B, 1>) -> Tensor<B, 1> {
+    let scale_factor = 8.;
+    let low_freq_factor = 1.;
+    let high_freq_factor = 4.;
+    let old_context_len = 8192.;
+
+    let low_freq_wavelen = old_context_len / low_freq_factor;
+    let high_freq_wavelen = old_context_len / high_freq_factor;
+
+    let wavelen = freqs.clone().recip().mul_scalar(2. * core::f32::consts::PI);
+
+    // if wavelen >= high_freq_wavelen
+    let cond = wavelen.clone().greater_equal_elem(high_freq_wavelen);
+    let smooth = wavelen
+        .clone()
+        .recip()
+        .mul_scalar(old_context_len)
+        .sub_scalar(low_freq_factor)
+        .div_scalar(high_freq_factor - low_freq_factor);
+    // (1 - smooth) * freq / scale_factor + smooth * freq
+    let new_freqs = smooth
+        .clone()
+        .neg()
+        .add_scalar(1.)
+        .mul(freqs.clone().div_scalar(scale_factor))
+        .add(smooth.clone().mul(freqs.clone()));
+    let new_freqs = freqs.clone().mask_where(cond, new_freqs);
+
+    // if wavelen > low_freq_wavelen
+    let cond = wavelen.clone().greater_elem(low_freq_wavelen);
+    let new_freqs = new_freqs.mask_where(cond, freqs.clone().div_scalar(scale_factor));
+
+    // if wavelen < high_freq_wavelen
+    let cond = wavelen.lower_elem(high_freq_wavelen);
+    let new_freqs = new_freqs.mask_where(cond, freqs);
+
+    new_freqs
 }
