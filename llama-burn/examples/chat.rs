@@ -43,7 +43,7 @@ pub struct Config {
     /// The Llama 3 model version.
     #[cfg(feature = "llama3")]
     #[arg(long, default_value = "llama-3.1-8b-instruct")]
-    version: Llama3,
+    model_version: Llama3,
 }
 
 #[cfg(feature = "llama3")]
@@ -116,7 +116,7 @@ pub fn chat<B: Backend>(args: Config, device: Device<B>) {
     #[cfg(feature = "llama3")]
     {
         // Llama-3-8B-Instruct or Llama-3.1-8B-Instruct
-        let mut llama = match args.version {
+        let mut llama = match args.model_version {
             Llama3::V3Instruct => {
                 LlamaConfig::llama3_8b_pretrained::<B>(args.max_seq_len, &device).unwrap()
             }
