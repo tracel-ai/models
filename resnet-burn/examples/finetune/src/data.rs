@@ -55,8 +55,8 @@ pub struct Normalizer<B: Backend> {
 impl<B: Backend> Normalizer<B> {
     /// Creates a new normalizer.
     pub fn new(device: &Device<B>) -> Self {
-        let mean = Tensor::from_floats(MEAN, device).reshape([1, 3, 1, 1]);
-        let std = Tensor::from_floats(STD, device).reshape([1, 3, 1, 1]);
+        let mean = Tensor::<B, 1>::from_floats(MEAN, device).reshape([1, 3, 1, 1]);
+        let std = Tensor::<B, 1>::from_floats(STD, device).reshape([1, 3, 1, 1]);
         Self { mean, std }
     }
 
@@ -117,9 +117,9 @@ impl<B: Backend> Batcher<ImageDatasetItem, ClassificationBatch<B>> for Classific
 
         let images = items
             .into_iter()
-            .map(|item| Data::new(image_as_vec_u8(item), Shape::new([HEIGHT, WIDTH, 3])))
-            .map(|data| Tensor::<B, 3>::from_data(data.convert(), &self.device).permute([2, 0, 1]))
-            .map(|tensor| tensor / 255) // normalize between [0, 1]
+            .map(|item| TensorData::new(image_as_vec_u8(item), Shape::new([HEIGHT, WIDTH, 3])))
+            .map(|data| Tensor::<B, 3>::from_data(data.convert::<B::FloatElem>(), &self.device))
+            .map(|tensor| tensor.permute([2, 0, 1]) / 255) // normalize between [0, 1]
             .collect();
 
         let images = Tensor::stack(images, 0);

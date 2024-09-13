@@ -46,8 +46,7 @@ pub fn infer<B: Backend>(artifact_dir: &str, device: B::Device, threshold: f32) 
     // Get predicted class names over the specified threshold
     let predicted = output.greater_equal_elem(threshold).nonzero()[1]
         .to_data()
-        .value
-        .iter()
+        .iter::<B::IntElem>()
         .map(|i| CLASSES[i.elem::<i64>() as usize])
         .collect::<Vec<_>>();
 
