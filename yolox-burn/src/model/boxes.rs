@@ -45,22 +45,19 @@ pub fn nms<B: Backend>(
             let (cls_score, cls_idx) = candidate_scores.squeeze::<2>(0).max_dim_with_indices(1);
             let cls_score: Vec<_> = cls_score
                 .into_data()
-                .value
-                .iter()
+                .iter::<B::FloatElem>()
                 .map(|v| v.elem::<f32>())
                 .collect();
             let cls_idx: Vec<_> = cls_idx
                 .into_data()
-                .value
-                .iter()
+                .iter::<B::IntElem>()
                 .map(|v| v.elem::<i64>() as usize)
                 .collect();
 
             // [num_boxes, 4]
             let candidate_boxes: Vec<_> = candidate_boxes
                 .into_data()
-                .value
-                .iter()
+                .iter::<B::FloatElem>()
                 .map(|v| v.elem::<f32>())
                 .collect();
 

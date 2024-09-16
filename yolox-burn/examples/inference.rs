@@ -5,7 +5,7 @@ use yolox_burn::model::{boxes::nms, weights, yolox::Yolox, BoundingBox};
 
 use burn::{
     backend::NdArray,
-    tensor::{backend::Backend, Data, Device, Element, Shape, Tensor},
+    tensor::{backend::Backend, Device, Element, Tensor, TensorData},
 };
 
 const HEIGHT: usize = 640;
@@ -16,9 +16,12 @@ fn to_tensor<B: Backend, T: Element>(
     shape: [usize; 3],
     device: &Device<B>,
 ) -> Tensor<B, 3> {
-    Tensor::<B, 3>::from_data(Data::new(data, Shape::new(shape)).convert(), device)
-        // [H, W, C] -> [C, H, W]
-        .permute([2, 0, 1])
+    Tensor::<B, 3>::from_data(
+        TensorData::new(data, shape).convert::<B::FloatElem>(),
+        device,
+    )
+    // [H, W, C] -> [C, H, W]
+    .permute([2, 0, 1])
 }
 
 /// Draws bounding boxes on the given image.
