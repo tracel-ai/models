@@ -24,11 +24,11 @@ const PRIOR_PROB: f64 = 1e-2;
 fn create_2d_grid<B: Backend>(x: usize, y: usize, device: &Device<B>) -> Tensor<B, 3, Int> {
     let y_idx = Tensor::arange(0..y as i64, device)
         .reshape(Shape::new([y, 1]))
-        .repeat(1, x)
+        .repeat_dim(1, x)
         .reshape(Shape::new([y, x]));
     let x_idx = Tensor::arange(0..x as i64, device)
         .reshape(Shape::new([1, x])) // can only repeat with dim=1
-        .repeat(0, y)
+        .repeat_dim(0, y)
         .reshape(Shape::new([y, x]));
 
     Tensor::stack(vec![x_idx, y_idx], 2)
