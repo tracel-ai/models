@@ -82,12 +82,7 @@ pub fn launch<B: Backend>(device: B::Device) {
     }
 }
 
-#[cfg(any(
-    feature = "ndarray",
-    feature = "ndarray-blas-netlib",
-    feature = "ndarray-blas-openblas",
-    feature = "ndarray-blas-accelerate",
-))]
+#[cfg(feature = "ndarray")]
 mod ndarray {
     use burn::backend::ndarray::{NdArray, NdArrayDevice};
 
@@ -125,21 +120,16 @@ mod tch_cpu {
 
 #[cfg(feature = "wgpu")]
 mod wgpu {
-    use crate::{launch, ElemType};
-    use burn::backend::wgpu::{AutoGraphicsApi, Wgpu, WgpuDevice};
+    use crate::launch;
+    use burn::backend::wgpu::{Wgpu, WgpuDevice};
 
     pub fn run() {
-        launch::<Wgpu<AutoGraphicsApi, ElemType, i32>>(WgpuDevice::default());
+        launch::<Wgpu>(WgpuDevice::default());
     }
 }
 
 fn main() {
-    #[cfg(any(
-        feature = "ndarray",
-        feature = "ndarray-blas-netlib",
-        feature = "ndarray-blas-openblas",
-        feature = "ndarray-blas-accelerate",
-    ))]
+    #[cfg(feature = "ndarray")]
     ndarray::run();
     #[cfg(feature = "tch-gpu")]
     tch_gpu::run();
