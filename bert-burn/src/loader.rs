@@ -12,7 +12,7 @@ use burn::nn::transformer::{
 };
 use burn::nn::{EmbeddingRecord, LayerNormRecord, LinearRecord};
 use burn::tensor::backend::Backend;
-use burn::tensor::{Data, Shape, Tensor};
+use burn::tensor::{Shape, Tensor, TensorData};
 use candle_core::Tensor as CandleTensor;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -24,7 +24,7 @@ pub(crate) fn load_1d_tensor_from_candle<B: Backend>(
     let dims = tensor.dims();
     let data = tensor.to_vec1::<f32>().unwrap();
     let array: [usize; 1] = dims.try_into().expect("Unexpected size");
-    let data = Data::new(data, Shape::new(array));
+    let data = TensorData::new(data, Shape::new(array));
     let weight = Tensor::<B, 1>::from_floats(data, &device.clone());
     weight
 }
@@ -41,7 +41,7 @@ pub(crate) fn load_2d_tensor_from_candle<B: Backend>(
         .flatten()
         .collect::<Vec<f32>>();
     let array: [usize; 2] = dims.try_into().expect("Unexpected size");
-    let data = Data::new(data, Shape::new(array));
+    let data = TensorData::new(data, Shape::new(array));
     let weight = Tensor::<B, 2>::from_floats(data, &device.clone());
     weight
 }
@@ -90,8 +90,8 @@ pub(crate) fn load_intermediate_layer_safetensor<B: Backend>(
     let linear_outer = load_linear_safetensor::<B>(linear_outer_bias, linear_outer_weight, device);
 
     let pwff_record = PositionWiseFeedForwardRecord {
-        linear_inner: linear_inner,
-        linear_outer: linear_outer,
+        linear_inner,
+        linear_outer,
         dropout: ConstantRecord::new(),
         gelu: ConstantRecord::new(),
     };
@@ -128,10 +128,11 @@ fn load_attention_layer_safetensor<B: Backend>(
     );
 
     let attention_record = MultiHeadAttentionRecord {
-        query: query,
-        key: key,
-        value: value,
-        output: output,
+        query,
+        key,
+        value,
+        output,
+        d_model: ConstantRecord::new(),
         dropout: ConstantRecord::new(),
         activation: ConstantRecord::new(),
         n_heads: ConstantRecord::new(),
@@ -211,9 +212,9 @@ pub fn load_encoder_from_safetensors<B: Backend>(
 
         let layer_record = TransformerEncoderLayerRecord {
             mha: attention_layer,
-            pwff: pwff,
-            norm_1: norm_1,
-            norm_2: norm_2,
+            pwff,
+            norm_1,
+            norm_2,
             dropout: ConstantRecord::new(),
             norm_first: ConstantRecord::new(),
         };
@@ -223,6 +224,14 @@ pub fn load_encoder_from_safetensors<B: Backend>(
 
     let encoder_record = TransformerEncoderRecord {
         layers: bert_encoder_layers,
+        d_model: ConstantRecord::new(),
+        d_ff: ConstantRecord::new(),
+        n_heads: ConstantRecord::new(),
+        n_layers: ConstantRecord::new(),
+        dropout: ConstantRecord::new(),
+        norm_first: ConstantRecord::new(),
+        quiet_softmax: ConstantRecord::new(),
+
     };
     encoder_record
 }

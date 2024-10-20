@@ -67,7 +67,7 @@ pub fn launch<B: Backend>(device: B::Device) {
     // Batch input samples using the batcher Shape: [Batch size, Seq_len]
     let input = batcher.batch(text_samples.clone());
     let [batch_size, _seq_len] = input.tokens.dims();
-    println!("Input: {:?} // (Batch Size, Seq_len)", input.tokens.shape());
+    println!("Input: {}", input.tokens);
 
     let output = model.forward(input);
 
@@ -84,17 +84,12 @@ pub fn launch<B: Backend>(device: B::Device) {
 
     let sentence_embedding: Tensor<B, 2> = sentence_embedding.squeeze(1);
     println!(
-        "Roberta Sentence embedding {:?} // (Batch Size, Embedding_dim)",
-        sentence_embedding.shape()
+        "Roberta Sentence embedding: {}",
+        sentence_embedding
     );
 }
 
-#[cfg(any(
-    feature = "ndarray",
-    feature = "ndarray-blas-netlib",
-    feature = "ndarray-blas-openblas",
-    feature = "ndarray-blas-accelerate",
-))]
+#[cfg(feature = "ndarray")]
 mod ndarray {
     use burn::backend::ndarray::{NdArray, NdArrayDevice};
 
@@ -132,21 +127,16 @@ mod tch_cpu {
 
 #[cfg(feature = "wgpu")]
 mod wgpu {
-    use crate::{launch, ElemType};
-    use burn::backend::wgpu::{AutoGraphicsApi, Wgpu, WgpuDevice};
+    use crate::launch;
+    use burn::backend::wgpu::{Wgpu, WgpuDevice};
 
     pub fn run() {
-        launch::<Wgpu<AutoGraphicsApi, ElemType, i32>>(WgpuDevice::default());
+        launch::<Wgpu>(WgpuDevice::default());
     }
 }
 
 fn main() {
-    #[cfg(any(
-        feature = "ndarray",
-        feature = "ndarray-blas-netlib",
-        feature = "ndarray-blas-openblas",
-        feature = "ndarray-blas-accelerate",
-    ))]
+    #[cfg(feature = "ndarray")]
     ndarray::run();
     #[cfg(feature = "tch-gpu")]
     tch_gpu::run();
