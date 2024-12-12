@@ -6,7 +6,7 @@ version = "0.2.0"
 edition = "2021"
 
 [features]
-default = ["wgpu", "fusion"]
+default = []
 f16 = []
 ndarray = ["burn/ndarray"]
 tch-cpu = ["burn/tch"]
@@ -20,14 +20,14 @@ safetensors = ["candle-core/default"]
 
 [dependencies]
 # Burn
-burn = { version = "0.14", default-features = false, features = ["dataset", "std"] }
+burn = { version = "0.15", default-features = false, features = ["dataset", "std"] }
+cubecl-runtime = { version = "0.3.0", features = ["channel-mpsc"] } # missing feature flag when burn default-features are off
 candle-core = { version = "0.3" }
 # Tokenizer
 tokenizers = { version = "0.15.0", default-features = false, features = [
   "onig",
   "http",
 ] }
-burn-import = "0.13"
 derive-new = "0.6.0"
 hf-hub = { version = "0.3.2", features = ["tokio"] }
 
