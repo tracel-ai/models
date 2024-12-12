@@ -56,7 +56,7 @@ impl BertEmbeddingsConfig {
 impl<B: Backend> BertEmbeddings<B> {
     pub fn forward(&self, item: BertInferenceBatch<B>) -> Tensor<B, 3, Float> {
         // Items batch contains the tokenized input and padding mask, each of dim: [batch_size, max_seq_length]
-        let input_shape = &item.tokens.shape();
+        let input_shape = item.tokens.shape();
         let input_ids = item.tokens;
 
         // Embed tokens
@@ -76,7 +76,9 @@ impl<B: Backend> BertEmbeddings<B> {
 
         let seq_length = input_shape.dims[1];
         let mut position_ids_tensor: Tensor<B, 2, Int> =
-            Tensor::arange(0..seq_length as i64, device).reshape([1, seq_length]);
+            Tensor::arange(0..seq_length as i64, device)
+                .reshape([1, seq_length])
+                .expand(input_shape.clone());
 
         if self.max_position_embeddings != 512 {
             // RoBERTa use a different scheme than BERT to create position indexes where padding tokens are given
@@ -87,7 +89,8 @@ impl<B: Backend> BertEmbeddings<B> {
                     ..(seq_length as i64) + (self.pad_token_idx as i64) + 1,
                 device,
             )
-            .reshape([1, seq_length]);
+            .reshape([1, seq_length])
+            .expand(input_shape);
             position_ids_tensor =
                 position_ids.mask_fill(item.mask_pad.clone(), self.pad_token_idx as i32);
         }
