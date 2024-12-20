@@ -72,6 +72,7 @@ pub struct Transformer<B: Backend> {
     tok_embeddings: Embedding<B>,
     layers: Vec<TransformerBlock<B>>,
     norm: RmsNorm<B>,
+    // NOTE: Starting with Llama 3.2, the weights of the output layer are tied with the embedding
     output: Linear<B>,
 }
 
