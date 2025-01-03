@@ -87,6 +87,7 @@ impl LlamaConfig {
     pub fn llama3_2_3b(tokenizer_path: &str) -> Self {
         // hidden_size = 8192; vocab_size = 128256
         Self::new(8192, 128256, tokenizer_path.to_string())
+            .with_d_model(3072)
             .with_num_hidden_layers(28)
             .with_num_attention_heads(24)
             .with_num_key_value_heads(Some(8))
@@ -100,6 +101,7 @@ impl LlamaConfig {
     pub fn llama3_2_1b(tokenizer_path: &str) -> Self {
         // hidden_size = 8192; vocab_size = 128256
         Self::new(8192, 128256, tokenizer_path.to_string())
+            .with_d_model(2048)
             .with_num_hidden_layers(16)
             .with_num_key_value_heads(Some(8))
             .with_rope(

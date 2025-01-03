@@ -42,7 +42,7 @@ pub struct Config {
 
     /// The Llama 3 model version.
     #[cfg(feature = "llama3")]
-    #[arg(long, default_value = "llama-3.2-3b-instruct")]
+    #[arg(long, default_value = "llama-3.2-1b-instruct")]
     model_version: Llama3,
 }
 
