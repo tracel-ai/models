@@ -23,8 +23,8 @@ wgpu = ["burn/wgpu"]
 import = ["burn-import"]
 
 [dependencies]
-burn = { version = "0.14.0", default-features = false, features = ["std"] }
-burn-import = { version = "0.14.0", optional = true }
+burn = { version = "0.16.0", default-features = false, features = ["std"] }
+burn-import = { version = "0.16.0", optional = true }
 itertools = { version = "0.12.1", default-features = false, features = [
     "use_alloc",
 ] }
@@ -49,5 +49,10 @@ rand = { version = "0.8.5", default-features = false, features = [
 ] } # std_rng is for no_std
 
 [dev-dependencies]
-burn = { version = "0.14.0", default-features = false }
+burn = { version = "0.16.0", default-features = false }
 clap = { version = "4.5.4", features = ["derive"] }
+
+# Until burn 0.16.0 is released we use a compatible git revision
+[patch.crates-io]
+burn = { git = "https://github.com/tracel-ai/burn", rev = "2338912dafb7f9f18c8d14b851f7c7fd6ec542c7" }
+burn-import = { git = "https://github.com/tracel-ai/burn", rev = "2338912dafb7f9f18c8d14b851f7c7fd6ec542c7" }
