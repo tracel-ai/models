@@ -71,7 +71,7 @@ pub enum Llama {
     Llama31Instruct,
     /// Llama-3.2-3B-Instruct.
     Llama323bInstruct,
-    /// Llama-3.1-3B-Instruct.
+    /// Llama-3.2-1B-Instruct.
     Llama321bInstruct,
     /// TinyLlama-1.1B Chat v1.0.
     TinyLlama,
