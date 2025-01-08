@@ -635,7 +635,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
                 .squeeze(1); // [batch_size=1, vocab_size]
 
             if temperature > 0.0 {
-                next_token_logits = softmax(next_token_logits / temperature, 1);
+                next_token_logits = temperature_scaled_softmax(next_token_logits, temperature);
             };
 
             let next_token = sampler.sample(next_token_logits).squeeze(0);
@@ -750,5 +750,100 @@ impl RopeFrequencyScaling {
         let new_freqs = new_freqs.mask_where(cond, freqs);
 
         new_freqs
+    }
+}
+
+pub(crate) fn temperature_scaled_softmax<B: Backend>(
+    logits: Tensor<B, 2>,
+    temperature: f64,
+) -> Tensor<B, 2> {
+    softmax(logits / temperature, 1)
+}
+
+#[cfg(test)]
+#[cfg(any(feature = "cuda", feature = "tch-gpu"))]
+mod tests {
+    use super::*;
+    use crate::tests::*;
+
+    use burn::tensor::TensorData;
+
+    #[test]
+    fn test_temperature_softmax() {
+        let tensor = TestTensor::<2>::from([[21.3125, 19.859375, 19.0625, 18.75, 18.171875]]);
+
+        let output = crate::llama::temperature_scaled_softmax(tensor, 0.6);
+        let expected = TensorData::from([[
+            0.8691406,
+            0.07836914,
+            0.020767212,
+            0.0124053955,
+            0.0047035217,
+        ]]);
+
+        output.into_data().assert_approx_eq(&expected, 3);
+    }
+
+    #[test]
+    fn test_transformer_block() {
+        let device = Default::default();
+
+        let max_seq_len = 16;
+        let block = crate::transformer::TransformerBlockConfig::new(
+            /*n_layers=*/ 1, /*d_model=*/ 4, /*hidden_size=*/ 16,
+            /*n_heads=*/ 2, /*n_kv_heads=*/ 1, /*norm_eps=*/ 0.00001,
+        )
+        .init::<TestBackend>(&device);
+        let mut cache = crate::transformer::KeyValueCache::new(max_seq_len);
+
+        let rope = RopeConfig::new(500000.0)
+            .with_scaled(Some(RopeFrequencyScaling::new().with_scale_factor(32.)));
+        let scaling = rope.scaled.unwrap();
+        let freq_scaling_fn = move |x| scaling.freq_scaling_by_parts(x);
+
+        let rope = RotaryEncodingConfig::new(max_seq_len * 2, 4 / 2)
+            .with_theta(rope.theta)
+            .init_with_frequency_scaling(freq_scaling_fn, &device);
+
+        // input: [batch_size, seq_len, d_model]
+        let input = TestTensor::<3>::from([[
+            [0.0026, 0.003, -0.006, 0.006],
+            [0.001, 0.0008, 0.0015, -0.016],
+        ]]);
+        let output = block.forward(input, &mut cache, &rope);
+        let expected = TensorData::from([[
+            [-0.04269409, 0.020523071, -0.0791626, 0.12731934],
+            [-0.091674805, -0.013809204, 0.03152466, -0.058776855],
+        ]]);
+
+        output.into_data().assert_approx_eq(&expected, 3);
+    }
+
+    #[test]
+    fn test_rope() {
+        let device = Default::default();
+
+        let max_seq_len = 16;
+        let rope = RopeConfig::new(500000.0)
+            .with_scaled(Some(RopeFrequencyScaling::new().with_scale_factor(32.)));
+        let scaling = rope.scaled.unwrap();
+        let freq_scaling_fn = move |x| scaling.freq_scaling_by_parts(x);
+
+        let rope = RotaryEncodingConfig::new(max_seq_len * 2, 4 / 2)
+            .with_theta(rope.theta)
+            .init_with_frequency_scaling(freq_scaling_fn, &device);
+
+        let input = TestTensor::<4>::from([[
+            [[-0.60253906, -0.035308838], [0.41357422, 0.15100098]],
+            [[-0.044677734, -0.094177246], [0.60546875, 0.2442627]],
+        ]]);
+
+        let output = rope.apply(input, 0);
+        let expected = TensorData::from([[
+            [[-0.60253906, -0.035308838], [0.09643555, 0.42944336]],
+            [[-0.044677734, -0.094177246], [0.12194824, 0.64160156]],
+        ]]);
+
+        output.into_data().assert_approx_eq(&expected, 3);
     }
 }
