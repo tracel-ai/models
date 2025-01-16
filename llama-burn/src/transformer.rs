@@ -213,10 +213,22 @@ pub struct KeyValueCache<B: Backend> {
 
 impl<B: Backend> KeyValueCache<B> {
     /// Create a new [key-value cache](KeyValueCache).
-    pub fn new(max_seq_len: usize) -> Self {
+    pub fn new(
+        max_batch_size: usize,
+        num_heads: usize,
+        max_seq_len: usize,
+        d_model: usize,
+        device: &Device<B>,
+    ) -> Self {
         Self {
-            key: AutoregressiveCache::new(max_seq_len),
-            value: AutoregressiveCache::new(max_seq_len),
+            key: AutoregressiveCache::new(max_batch_size, num_heads, max_seq_len, d_model, device),
+            value: AutoregressiveCache::new(
+                max_batch_size,
+                num_heads,
+                max_seq_len,
+                d_model,
+                device,
+            ),
         }
     }
 
@@ -241,8 +253,8 @@ impl<B: Backend> KeyValueCache<B> {
     /// Use between different contexts (i.e., for each new prompt).
     #[allow(dead_code)]
     pub fn reset(&mut self) {
-        self.key = AutoregressiveCache::new(self.key.max_seq_len);
-        self.value = AutoregressiveCache::new(self.value.max_seq_len);
+        self.key.reset();
+        self.value.reset();
     }
 }
 

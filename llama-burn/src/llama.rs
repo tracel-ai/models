@@ -57,6 +57,9 @@ pub struct LlamaConfig {
     /// Maximum sequence length for input text.
     #[config(default = "128")]
     pub max_seq_len: usize,
+    /// Maximum batch size (used for key-value cache).
+    #[config(default = "1")]
+    pub max_batch_size: usize,
     /// The tokenizer path.
     pub tokenizer: String,
 }
@@ -412,7 +415,15 @@ impl LlamaConfig {
         .init(device);
 
         let cache = (0..self.num_hidden_layers)
-            .map(|_| KeyValueCache::new(self.max_seq_len))
+            .map(|_| {
+                KeyValueCache::new(
+                    self.max_batch_size,
+                    num_key_value_heads,
+                    self.max_seq_len,
+                    self.d_model / self.num_attention_heads,
+                    device,
+                )
+            })
             .collect::<Vec<_>>();
 
         let rope = RotaryEncodingConfig::new(
