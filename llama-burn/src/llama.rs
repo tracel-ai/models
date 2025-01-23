@@ -629,14 +629,17 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
         temperature: f64,
         sampler: &mut Sampler,
     ) -> GenerationOutput {
-        let mut tokens = self.tokenize(prompt);
-        let prompt_len = tokens.dims()[0];
+        let input_tokens = self.tokenize(prompt);
+        let prompt_len = input_tokens.dims()[0];
+        let mut tokens = Tensor::<B, 1, Int>::empty([prompt_len + sample_len], &self.device);
+        tokens = tokens.slice_assign([0..prompt_len], input_tokens);
+
         let stop_tokens = Tensor::from_ints(self.tokenizer.stop_ids().as_slice(), &self.device);
 
         let mut num_tokens: usize = 0;
-        let mut input_pos = Tensor::<B, 1, Int>::arange(0..tokens.dims()[0] as i64, &self.device);
+        let mut input_pos = Tensor::<B, 1, Int>::arange(0..prompt_len as i64, &self.device);
         let now = Instant::now();
-        for _ in 0..sample_len {
+        for i in 0..sample_len {
             let x = tokens.clone().select(0, input_pos.clone()).reshape([1, -1]);
             let logits = self.model.forward(x, &mut self.cache, &self.rope);
 
@@ -661,8 +664,8 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
                 break;
             }
 
-            // Concatenate the new generated token
-            tokens = Tensor::cat(vec![tokens, next_token], 0);
+            // Update with the new generated token
+            tokens = tokens.slice_assign([prompt_len + i..prompt_len + i + 1], next_token);
             num_tokens += 1;
 
             // Advance
@@ -670,7 +673,8 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
             input_pos = input_pos.slice([t - 1..t]) + 1;
         }
 
-        let tokens = tokens.into_data().as_slice::<B::IntElem>().unwrap()[prompt_len..]
+        let tokens = tokens.into_data().as_slice::<B::IntElem>().unwrap()
+            [prompt_len..prompt_len + num_tokens]
             .iter()
             .map(|t| t.elem::<u32>())
             .collect::<Vec<_>>();
@@ -722,6 +726,11 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
         println!("Loaded in {}s", elapsed);
 
         Ok(self)
+    }
+
+    /// Reset the model state (used between generations)
+    pub fn reset(&mut self) {
+        self.cache.iter_mut().for_each(|cache| cache.reset());
     }
 }
 
