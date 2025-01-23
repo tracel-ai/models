@@ -4,8 +4,8 @@
 
 The popular Llama LLM is here!
 
-This repository contains the [Llama 3.1](https://github.com/meta-llama/llama-models/),
-[Llama 3](https://github.com/meta-llama/llama3) and
+This repository contains the
+[Llama 3.2, Llama 3.1, Llama 3](https://github.com/meta-llama/llama-models/), and
 [TinyLlama](https://github.com/jzhang38/TinyLlama) implementations with their corresponding
 tokenizers. You can find the [Burn](https://github.com/tracel-ai/burn) implementation for the Llama
 variants in [src/llama.rs](src/llama.rs).
@@ -89,8 +89,10 @@ cargo run --release --features llama3,cuda --example chat
 ```
 
 **Built with Meta Llama 3.** This example uses the
-[Meta-Llama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct) (default)
-and [Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
+[Meta-Llama-3.2-1B-Instruct](https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct) (default),
+[Meta-Llama-3.2-3B-Instruct](https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct),
+[Meta-Llama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct) and
+[Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
 instruction-tuned models. Note that the [base pre-trained Llama-3 model](./src/pretrained.rs#L77) is
 also available if you wish to use it in your application.
 

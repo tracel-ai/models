@@ -10,6 +10,8 @@ The model implementation was adapted from the original
 [Meta Llama 3 Community License Agreement](https://github.com/meta-llama/llama3/blob/main/LICENSE).
 The Llama 3.1 model is distributed under the
 [Llama 3.1 Community License Agreement](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/LICENSE).
+The Llama 3.2 model is distributed under the
+[Llama 3.2 Community License Agreement](https://github.com/meta-llama/llama-models/blob/main/models/llama3_2/LICENSE).
 
 The TinyLlama implementation is derived from the same code, but its weights and tokenizers were
 adapted from the [original implementation](https://github.com/jzhang38/TinyLlama) distributed under
