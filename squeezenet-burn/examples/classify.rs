@@ -1,5 +1,8 @@
 use squeezenet_burn::model::{label::LABELS, normalizer::Normalizer, squeezenet1::Model};
 
+#[cfg(feature = "weights_embedded")]
+use burn::backend::ndarray::NdArrayDevice;
+
 use burn::backend::NdArray;
 use burn::tensor::Tensor;
 
@@ -65,7 +68,7 @@ fn main() {
 
     #[cfg(feature = "weights_embedded")]
     // Load model from embedded weights
-    let model = Model::<Backend>::from_embedded();
+    let model = Model::<Backend>::from_embedded(&NdArrayDevice::Cpu);
 
     // Run the model
     let output = model.forward(normalized_image);
