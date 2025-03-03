@@ -83,7 +83,7 @@ pub struct TrainingConfig {
     pub learning_rate: f64,
 
     #[config(default = 5e-5)]
-    pub weight_decay: f64,
+    pub weight_decay: f32,
 
     #[config(default = 70)]
     pub train_percentage: u8,
