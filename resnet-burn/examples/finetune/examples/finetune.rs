@@ -26,10 +26,7 @@ mod tch_gpu {
 
 #[cfg(feature = "wgpu")]
 mod wgpu {
-    use burn::{
-        backend::wgpu::{Wgpu, WgpuDevice},
-        Wgpu,
-    };
+    use burn::backend::wgpu::{Wgpu, WgpuDevice};
 
     pub fn run() {
         super::run::<Wgpu>(WgpuDevice::default());
