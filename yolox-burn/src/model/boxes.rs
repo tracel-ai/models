@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use burn::tensor::{backend::Backend, ElementConversion, Tensor};
 use itertools::Itertools;
 
