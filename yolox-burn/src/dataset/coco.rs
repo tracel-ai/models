@@ -1,32 +1,36 @@
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
+use std::string::String;
+use std::vec::Vec;
 
 use burn::{
-    data::dataset::{Dataset, DatasetItem},
-    tensor::{backend::Backend, Device, Element, Tensor, TensorData},
+    data::dataset::Dataset,
+    tensor::{backend::Backend, TensorData, Int, Tensor},
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CocoAnnotation {
-    pub id: u64,
-    pub image_id: u64,
-    pub category_id: u64,
+    pub id: u32,
+    pub image_id: u32,
+    pub category_id: u32,
     pub bbox: [f32; 4], // [x, y, width, height]
     pub area: f32,
-    pub iscrowd: u8,
+    pub iscrowd: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CocoImage {
-    pub id: u64,
+    pub id: u32,
+    pub file_name: String,
     pub width: u32,
     pub height: u32,
-    pub file_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CocoCategory {
-    pub id: u64,
+    pub id: u32,
     pub name: String,
     pub supercategory: String,
 }
@@ -38,119 +42,94 @@ pub struct CocoDataset {
     pub categories: Vec<CocoCategory>,
 }
 
+#[derive(Debug, Clone)]
 pub struct CocoDatasetItem<B: Backend> {
     pub image: Tensor<B, 3>,
-    pub target: Tensor<B, 3>,
-}
-
-impl<B: Backend> DatasetItem for CocoDatasetItem<B> {
-    type Input = Tensor<B, 3>;
-    type Output = Tensor<B, 3>;
-
-    fn input(&self) -> Self::Input {
-        self.image.clone()
-    }
-
-    fn output(&self) -> Self::Output {
-        self.target.clone()
-    }
+    pub boxes: Tensor<B, 2>,
+    pub labels: Tensor<B, 1, Int>,
 }
 
 pub struct CocoDatasetLoader<B: Backend> {
     dataset: CocoDataset,
-    device: Device<B>,
     image_dir: String,
+    device: B::Device,
 }
 
 impl<B: Backend> CocoDatasetLoader<B> {
-    pub fn new(dataset_path: &str, image_dir: &str, device: Device<B>) -> Self {
-        let dataset = serde_json::from_str::<CocoDataset>(
-            &std::fs::read_to_string(dataset_path).unwrap(),
-        )
-        .unwrap();
+    pub fn new(annotation_path: &str, image_dir: &str, device: B::Device) -> Self {
+        let mut file = File::open(annotation_path).expect("Failed to open annotation file");
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .expect("Failed to read annotation file");
+        let dataset: CocoDataset = serde_json::from_str(&contents).expect("Failed to parse JSON");
 
         Self {
             dataset,
-            device,
             image_dir: image_dir.to_string(),
+            device,
         }
     }
+}
 
-    fn load_image(&self, image: &CocoImage) -> Tensor<B, 3> {
-        let image_path = Path::new(&self.image_dir).join(&image.file_name);
-        let img = image::open(image_path).unwrap();
-        
-        // Resize to model input size
-        let img = img.resize_exact(
-            640,
-            640,
-            image::imageops::FilterType::Triangle,
-        );
+impl<B: Backend> Dataset<CocoDatasetItem<B>> for CocoDatasetLoader<B> {
+    fn get(&self, index: usize) -> Option<CocoDatasetItem<B>> {
+        let coco_image = &self.dataset.images[index];
+        let image_path = Path::new(&self.image_dir).join(&coco_image.file_name);
+        let img = image::open(image_path).expect("Failed to open image");
+        let img = img.to_rgb8();
+        let (height, width) = (img.height() as usize, img.width() as usize);
+        let img_data: Vec<f32> = img
+            .pixels()
+            .flat_map(|p| {
+                vec![
+                    p[0] as f32 / 255.0,
+                    p[1] as f32 / 255.0,
+                    p[2] as f32 / 255.0,
+                ]
+            })
+            .collect();
 
-        // Convert to tensor
-        let img_data = img.into_rgb8().into_raw();
-        let shape = [640, 640, 3];
-        
-        Tensor::<B, 3>::from_data(
-            TensorData::new(img_data, shape).convert::<B::FloatElem>(),
+        let image_tensor = Tensor::<B, 3>::from_data(
+            TensorData::new(img_data, [height, width, 3]),
             &self.device,
         )
-        .permute([2, 0, 1]) // [H, W, C] -> [C, H, W]
-    }
+        .permute([2, 0, 1]); // Change from HWC to CHW format
 
-    fn create_target(&self, image_id: u64) -> Tensor<B, 3> {
         // Get annotations for this image
         let annotations: Vec<&CocoAnnotation> = self
             .dataset
             .annotations
             .iter()
-            .filter(|ann| ann.image_id == image_id)
+            .filter(|ann| ann.image_id == coco_image.id)
             .collect();
 
-        // Create target tensor
-        let mut target = Tensor::zeros([1, 100, 85], &self.device); // [batch, max_boxes, 4+1+80]
+        let boxes: Vec<f32> = annotations
+            .iter()
+            .flat_map(|ann| {
+                let [x, y, w, h] = ann.bbox;
+                vec![x, y, x + w, y + h] // Convert to [x1, y1, x2, y2] format
+            })
+            .collect();
 
-        for (i, ann) in annotations.iter().enumerate() {
-            if i >= 100 {
-                break; // Limit to 100 boxes per image
-            }
+        let labels: Vec<i64> = annotations
+            .iter()
+            .map(|ann| ann.category_id as i64)
+            .collect();
 
-            // Convert bbox to [x1, y1, x2, y2] format
-            let [x, y, w, h] = ann.bbox;
-            let x1 = x;
-            let y1 = y;
-            let x2 = x + w;
-            let y2 = y + h;
+        let boxes = Tensor::<B, 2>::from_data(
+            TensorData::new(boxes, [annotations.len(), 4]),
+            &self.device,
+        );
+        let labels = Tensor::<B, 1, Int>::from_data(
+            TensorData::new(labels, [annotations.len()]),
+            &self.device,
+        );
 
-            // Set bbox coordinates
-            target.slice_mut([0..1, i..i+1, 0..4]).copy_from(&Tensor::from_data(
-                TensorData::new(vec![x1, y1, x2, y2], [1, 1, 4]).convert::<B::FloatElem>(),
-                &self.device,
-            ));
-
-            // Set objectness score
-            target.slice_mut([0..1, i..i+1, 4..5]).copy_from(&Tensor::ones([1, 1, 1], &self.device));
-
-            // Set class score
-            let class_idx = ann.category_id as usize - 1; // COCO categories start at 1
-            target.slice_mut([0..1, i..i+1, 5+class_idx..6+class_idx])
-                .copy_from(&Tensor::ones([1, 1, 1], &self.device));
-        }
-
-        target
-    }
-}
-
-impl<B: Backend> Dataset<CocoDatasetItem<B>> for CocoDatasetLoader<B> {
-    fn get(&self, index: usize) -> CocoDatasetItem<B> {
-        let image = &self.dataset.images[index];
-        let image_tensor = self.load_image(image);
-        let target_tensor = self.create_target(image.id);
-
-        CocoDatasetItem {
+        Some(CocoDatasetItem {
             image: image_tensor,
-            target: target_tensor,
-        }
+            boxes,
+            labels,
+        })
     }
 
     fn len(&self) -> usize {

@@ -6,20 +6,21 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = []
+default = ["std"]
 std = []
 pretrained = ["burn/network", "std", "dep:dirs"]
 webgpu = ["burn/wgpu"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std
-burn = { version = "0.16.0", default-features = false }
+burn = { version = "0.16.0", default-features = false, features = ["dataset", "std"] }
 burn-import = { version = "0.16.0" }
 itertools = { version = "0.12.1", default-features = false, features = [
     "use_alloc",
 ] }
 dirs = { version = "5.0.1", optional = true }
 serde = { version = "1.0.192", features = ["derive", "std"] }
+serde_json = { version = "1.0.108" }
 image = { version = "0.24.9", features = ["png", "jpeg"] }
 
 [dev-dependencies]
