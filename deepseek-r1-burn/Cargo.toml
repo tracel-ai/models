@@ -1,0 +1,18 @@
+[package]
+name = "deepseek-r1-burn"
+version = "0.1.0"
+edition = "2021"
+description = "DeepSeek-R1 model implementation using Burn"
+
+[dependencies]
+burn = { version = "0.16.0", default-features = false, features = ["std", "dataset"] }
+serde = { version = "1.0.108", features = ["derive"] }
+serde_json = "1.0.108"
+tokenizers = "0.15.0"
+thiserror = "1.0.50"
+
+[features]
+default = ["std"]
+std = []
+webgpu = ["burn/wgpu"]
+cuda = ["burn/cuda"] 
