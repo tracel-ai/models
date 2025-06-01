@@ -27,6 +27,7 @@ Explore the curated list of models developed by the community ♥.
 | Whisper-Live                                     | A fork of [Gadersd/whisper-burn](https://github.com/Gadersd/whisper-burn) which has been updated for Burn 13 and provides live transcription | [sudomonikers/whisper-burn](https://github.com/sudomonikers/whisper-burn) |
 | [Inception V3](https://arxiv.org/abs/1512.00567) | A CNN used for calculating FID scores.                            | [varonroy/inception-v3-burn](https://github.com/varonroy/inception-v3-burn/)      |
 | [CRAFT](https://arxiv.org/abs/1904.01941)        | A CNN for character-region aware text detection                   | [wingertge/craft-burn](https://github.com/wingertge/craft-burn) |
+| [RWKV v7](https://arxiv.org/abs/2503.14456)        | A large language model architecture that can be used like transformer models (parallel processing of tokens) and like RNNs (sequential generation).                   | [dymat/rwkv-burn](https://github.com/dymat/rwkv-burn) |
 
 ## License Information
 
