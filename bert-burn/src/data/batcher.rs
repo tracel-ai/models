@@ -23,9 +23,9 @@ pub struct BertInferenceBatch<B: Backend> {
     pub mask_pad: Tensor<B, 2, Bool>,
 }
 
-impl<B: Backend> Batcher<String, BertInferenceBatch<B>> for BertInputBatcher<B> {
+impl<B: Backend> Batcher<B, String, BertInferenceBatch<B>> for BertInputBatcher<B> {
     /// Batches a vector of strings into an inference batch
-    fn batch(&self, items: Vec<String>) -> BertInferenceBatch<B> {
+    fn batch(&self, items: Vec<String>, _: &B::Device) -> BertInferenceBatch<B> {
         let mut tokens_list = Vec::with_capacity(items.len());
 
         // Tokenize each string

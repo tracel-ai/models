@@ -65,7 +65,7 @@ pub fn launch<B: Backend>(device: B::Device) {
     ));
 
     // Batch input samples using the batcher Shape: [Batch size, Seq_len]
-    let input = batcher.batch(text_samples.clone());
+    let input = batcher.batch(text_samples.clone(), &device);
     let [batch_size, _seq_len] = input.tokens.dims();
     println!("Input: {}", input.tokens);
 

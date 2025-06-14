@@ -93,8 +93,8 @@ impl<B: Backend> ClassificationBatcher<B> {
     }
 }
 
-impl<B: Backend> Batcher<ImageDatasetItem, ClassificationBatch<B>> for ClassificationBatcher<B> {
-    fn batch(&self, items: Vec<ImageDatasetItem>) -> ClassificationBatch<B> {
+impl<B: Backend> Batcher<B, ImageDatasetItem, ClassificationBatch<B>> for ClassificationBatcher<B> {
+    fn batch(&self, items: Vec<ImageDatasetItem>, _: &B::Device) -> ClassificationBatch<B> {
         fn image_as_vec_u8(item: ImageDatasetItem) -> Vec<u8> {
             // Convert Vec<PixelDepth> to Vec<u8> (Planet images are u8)
             item.image

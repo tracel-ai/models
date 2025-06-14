@@ -39,8 +39,8 @@ pub fn infer<B: Backend>(artifact_dir: &str, device: B::Device, threshold: f32) 
     };
 
     // Forward pass with sigmoid activation function
-    let batcher = ClassificationBatcher::new(device);
-    let batch = batcher.batch(vec![item]);
+    let batcher = ClassificationBatcher::new(device.clone());
+    let batch = batcher.batch(vec![item], &device);
     let output = sigmoid(model.forward(batch.images));
 
     // Get predicted class names over the specified threshold

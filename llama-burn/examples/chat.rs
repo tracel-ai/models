@@ -199,14 +199,14 @@ mod wgpu {
 mod cuda {
     use super::*;
     use burn::{
-        backend::{cuda_jit::CudaDevice, CudaJit},
+        backend::{cuda::CudaDevice, Cuda},
         tensor::f16,
     };
 
     pub fn run(args: Config) {
         let device = CudaDevice::default();
 
-        chat::<CudaJit<f16, i32>>(args, device);
+        chat::<Cuda<f16, i32>>(args, device);
     }
 }
 
