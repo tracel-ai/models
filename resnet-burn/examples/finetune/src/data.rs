@@ -70,12 +70,19 @@ impl<B: Backend> Normalizer<B> {
     pub fn normalize(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
         (input - self.mean.clone()) / self.std.clone()
     }
+
+    /// Returns a new normalizer on the given device.
+    pub fn to_device(&self, device: &B::Device) -> Self {
+        Self {
+            mean: self.mean.clone().to_device(device),
+            std: self.std.clone().to_device(device),
+        }
+    }
 }
 
 #[derive(Clone)]
 pub struct ClassificationBatcher<B: Backend> {
     normalizer: Normalizer<B>,
-    device: B::Device,
 }
 
 #[derive(Clone, Debug)]
@@ -88,13 +95,12 @@ impl<B: Backend> ClassificationBatcher<B> {
     pub fn new(device: B::Device) -> Self {
         Self {
             normalizer: Normalizer::<B>::new(&device),
-            device,
         }
     }
 }
 
 impl<B: Backend> Batcher<B, ImageDatasetItem, ClassificationBatch<B>> for ClassificationBatcher<B> {
-    fn batch(&self, items: Vec<ImageDatasetItem>, _: &B::Device) -> ClassificationBatch<B> {
+    fn batch(&self, items: Vec<ImageDatasetItem>, device: &B::Device) -> ClassificationBatch<B> {
         fn image_as_vec_u8(item: ImageDatasetItem) -> Vec<u8> {
             // Convert Vec<PixelDepth> to Vec<u8> (Planet images are u8)
             item.image
@@ -108,7 +114,7 @@ impl<B: Backend> Batcher<B, ImageDatasetItem, ClassificationBatch<B>> for Classi
             .map(|item| {
                 // Expect multi-hot encoded class labels as target (e.g., [0, 1, 0, 0, 1])
                 if let Annotation::MultiLabel(y) = &item.annotation {
-                    multi_hot(y, CLASSES.len(), &self.device)
+                    multi_hot(y, CLASSES.len(), device)
                 } else {
                     panic!("Invalid target type")
                 }
@@ -118,14 +124,14 @@ impl<B: Backend> Batcher<B, ImageDatasetItem, ClassificationBatch<B>> for Classi
         let images = items
             .into_iter()
             .map(|item| TensorData::new(image_as_vec_u8(item), Shape::new([HEIGHT, WIDTH, 3])))
-            .map(|data| Tensor::<B, 3>::from_data(data.convert::<B::FloatElem>(), &self.device))
+            .map(|data| Tensor::<B, 3>::from_data(data.convert::<B::FloatElem>(), device))
             .map(|tensor| tensor.permute([2, 0, 1]) / 255) // normalize between [0, 1]
             .collect();
 
         let images = Tensor::stack(images, 0);
         let targets = Tensor::stack(targets, 0);
 
-        let images = self.normalizer.normalize(images);
+        let images = self.normalizer.to_device(device).normalize(images);
 
         ClassificationBatch { images, targets }
     }

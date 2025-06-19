@@ -58,9 +58,8 @@ pub fn launch<B: Backend>(device: B::Device) {
     ));
 
     // Batch the input samples to max sequence length with padding
-    let batcher = Arc::new(BertInputBatcher::<B>::new(
+    let batcher = Arc::new(BertInputBatcher::new(
         tokenizer.clone(),
-        device.clone(),
         model_config.max_seq_len.unwrap(),
     ));
 
