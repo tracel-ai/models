@@ -63,7 +63,7 @@ score) on the validation set after just 5 epochs.
 Run the example with the Torch GPU backend:
 
 ```sh
-export TORCH_CUDA_VERSION=cu121
+export TORCH_CUDA_VERSION=cu124
 cargo run --release --example finetune --features tch-gpu
 ```
 
@@ -71,4 +71,10 @@ Run it with our WGPU backend:
 
 ```sh
 cargo run --release --example finetune --features wgpu
+```
+
+Run it with our CUDA backend:
+
+```sh
+cargo run --release --example finetune --features cuda
 ```

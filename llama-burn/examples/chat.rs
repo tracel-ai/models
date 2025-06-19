@@ -183,15 +183,16 @@ mod tch_cpu {
     }
 }
 
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "vulkan")]
 mod wgpu {
     use super::*;
-    use burn::backend::wgpu::{Wgpu, WgpuDevice};
+    use burn::backend::wgpu::{Vulkan, WgpuDevice};
+    use burn::tensor::f16;
 
     pub fn run(args: Config) {
         let device = WgpuDevice::default();
 
-        chat::<Wgpu>(args, device);
+        chat::<Vulkan<f16, i32>>(args, device);
     }
 }
 
@@ -218,7 +219,7 @@ pub fn main() {
     tch_gpu::run(args);
     #[cfg(feature = "tch-cpu")]
     tch_cpu::run(args);
-    #[cfg(feature = "wgpu")]
+    #[cfg(feature = "vulkan")]
     wgpu::run(args);
     #[cfg(feature = "cuda")]
     cuda::run(args);

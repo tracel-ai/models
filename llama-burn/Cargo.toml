@@ -17,13 +17,13 @@ tiny = ["dep:tokenizers"]
 tch-cpu = ["burn/tch"]
 tch-gpu = ["burn/tch"]
 cuda = ["burn/cuda"]
-wgpu = ["burn/wgpu"]
+vulkan = ["burn/vulkan"]
 
 # To import pytorch weights
 import = ["burn-import"]
 
 [dependencies]
-burn = { version = "0.17.1", default-features = false, features = ["std", "fusion"] }
+burn = { version = "0.17.1", default-features = false, features = ["std"] }
 burn-import = { version = "0.17.1", optional = true }
 
 itertools = { version = "0.12.1", default-features = false, features = [

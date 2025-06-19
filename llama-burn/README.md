@@ -46,7 +46,7 @@ The [chat completion example](examples/chat.rs) initializes a Llama model from t
 file and generates a sequence of text based on the input prompt. The instruction-tuned model is
 loaded for dialogue applications, so the prompt is automatically formatted for chat completion.
 
-The example can be executed on the `tch` backend (CUDA or CPU), `cuda` or `wgpu`.
+The example can be executed on the `tch` backend (CUDA or CPU), `cuda` or `vulkan` (wgpu).
 
 | Argument        | Description                                                                                                    |
 | :-------------- | :------------------------------------------------------------------------------------------------------------- |
@@ -66,7 +66,7 @@ Any of the commands below can be used by appending any of the listed arguments b
 Using the `tch` backend with CUDA:
 
 ```sh
-export TORCH_CUDA_VERSION=cu121
+export TORCH_CUDA_VERSION=cu124
 cargo run --release --features llama3,tch-gpu --example chat
 ```
 
@@ -76,10 +76,10 @@ Using the `tch` backend with CPU:
 cargo run --release --features llama3,tch-cpu --example chat
 ```
 
-Using the `wgpu` backend:
+Using the `vulkan` backend:
 
 ```sh
-cargo run --release --features llama3,wgpu --example chat
+cargo run --release --features llama3,vulkan --example chat
 ```
 
 Using the `cuda` backend:
@@ -101,7 +101,7 @@ also available if you wish to use it in your application.
 Using the `tch` backend with CUDA:
 
 ```sh
-export TORCH_CUDA_VERSION=cu121
+export TORCH_CUDA_VERSION=cu124
 cargo run --release --features tiny,tch-gpu --example chat
 ```
 
@@ -111,10 +111,10 @@ Using the `tch` backend with CPU:
 cargo run --release --features tiny,tch-cpu --example chat
 ```
 
-Using the `wgpu` backend:
+Using the `vulkan` backend:
 
 ```sh
-cargo run --release --features tiny,wgpu --example chat
+cargo run --release --features tiny,vulkan --example chat
 ```
 
 Using the `cuda` backend:
@@ -127,21 +127,3 @@ This example uses the
 [TinyLlama-1.1B-Chat-v1.0](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)
 instruction-tuned model based on the Llama2 architecture and tokenizer.
 
-## Known Issues
-
-Based on your hardware and the model selected, the `wgpu` backend might not be able to successfully
-run the model due to the current memory management strategy. With `cuda` selected, the precision is
-set to `f32` due to compilation errors with `f16`.
-
-### Windows
-
-The `cuda` backend is [unable to find nvrtc lib](https://github.com/coreylowman/cudarc/issues/246):
-
-```
-Unable to find nvrtc lib under the names ["nvrtc", "nvrtc64", "nvrtc64_12", "nvrtc64_123", "nvrtc64_123_0", "nvrtc64_120_3", "nvrtc64_10"]. Please open GitHub issue.
-```
-
-This has been fixed in the latest `cudarc` release (used by our `cuda-jit` backend), which is
-currently used [on main](https://github.com/tracel-ai/burn). To circumvent the issue, feel free to
-modify the code and use the latest Burn dependency in your project instead of `0.14.0`. This should
-also allow you to use `f16` precision (compilation errors have been fixed since).

@@ -9,6 +9,7 @@ edition.workspace = true
 default = ["burn/default"]
 tch-gpu = ["burn/tch"]
 wgpu = ["burn/wgpu"]
+cuda = ["burn/cuda"]
 
 [dependencies]
 resnet-burn = { path = "../../resnet", features = ["pretrained"] }
