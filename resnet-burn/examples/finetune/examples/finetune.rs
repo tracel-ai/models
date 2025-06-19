@@ -1,3 +1,5 @@
+#![recursion_limit = "256"] // wgpu
+
 use burn::{backend::Autodiff, tensor::backend::Backend};
 use finetune::{inference::infer, training::train};
 
@@ -33,9 +35,20 @@ mod wgpu {
     }
 }
 
+#[cfg(feature = "cuda")]
+mod cuda {
+    use burn::backend::{cuda::CudaDevice, Cuda};
+
+    pub fn run() {
+        super::run::<Cuda>(CudaDevice::default());
+    }
+}
+
 fn main() {
     #[cfg(feature = "tch-gpu")]
     tch_gpu::run();
     #[cfg(feature = "wgpu")]
     wgpu::run();
+    #[cfg(feature = "cuda")]
+    cuda::run();
 }

@@ -18,7 +18,7 @@ bert-burn = { git = "https://github.com/tracel-ai/models", package = "bert-burn"
 
 Example usage for getting sentence embedding from given input text. The model supports multiple backends from burn
 (e.g. `ndarray`, `wgpu`, `tch-gpu`, `tch-cpu`, `cuda`) which can be selected using the `--features` flag. An example with `wgpu`
-backend is shown below. The `fusion` flag is used to enable kernel fusion for the `wgpu` backend. It is not required
+backend is shown below. The `fusion` flag is used to enable kernel fusion for the `wgpu` or `cuda` backends. It is not required
 with other backends. The `safetensors` flag is used to support loading weights in `safetensors` format via `candle-core`
 crate.
 

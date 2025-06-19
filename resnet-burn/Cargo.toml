@@ -17,8 +17,8 @@ license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 # Note: default-features = false is needed to disable std
-burn = { version = "0.16.0", default-features = false }
-burn-import = "0.16.0"
+burn = { version = "0.17.1", default-features = false }
+burn-import = "0.17.1"
 dirs = "5.0.1"
 serde = { version = "1.0.192", default-features = false, features = [
     "derive",

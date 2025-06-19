@@ -10,7 +10,7 @@ use burn::{
         TensorData,
     },
 };
-
+use burn::tensor::cast::ToElement;
 #[cfg(feature = "import")]
 use {
     crate::transformer::TransformerRecord,
@@ -660,6 +660,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
                 .equal(next_token.clone())
                 .any()
                 .into_scalar()
+                .to_bool()
             {
                 break;
             }

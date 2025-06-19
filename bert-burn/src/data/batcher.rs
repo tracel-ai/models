@@ -6,11 +6,9 @@ use burn::tensor::{Bool, Int, Tensor};
 use std::sync::Arc;
 
 #[derive(new)]
-pub struct BertInputBatcher<B: Backend> {
+pub struct BertInputBatcher {
     /// Tokenizer for converting input text string to token IDs
     tokenizer: Arc<dyn Tokenizer>,
-    /// Device on which to perform computation (e.g., CPU or CUDA device)
-    device: B::Device,
     /// Maximum sequence length for tokenized text
     max_seq_length: usize,
 }
@@ -23,9 +21,9 @@ pub struct BertInferenceBatch<B: Backend> {
     pub mask_pad: Tensor<B, 2, Bool>,
 }
 
-impl<B: Backend> Batcher<String, BertInferenceBatch<B>> for BertInputBatcher<B> {
+impl<B: Backend> Batcher<B, String, BertInferenceBatch<B>> for BertInputBatcher {
     /// Batches a vector of strings into an inference batch
-    fn batch(&self, items: Vec<String>) -> BertInferenceBatch<B> {
+    fn batch(&self, items: Vec<String>, device: &B::Device) -> BertInferenceBatch<B> {
         let mut tokens_list = Vec::with_capacity(items.len());
 
         // Tokenize each string
@@ -38,7 +36,7 @@ impl<B: Backend> Batcher<String, BertInferenceBatch<B>> for BertInputBatcher<B> 
             self.tokenizer.pad_token(),
             tokens_list,
             Some(self.max_seq_length),
-            &self.device,
+            device,
         );
 
         // Create and return inference batch

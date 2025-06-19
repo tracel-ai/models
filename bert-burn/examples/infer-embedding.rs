@@ -1,3 +1,5 @@
+#![recursion_limit = "256"] // wgpu
+
 use bert_burn::data::{BertInputBatcher, BertTokenizer};
 use bert_burn::loader::{download_hf_model, load_model_config};
 use bert_burn::model::{BertModel, BertModelRecord};
@@ -58,14 +60,13 @@ pub fn launch<B: Backend>(device: B::Device) {
     ));
 
     // Batch the input samples to max sequence length with padding
-    let batcher = Arc::new(BertInputBatcher::<B>::new(
+    let batcher = Arc::new(BertInputBatcher::new(
         tokenizer.clone(),
-        device.clone(),
         model_config.max_seq_len.unwrap(),
     ));
 
     // Batch input samples using the batcher Shape: [Batch size, Seq_len]
-    let input = batcher.batch(text_samples.clone());
+    let input = batcher.batch(text_samples.clone(), &device);
     let [batch_size, _seq_len] = input.tokens.dims();
     println!("Input: {}", input.tokens);
 
@@ -83,10 +84,7 @@ pub fn launch<B: Backend>(device: B::Device) {
     ]);
 
     let sentence_embedding: Tensor<B, 2> = sentence_embedding.squeeze(1);
-    println!(
-        "Roberta Sentence embedding: {}",
-        sentence_embedding
-    );
+    println!("Roberta Sentence embedding: {}", sentence_embedding);
 }
 
 #[cfg(feature = "ndarray")]
@@ -135,6 +133,16 @@ mod wgpu {
     }
 }
 
+#[cfg(feature = "cuda")]
+mod cuda {
+    use crate::launch;
+    use burn::backend::{cuda::CudaDevice, Cuda};
+
+    pub fn run() {
+        launch::<Cuda>(CudaDevice::default());
+    }
+}
+
 fn main() {
     #[cfg(feature = "ndarray")]
     ndarray::run();
@@ -144,4 +152,6 @@ fn main() {
     tch_cpu::run();
     #[cfg(feature = "wgpu")]
     wgpu::run();
+    #[cfg(feature = "cuda")]
+    cuda::run();
 }
