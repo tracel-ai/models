@@ -85,7 +85,7 @@ fn copy_weights_next_to_executable() {
 
     // Determine the profile (debug or release) to set the appropriate destination directory.
     let profile = env::var("PROFILE").expect("PROFILE not defined");
-    let target_dir = format!("target/{}", profile);
+    let target_dir = format!("target/{profile}");
 
     // Specify the destination path.
     let destination_path = Path::new(&target_dir)
