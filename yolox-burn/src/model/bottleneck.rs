@@ -111,6 +111,7 @@ impl SppBottleneckConfig {
             .map(|k| {
                 let pad = k / 2;
                 MaxPool2dConfig::new([k, k])
+                    .with_strides([1, 1])
                     .with_padding(burn::nn::PaddingConfig2d::Explicit(pad, pad))
             })
             .collect();
