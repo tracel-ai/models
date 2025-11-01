@@ -83,7 +83,7 @@ pub fn launch<B: Backend>(device: B::Device) {
         0..d_model,
     ]);
 
-    let sentence_embedding: Tensor<B, 2> = sentence_embedding.squeeze(1);
+    let sentence_embedding: Tensor<B, 2> = sentence_embedding.squeeze_dim(1);
     println!("Roberta Sentence embedding: {}", sentence_embedding);
 }
 

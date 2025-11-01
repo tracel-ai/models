@@ -5,7 +5,7 @@ use burn::nn::{Dropout, DropoutConfig, Embedding, EmbeddingConfig, LayerNorm, La
 use burn::tensor::backend::Backend;
 use burn::tensor::{Float, Int, Tensor};
 
-#[derive(Config)]
+#[derive(Config, Debug)]
 pub struct BertEmbeddingsConfig {
     pub vocab_size: usize,
     pub max_position_embeddings: usize,

@@ -21,7 +21,7 @@ impl ReLU6 {
 #[derive(Module, Debug)]
 pub struct Conv2dNormActivation<B: Backend> {
     conv: Conv2d<B>,
-    norm: BatchNorm<B, 2>,
+    norm: BatchNorm<B>,
     activation: ReLU6,
 }
 

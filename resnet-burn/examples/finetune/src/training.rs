@@ -13,7 +13,8 @@ use burn::{
     tensor::backend::AutodiffBackend,
     train::{
         metric::{HammingScore, LossMetric},
-        LearnerBuilder, MultiLabelClassificationOutput, TrainOutput, TrainStep, ValidStep,
+        LearnerBuilder, LearningStrategy, MultiLabelClassificationOutput, TrainOutput, TrainStep,
+        ValidStep,
     },
 };
 use resnet_burn::{weights, ResNet};
@@ -65,7 +66,7 @@ impl<B: Backend> ValidStep<ClassificationBatch<B>, MultiLabelClassificationOutpu
     }
 }
 
-#[derive(Config)]
+#[derive(Config, Debug)]
 pub struct TrainingConfig {
     #[config(default = 5)]
     pub num_epochs: usize,
@@ -110,7 +111,7 @@ pub fn train<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
         .save(format!("{artifact_dir}/config.json"))
         .expect("Config should be saved successfully");
 
-    B::seed(config.seed);
+    B::seed(&device, config.seed);
 
     // Dataloaders
     let batcher_train = ClassificationBatcher::<B>::new(device.clone());
@@ -142,18 +143,19 @@ pub fn train<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
         .metric_train_numeric(LossMetric::new())
         .metric_valid_numeric(LossMetric::new())
         .with_file_checkpointer(CompactRecorder::new())
-        .devices(vec![device.clone()])
+        .learning_strategy(LearningStrategy::SingleDevice(device.clone()))
         .num_epochs(config.num_epochs)
         .summary()
         .build(model, optimizer, config.learning_rate);
 
     // Training
     let now = Instant::now();
-    let model_trained = learner.fit(dataloader_train, dataloader_test);
+    let training_result = learner.fit(dataloader_train, dataloader_test);
     let elapsed = now.elapsed().as_secs();
     println!("Training completed in {}m{}s", (elapsed / 60), elapsed % 60);
 
-    model_trained
+    training_result
+        .model
         .save_file(format!("{artifact_dir}/model"), &CompactRecorder::new())
         .expect("Trained model should be saved successfully");
 }

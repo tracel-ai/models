@@ -25,7 +25,7 @@ impl<B: Backend> Pooler<B> {
 }
 
 /// Pooler Configuration
-#[derive(Config)]
+#[derive(Config, Debug)]
 pub struct PoolerConfig {
     /// Hidden size
     pub hidden_size: usize,

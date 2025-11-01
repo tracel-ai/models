@@ -259,6 +259,7 @@ impl<B: Backend> Yolox<B> {
     }
 
     /// Load specified pre-trained PyTorch weights as a record.
+    #[cfg(feature = "pretrained")]
     fn load_weights_record(
         weights: &weights::Weights,
         device: &Device<B>,

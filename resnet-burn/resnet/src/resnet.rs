@@ -31,7 +31,7 @@ const RESNET152_BLOCKS: [usize; 4] = [3, 8, 36, 3];
 #[derive(Module, Debug)]
 pub struct ResNet<B: Backend> {
     conv1: Conv2d<B>,
-    bn1: BatchNorm<B, 2>,
+    bn1: BatchNorm<B>,
     relu: Relu,
     maxpool: MaxPool2d,
     layer1: LayerBlock<B>,
