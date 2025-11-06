@@ -34,16 +34,19 @@ pub fn fill_mask<B: Backend>(
             .tokens
             .clone()
             .slice([i..i + 1, 0..seq_len])
-            .squeeze::<1>(0)
+            .squeeze_dim::<1>(0)
             .into_data();
         // Find the mask tokens in the input, as a list of indices
-        let masks = find_masks(input_tokens.as_slice::<B::IntElem>().unwrap(), MASK_TOKEN_ID);
+        let masks = find_masks(
+            input_tokens.as_slice::<B::IntElem>().unwrap(),
+            MASK_TOKEN_ID,
+        );
         for mask in masks {
             let logits = output
                 .clone()
                 .slice([i..i + 1, mask..(mask + 1), 0..d_model])
-                .squeeze::<2>(0)
-                .squeeze(0);
+                .squeeze_dim::<2>(0)
+                .squeeze_dim(0);
             // Find the top k tokens with the highest probabilities
             let top_k = top_k(5, logits);
             batch_results.push(FillMaskResult {
@@ -81,7 +84,12 @@ fn data_to_vec_usize<T: Element>(data: &[T]) -> Vec<usize> {
 fn top_k<B: Backend>(k: usize, logits: Tensor<B, 1>) -> Vec<(usize, f32)> {
     let (pre_soft_probs, indices) = logits.sort_with_indices(0);
     let (probabilities, indices) = (
-        data_to_vec_f32(&softmax(pre_soft_probs, 0).into_data().as_slice::<B::FloatElem>().unwrap()),
+        data_to_vec_f32(
+            &softmax(pre_soft_probs, 0)
+                .into_data()
+                .as_slice::<B::FloatElem>()
+                .unwrap(),
+        ),
         data_to_vec_usize(&indices.into_data().as_slice::<B::IntElem>().unwrap()),
     );
     probabilities

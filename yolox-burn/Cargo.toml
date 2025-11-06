@@ -12,8 +12,8 @@ pretrained = ["burn/network", "std", "dep:dirs"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std
-burn = { version = "0.18.0", default-features = false }
-burn-import = { version = "0.18.0" }
+burn = { version = "0.19.1", default-features = false }
+burn-import = { version = "0.19.1" }
 itertools = { version = "0.12.1", default-features = false, features = [
     "use_alloc",
 ] }
@@ -24,5 +24,5 @@ serde = { version = "1.0.192", default-features = false, features = [
 ] } # alloc is for no_std, derive is needed
 
 [dev-dependencies]
-burn = { version = "0.18.0", features = ["ndarray"] }
+burn = { version = "0.19.1", features = ["ndarray"] }
 image = { version = "0.24.9", features = ["png", "jpeg"] }

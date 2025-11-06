@@ -8,7 +8,7 @@ use burn::{module::Module, nn::conv::Conv2d, tensor::backend::Backend};
 #[derive(Module, Debug)]
 pub struct PointWiseLinear<B: Backend> {
     conv: Conv2d<B>,
-    norm: BatchNorm<B, 2>,
+    norm: BatchNorm<B>,
 }
 
 impl<B: Backend> PointWiseLinear<B> {

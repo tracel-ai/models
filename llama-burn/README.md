@@ -66,7 +66,7 @@ Any of the commands below can be used by appending any of the listed arguments b
 Using the `tch` backend with CUDA:
 
 ```sh
-export TORCH_CUDA_VERSION=cu124
+export TORCH_CUDA_VERSION=cu128
 cargo run --release --features llama3,tch-gpu --example chat
 ```
 
@@ -101,7 +101,7 @@ also available if you wish to use it in your application.
 Using the `tch` backend with CUDA:
 
 ```sh
-export TORCH_CUDA_VERSION=cu124
+export TORCH_CUDA_VERSION=cu128
 cargo run --release --features tiny,tch-gpu --example chat
 ```
 

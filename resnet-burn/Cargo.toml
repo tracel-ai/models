@@ -4,10 +4,7 @@
 # https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 resolver = "2"
 
-members = [
-    "resnet",
-    "examples/*",
-]
+members = ["resnet", "examples/*"]
 
 [workspace.package]
 edition = "2021"
@@ -17,8 +14,10 @@ license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 # Note: default-features = false is needed to disable std
-burn = { version = "0.18.0", default-features = false }
-burn-import = { version = "0.18.0", default-features = false, features = ["pytorch"] }
+burn = { version = "0.19.1", default-features = false }
+burn-import = { version = "0.19.1", default-features = false, features = [
+    "pytorch",
+] }
 dirs = "5.0.1"
 serde = { version = "1.0.192", default-features = false, features = [
     "derive",

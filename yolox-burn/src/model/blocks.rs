@@ -34,7 +34,7 @@ impl<B: Backend> Conv<B> {
     }
 }
 
-#[derive(Config)]
+#[derive(Config, Debug)]
 pub struct ConvConfig {
     in_channels: usize,
     out_channels: usize,
@@ -75,7 +75,7 @@ impl ConvConfig {
 #[derive(Module, Debug)]
 pub struct BaseConv<B: Backend> {
     conv: Conv2d<B>,
-    bn: BatchNorm<B, 2>,
+    bn: BatchNorm<B>,
 }
 
 impl<B: Backend> BaseConv<B> {

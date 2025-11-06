@@ -20,8 +20,13 @@ safetensors = ["candle-core/default"]
 
 [dependencies]
 # Burn
-burn = { version = "0.18.0", default-features = false, features = ["dataset", "std"] }
-cubecl-runtime = { version = "0.3.0", features = ["channel-mpsc"] } # missing feature flag when burn default-features are off
+burn = { version = "0.19.1", default-features = false, features = [
+  "dataset",
+  "std",
+] }
+cubecl-runtime = { version = "0.3.0", features = [
+  "channel-mpsc",
+] } # missing feature flag when burn default-features are off
 candle-core = { version = "0.8.4" }
 # Tokenizer
 tokenizers = { version = "0.15.0", default-features = false, features = [

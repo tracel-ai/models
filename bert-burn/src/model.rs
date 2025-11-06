@@ -20,7 +20,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 // Define the Bert model configuration
-#[derive(Config)]
+#[derive(Config, Debug)]
 pub struct BertModelConfig {
     /// Number of attention heads in the multi-head attention
     pub num_attention_heads: usize,

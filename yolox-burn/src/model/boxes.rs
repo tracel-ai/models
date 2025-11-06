@@ -42,7 +42,7 @@ pub fn nms<B: Backend>(
         // Per-batch
         .map(|(_, (candidate_boxes, candidate_scores))| {
             // Keep max scoring boxes only ([num_boxes, 1], [num_boxes, 1])
-            let (cls_score, cls_idx) = candidate_scores.squeeze::<2>(0).max_dim_with_indices(1);
+            let (cls_score, cls_idx) = candidate_scores.squeeze_dim::<2>(0).max_dim_with_indices(1);
             let cls_score: Vec<_> = cls_score
                 .into_data()
                 .iter::<B::FloatElem>()

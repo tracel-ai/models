@@ -11,7 +11,7 @@ use burn::{
 use crate::cache::AutoregressiveCache;
 
 /// Configuration to create a Llama [decoder-only transformer](Transformer).
-#[derive(Config)]
+#[derive(Config, Debug)]
 pub struct TransformerConfig {
     /// The size of the vocabulary.
     pub vocab_size: usize,
@@ -95,7 +95,7 @@ impl<B: Backend> Transformer<B> {
 }
 
 /// Configuration to create a [decoder-only transformer block](TransformerBlock).
-#[derive(Config)]
+#[derive(Config, Debug)]
 pub struct TransformerBlockConfig {
     /// The number of transformer blocks.
     pub n_layers: usize,
@@ -162,7 +162,7 @@ impl<B: Backend> TransformerBlock<B> {
 }
 
 /// Configuration to create a [feed-forward transformation network](FeedForward).
-#[derive(Config)]
+#[derive(Config, Debug)]
 pub struct FeedForwardConfig {
     /// The size of the model.
     pub d_model: usize,
@@ -259,7 +259,7 @@ impl<B: Backend> KeyValueCache<B> {
 }
 
 /// Configuration to create a [multi-head attention](MultiHeadAttention) module.
-#[derive(Config)]
+#[derive(Config, Debug)]
 pub struct MultiHeadAttentionConfig {
     /// The size of the model.
     pub d_model: usize,
