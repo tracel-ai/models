@@ -2,11 +2,7 @@ use std::time::Instant;
 
 use burn::tensor::{backend::Backend, Device};
 use clap::Parser;
-use llama_burn::{
-    llama::{Llama, LlamaConfig},
-    sampling::{Sampler, TopP},
-    tokenizer::Tokenizer,
-};
+use llama_burn::{llama::Llama, sampling::Sampler, tokenizer::Tokenizer};
 
 #[cfg(feature = "llama3")]
 use clap::ValueEnum;
@@ -89,12 +85,13 @@ pub fn generate<B: Backend, T: Tokenizer>(
     );
 }
 
+#[allow(unused_variables, unused_mut)]
 pub fn chat<B: Backend>(args: Config, device: Device<B>) {
     let mut prompt = args.prompt;
 
     // Sampling strategy
     let mut sampler = if args.temperature > 0.0 {
-        Sampler::TopP(TopP::new(args.top_p, args.seed))
+        Sampler::new_top_p(args.top_p, args.seed)
     } else {
         Sampler::Argmax
     };
@@ -211,6 +208,7 @@ mod cuda {
     }
 }
 
+#[allow(unused_variables)]
 pub fn main() {
     // Parse arguments
     let args = Config::parse();

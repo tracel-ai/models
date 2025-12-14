@@ -5,7 +5,7 @@ use burn::{
     config::Config,
     module::Module,
     nn::{RotaryEncoding, RotaryEncodingConfig},
-    record::{FileRecorder, HalfPrecisionSettings, RecorderError},
+    record::{FileRecorder, RecorderError},
     tensor::{
         activation::softmax, backend::Backend, Device, ElementConversion, Int, Shape, Tensor,
         TensorData,
@@ -24,8 +24,6 @@ use crate::{
     transformer::{KeyValueCache, Transformer, TransformerConfig},
 };
 
-#[cfg(feature = "pretrained")]
-use crate::pretrained::{self, ModelMeta};
 #[cfg(feature = "tiny")]
 use crate::tokenizer::SentiencePieceTokenizer;
 #[cfg(feature = "llama3")]
@@ -580,13 +578,6 @@ impl LlamaConfig {
     }
 }
 
-fn check_context_length(max_seq_len: usize, max_context_len: usize) {
-    assert!(
-        max_seq_len <= max_context_len,
-        "Maximum sequence length must not exceed {max_context_len}"
-    );
-}
-
 /// Generated text sample output.
 pub struct GenerationOutput {
     /// The generated text.
@@ -617,11 +608,12 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
     /// - `prompt`: The prompt string to use for generating the samples.
     /// - `sample_len`: The number of new tokens to generate (i.e., the number of generation steps to take).
     /// - `temperature`: Temperature value for controlling randomness in sampling (scales logits by `1 / temperature`).
-    ///                  High values result in more random sampling.
+    ///   High values result in more random sampling.
     /// - `sampler`: The sampling strategy to use when selecting the next token based on the predicted probabilities.
     ///
     /// # Returns
     /// The generated text along with some other metadata (see [GenerationOutput]).
+    #[allow(clippy::single_range_in_vec_init)]
     pub fn generate(
         &mut self,
         prompt: &str,
@@ -768,9 +760,8 @@ impl RopeFrequencyScaling {
 
         // if wavelen < high_freq_wavelen
         let cond = wavelen.lower_elem(high_freq_wavelen);
-        let new_freqs = new_freqs.mask_where(cond, freqs);
 
-        new_freqs
+        new_freqs.mask_where(cond, freqs)
     }
 }
 
