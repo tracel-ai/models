@@ -14,13 +14,14 @@ llama3 = ["dep:tiktoken-rs", "dep:rustc-hash", "dep:base64"]
 tiny = ["dep:tokenizers"]
 
 # Example feature flags (backend selection)
+ndarray = ["burn/ndarray"]
 tch-cpu = ["burn/tch"]
 tch-gpu = ["burn/tch"]
 cuda = ["burn/cuda"]
 vulkan = ["burn/vulkan"]
 
-# To import pytorch weights
-import = ["burn-store/pytorch"]
+# To import pytorch/safetensors weights
+import = ["burn-store/pytorch", "burn-store/safetensors"]
 
 [dependencies]
 burn = { git = "https://github.com/tracel-ai/burn", branch = "main", default-features = false, features = ["std"] }
@@ -57,3 +58,7 @@ clap = { version = "4.5.4", features = ["derive"] }
 [[example]]
 name = "chat"
 required-features = ["llama3", "pretrained"]
+
+[[example]]
+name = "test_tiny"
+required-features = ["tiny", "import"]
