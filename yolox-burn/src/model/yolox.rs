@@ -1,9 +1,7 @@
 use burn::{
-    module::{ConstantRecord, Module},
+    module::Module,
     tensor::{backend::Backend, Device, Tensor},
 };
-
-use crate::model::bottleneck::SPP_POOLING;
 
 use super::{
     head::{Head, HeadConfig},
@@ -12,7 +10,9 @@ use super::{
 
 #[cfg(feature = "pretrained")]
 use {
+    super::bottleneck::SPP_POOLING,
     super::weights::{self, WeightsMeta},
+    burn::module::ConstantRecord,
     burn::record::{FullPrecisionSettings, Recorder, RecorderError},
     burn_import::pytorch::{LoadArgs, PyTorchFileRecorder},
 };
