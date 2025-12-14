@@ -10,11 +10,8 @@ use super::{
 
 #[cfg(feature = "pretrained")]
 use {
-    super::bottleneck::SPP_POOLING,
     super::weights::{self, WeightsMeta},
-    burn::module::ConstantRecord,
-    burn::record::{FullPrecisionSettings, Recorder, RecorderError},
-    burn_import::pytorch::{LoadArgs, PyTorchFileRecorder},
+    burn_store::{ModuleSnapshot, PytorchStore, PytorchStoreError},
 };
 
 /// [YOLOX](https://paperswithcode.com/method/yolox) object detection architecture.
@@ -59,12 +56,10 @@ impl<B: Backend> Yolox<B> {
     pub fn yolox_nano_pretrained(
         weights: weights::YoloxNano,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-
-        let model = Self::yolox_nano(weights.num_classes, device).load_record(record);
-
+        let mut model = Self::yolox_nano(weights.num_classes, device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 
@@ -97,12 +92,10 @@ impl<B: Backend> Yolox<B> {
     pub fn yolox_tiny_pretrained(
         weights: weights::YoloxTiny,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-
-        let model = Self::yolox_tiny(weights.num_classes, device).load_record(record);
-
+        let mut model = Self::yolox_tiny(weights.num_classes, device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 
@@ -135,12 +128,10 @@ impl<B: Backend> Yolox<B> {
     pub fn yolox_s_pretrained(
         weights: weights::YoloxS,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-
-        let model = Self::yolox_s(weights.num_classes, device).load_record(record);
-
+        let mut model = Self::yolox_s(weights.num_classes, device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 
@@ -173,12 +164,10 @@ impl<B: Backend> Yolox<B> {
     pub fn yolox_m_pretrained(
         weights: weights::YoloxM,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-
-        let model = Self::yolox_m(weights.num_classes, device).load_record(record);
-
+        let mut model = Self::yolox_m(weights.num_classes, device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 
@@ -211,12 +200,10 @@ impl<B: Backend> Yolox<B> {
     pub fn yolox_l_pretrained(
         weights: weights::YoloxL,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-
-        let model = Self::yolox_l(weights.num_classes, device).load_record(record);
-
+        let mut model = Self::yolox_l(weights.num_classes, device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 
@@ -249,59 +236,44 @@ impl<B: Backend> Yolox<B> {
     pub fn yolox_x_pretrained(
         weights: weights::YoloxX,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-
-        let model = Self::yolox_x(weights.num_classes, device).load_record(record);
-
+        let mut model = Self::yolox_x(weights.num_classes, device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 
-    /// Load specified pre-trained PyTorch weights as a record.
+    /// Load specified pre-trained PyTorch weights into the model.
     #[cfg(feature = "pretrained")]
-    fn load_weights_record(
-        weights: &weights::Weights,
-        device: &Device<B>,
-    ) -> Result<YoloxRecord<B>, RecorderError> {
+    fn load_weights(model: &mut Self, weights: &weights::Weights) -> Result<(), PytorchStoreError> {
         // Download torch weights
         let torch_weights = weights.download().map_err(|err| {
-            RecorderError::Unknown(format!("Could not download weights.\nError: {err}"))
+            PytorchStoreError::Other(format!("Could not download weights.\nError: {err}"))
         })?;
 
         // Load weights from torch state_dict
-        let load_args = LoadArgs::new(torch_weights)
+        let mut store = PytorchStore::from_file(torch_weights)
             // State dict contains "model", "amp", "optimizer", "start_epoch"
             .with_top_level_key("model")
             // Map backbone.C3_* -> backbone.c3_*
-            .with_key_remap("backbone\\.C3_(.+)", "backbone.c3_$1")
+            .with_key_remapping("backbone\\.C3_(.+)", "backbone.c3_$1")
             // Map backbone.backbone.dark[i].0.* -> backbone.backbone.dark[i].conv.*
-            .with_key_remap("(backbone\\.backbone\\.dark[2-5])\\.0\\.(.+)", "$1.conv.$2")
+            .with_key_remapping("(backbone\\.backbone\\.dark[2-5])\\.0\\.(.+)", "$1.conv.$2")
             // Map backbone.backbone.dark[i].1.* -> backbone.backbone.dark[i].c3.*
-            .with_key_remap("(backbone\\.backbone\\.dark[2-4])\\.1\\.(.+)", "$1.c3.$2")
+            .with_key_remapping("(backbone\\.backbone\\.dark[2-4])\\.1\\.(.+)", "$1.c3.$2")
             // Map backbone.backbone.dark5.1.* -> backbone.backbone.dark5.spp.*
-            .with_key_remap("(backbone\\.backbone\\.dark5)\\.1\\.(.+)", "$1.spp.$2")
+            .with_key_remapping("(backbone\\.backbone\\.dark5)\\.1\\.(.+)", "$1.spp.$2")
             // Map backbone.backbone.dark5.2.* -> backbone.backbone.dark5.c3.*
-            .with_key_remap("(backbone\\.backbone\\.dark5)\\.2\\.(.+)", "$1.c3.$2")
+            .with_key_remapping("(backbone\\.backbone\\.dark5)\\.2\\.(.+)", "$1.c3.$2")
             // Map head.{cls | reg}_convs.x.[i].* -> head.{cls | reg}_convs.x.conv[i].*
-            .with_key_remap(
+            .with_key_remapping(
                 "(head\\.(cls|reg)_convs\\.[0-9]+)\\.([0-9]+)\\.(.+)",
                 "$1.conv$3.$4",
             );
 
-        let mut record: YoloxRecord<B> =
-            PyTorchFileRecorder::<FullPrecisionSettings>::new().load(load_args, device)?;
+        model.load_from(&mut store)?;
 
-        if let Some(ref mut spp) = record.backbone.backbone.dark5.spp {
-            // Handle the initialization for Vec<MaxPool2d>, which has no parameters.
-            // Without this, the vector would be initialized as empty and thus no MaxPool2d
-            // layers would be applied, which is incorrect.
-            if spp.m.is_empty() {
-                spp.m = vec![ConstantRecord; SPP_POOLING.len()];
-            }
-        }
-
-        Ok(record)
+        Ok(())
     }
 }
 

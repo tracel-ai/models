@@ -15,8 +15,7 @@ use super::block::{LayerBlock, LayerBlockConfig};
 #[cfg(feature = "pretrained")]
 use {
     super::weights::{self, WeightsMeta},
-    burn::record::{FullPrecisionSettings, Recorder, RecorderError},
-    burn_import::pytorch::{LoadArgs, PyTorchFileRecorder},
+    burn_store::{ModuleSnapshot, PytorchStore, PytorchStoreError},
 };
 
 // ResNet residual layer block configs
@@ -92,11 +91,10 @@ impl<B: Backend> ResNet<B> {
     pub fn resnet18_pretrained(
         weights: weights::ResNet18,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNet::<B>::resnet18(weights.num_classes, device).load_record(record);
-
+        let mut model = ResNet::<B>::resnet18(weights.num_classes, device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 
@@ -129,11 +127,10 @@ impl<B: Backend> ResNet<B> {
     pub fn resnet34_pretrained(
         weights: weights::ResNet34,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNet::<B>::resnet34(weights.num_classes, device).load_record(record);
-
+        let mut model = ResNet::<B>::resnet34(weights.num_classes, device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 
@@ -166,11 +163,10 @@ impl<B: Backend> ResNet<B> {
     pub fn resnet50_pretrained(
         weights: weights::ResNet50,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNet::<B>::resnet50(weights.num_classes, device).load_record(record);
-
+        let mut model = ResNet::<B>::resnet50(weights.num_classes, device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 
@@ -203,11 +199,10 @@ impl<B: Backend> ResNet<B> {
     pub fn resnet101_pretrained(
         weights: weights::ResNet101,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNet::<B>::resnet101(weights.num_classes, device).load_record(record);
-
+        let mut model = ResNet::<B>::resnet101(weights.num_classes, device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 
@@ -240,11 +235,10 @@ impl<B: Backend> ResNet<B> {
     pub fn resnet152_pretrained(
         weights: weights::ResNet152,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-        let model = ResNet::<B>::resnet152(weights.num_classes, device).load_record(record);
-
+        let mut model = ResNet::<B>::resnet152(weights.num_classes, device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 
@@ -258,27 +252,25 @@ impl<B: Backend> ResNet<B> {
 
 #[cfg(feature = "pretrained")]
 impl<B: Backend> ResNet<B> {
-    /// Load specified pre-trained PyTorch weights as a record.
-    fn load_weights_record(
-        weights: &weights::Weights,
-        device: &Device<B>,
-    ) -> Result<ResNetRecord<B>, RecorderError> {
+    /// Load specified pre-trained PyTorch weights into the model.
+    fn load_weights(model: &mut Self, weights: &weights::Weights) -> Result<(), PytorchStoreError> {
         // Download torch weights
         let torch_weights = weights.download().map_err(|err| {
-            RecorderError::Unknown(format!("Could not download weights.\nError: {err}"))
+            PytorchStoreError::Other(format!("Could not download weights.\nError: {err}"))
         })?;
 
         // Load weights from torch state_dict
-        let load_args = LoadArgs::new(torch_weights)
+        let mut store = PytorchStore::from_file(torch_weights)
             // Map *.downsample.0.* -> *.downsample.conv.*
-            .with_key_remap("(.+)\\.downsample\\.0\\.(.+)", "$1.downsample.conv.$2")
+            .with_key_remapping("(.+)\\.downsample\\.0\\.(.+)", "$1.downsample.conv.$2")
             // Map *.downsample.1.* -> *.downsample.bn.*
-            .with_key_remap("(.+)\\.downsample\\.1\\.(.+)", "$1.downsample.bn.$2")
+            .with_key_remapping("(.+)\\.downsample\\.1\\.(.+)", "$1.downsample.bn.$2")
             // Map layer[i].[j].* -> layer[i].blocks.[j].*
-            .with_key_remap("(layer[1-4])\\.([0-9]+)\\.(.+)", "$1.blocks.$2.$3");
-        let record = PyTorchFileRecorder::<FullPrecisionSettings>::new().load(load_args, device)?;
+            .with_key_remapping("(layer[1-4])\\.([0-9]+)\\.(.+)", "$1.blocks.$2.$3");
 
-        Ok(record)
+        model.load_from(&mut store)?;
+
+        Ok(())
     }
 }
 

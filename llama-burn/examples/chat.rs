@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use burn::tensor::{backend::Backend, Device};
 use clap::Parser;
-use llama_burn::{llama::Llama, sampling::Sampler, tokenizer::Tokenizer};
+use llama_burn::{llama::{Llama, LlamaConfig}, sampling::Sampler, tokenizer::Tokenizer};
 
 #[cfg(feature = "llama3")]
 use clap::ValueEnum;
