@@ -24,7 +24,8 @@ weights_file_dump = []
 [dependencies]
 
 # Note: default-features = false is needed to disable std
-burn = { version = "0.19.1", default-features = false }
+burn = { git = "https://github.com/tracel-ai/burn", branch = "main", default-features = false }
+burn-store = { git = "https://github.com/tracel-ai/burn", branch = "main" }
 
 # Used to load weights from a file
 serde = { version = "1.0.183", default-features = false, features = [
@@ -34,9 +35,9 @@ serde = { version = "1.0.183", default-features = false, features = [
 
 [dev-dependencies]
 # Used by the classify example
-burn = { version = "0.19.1", features = ["ndarray"] }
+burn = { git = "https://github.com/tracel-ai/burn", branch = "main", features = ["ndarray"] }
 image = { version = "0.24.7", features = ["png", "jpeg"] }
 
 [build-dependencies]
 # Used to generate code from ONNX model
-burn-import = { version = "0.19.1", package = "burn-import" }
+burn-import = { git = "https://github.com/tracel-ai/burn", branch = "main", package = "burn-import" }
