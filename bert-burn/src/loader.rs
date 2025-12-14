@@ -25,8 +25,8 @@ pub(crate) fn load_1d_tensor_from_candle<B: Backend>(
     let data = tensor.to_vec1::<f32>().unwrap();
     let array: [usize; 1] = dims.try_into().expect("Unexpected size");
     let data = TensorData::new(data, Shape::new(array));
-    let weight = Tensor::<B, 1>::from_floats(data, &device.clone());
-    weight
+
+    Tensor::<B, 1>::from_floats(data, &device.clone())
 }
 
 pub(crate) fn load_2d_tensor_from_candle<B: Backend>(
@@ -42,8 +42,8 @@ pub(crate) fn load_2d_tensor_from_candle<B: Backend>(
         .collect::<Vec<f32>>();
     let array: [usize; 2] = dims.try_into().expect("Unexpected size");
     let data = TensorData::new(data, Shape::new(array));
-    let weight = Tensor::<B, 2>::from_floats(data, &device.clone());
-    weight
+
+    Tensor::<B, 2>::from_floats(data, &device.clone())
 }
 
 pub(crate) fn load_layer_norm_safetensor<B: Backend>(
@@ -54,12 +54,11 @@ pub(crate) fn load_layer_norm_safetensor<B: Backend>(
     let beta = load_1d_tensor_from_candle::<B>(bias, device);
     let gamma = load_1d_tensor_from_candle::<B>(weight, device);
 
-    let layer_norm_record = LayerNormRecord {
-        beta: Param::from_tensor(beta),
+    LayerNormRecord {
+        beta: Some(Param::from_tensor(beta)),
         gamma: Param::from_tensor(gamma),
         epsilon: ConstantRecord::new(),
-    };
-    layer_norm_record
+    }
 }
 
 pub(crate) fn load_linear_safetensor<B: Backend>(
@@ -72,11 +71,10 @@ pub(crate) fn load_linear_safetensor<B: Backend>(
 
     let weight = weight.transpose();
 
-    let linear_record = LinearRecord {
+    LinearRecord {
         weight: Param::from_tensor(weight),
         bias: Some(Param::from_tensor(bias)),
-    };
-    linear_record
+    }
 }
 
 pub(crate) fn load_intermediate_layer_safetensor<B: Backend>(
@@ -89,14 +87,12 @@ pub(crate) fn load_intermediate_layer_safetensor<B: Backend>(
     let linear_inner = load_linear_safetensor::<B>(linear_inner_bias, linear_inner_weight, device);
     let linear_outer = load_linear_safetensor::<B>(linear_outer_bias, linear_outer_weight, device);
 
-    let pwff_record = PositionWiseFeedForwardRecord {
+    PositionWiseFeedForwardRecord {
         linear_inner,
         linear_outer,
         dropout: ConstantRecord::new(),
         gelu: ConstantRecord::new(),
-    };
-
-    pwff_record
+    }
 }
 
 fn load_attention_layer_safetensor<B: Backend>(
@@ -127,7 +123,7 @@ fn load_attention_layer_safetensor<B: Backend>(
         device,
     );
 
-    let attention_record = MultiHeadAttentionRecord {
+    MultiHeadAttentionRecord {
         query,
         key,
         value,
@@ -139,8 +135,7 @@ fn load_attention_layer_safetensor<B: Backend>(
         d_k: ConstantRecord::new(),
         min_float: ConstantRecord::new(),
         quiet_softmax: ConstantRecord::new(),
-    };
-    attention_record
+    }
 }
 
 /// Load the BERT encoder from the safetensor format available on Hugging Face Hub
@@ -172,7 +167,7 @@ pub fn load_encoder_from_safetensors<B: Backend>(
     // Now, we can iterate over the layers and load each layer
     let mut bert_encoder_layers: Vec<TransformerEncoderLayerRecord<B>> = Vec::new();
     for (key, value) in layers.iter() {
-        let layer_key = format!("encoder.layer.{}", key.to_string());
+        let layer_key = format!("encoder.layer.{}", key);
         let attention_tensors = value.clone();
         // Remove the layer number from the key
         let attention_tensors = attention_tensors
@@ -222,7 +217,7 @@ pub fn load_encoder_from_safetensors<B: Backend>(
         bert_encoder_layers.push(layer_record);
     }
 
-    let encoder_record = TransformerEncoderRecord {
+    TransformerEncoderRecord {
         layers: bert_encoder_layers,
         d_model: ConstantRecord::new(),
         d_ff: ConstantRecord::new(),
@@ -231,9 +226,7 @@ pub fn load_encoder_from_safetensors<B: Backend>(
         dropout: ConstantRecord::new(),
         norm_first: ConstantRecord::new(),
         quiet_softmax: ConstantRecord::new(),
-
-    };
-    encoder_record
+    }
 }
 
 pub fn load_decoder_from_safetensors<B: Backend>(
@@ -245,11 +238,10 @@ pub fn load_decoder_from_safetensors<B: Backend>(
     let weight = load_2d_tensor_from_candle::<B>(word_embedding_weights, device);
     let weight = weight.transpose();
 
-    let linear_record = LinearRecord {
+    LinearRecord {
         weight: Param::from_tensor(weight),
         bias: Some(Param::from_tensor(bias)),
-    };
-    linear_record
+    }
 }
 
 fn load_embedding_safetensor<B: Backend>(
@@ -258,11 +250,9 @@ fn load_embedding_safetensor<B: Backend>(
 ) -> EmbeddingRecord<B> {
     let weight = load_2d_tensor_from_candle(weight, device);
 
-    let embedding = EmbeddingRecord {
+    EmbeddingRecord {
         weight: Param::from_tensor(weight),
-    };
-
-    embedding
+    }
 }
 
 /// Load the BERT embeddings from the safetensor format available on Hugging Face Hub
@@ -298,7 +288,7 @@ pub fn load_embeddings_from_safetensors<B: Backend>(
         device,
     );
 
-    let embeddings_record = BertEmbeddingsRecord {
+    BertEmbeddingsRecord {
         word_embeddings,
         position_embeddings,
         token_type_embeddings,
@@ -306,8 +296,7 @@ pub fn load_embeddings_from_safetensors<B: Backend>(
         dropout: ConstantRecord::new(),
         max_position_embeddings: ConstantRecord::new(),
         pad_token_idx: ConstantRecord::new(),
-    };
-    embeddings_record
+    }
 }
 
 /// Load the BERT pooler from the safetensor format available on Hugging Face Hub

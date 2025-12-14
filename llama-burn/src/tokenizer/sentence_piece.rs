@@ -36,12 +36,7 @@ impl Tokenizer for SentiencePieceTokenizer {
     }
 
     fn decode(&self, tokens: Vec<u32>) -> String {
-        self.bpe
-            .decode(
-                &tokens.into_iter().map(|t| t as u32).collect::<Vec<u32>>(),
-                true,
-            )
-            .unwrap()
+        self.bpe.decode(&tokens, true).unwrap()
     }
 
     fn bos_id(&self) -> u32 {

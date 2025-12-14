@@ -198,12 +198,11 @@ impl<B: Backend> BertModel<B> {
             None
         };
 
-        let model_record = BertModelRecord {
+        BertModelRecord {
             embeddings: embeddings_record,
             encoder: encoder_record,
             pooler: pooler_record,
-        };
-        model_record
+        }
     }
 }
 
@@ -226,8 +225,8 @@ impl<B: Backend> BertMaskedLM<B> {
             tokens: input.tokens.clone(),
             mask_pad: input.mask_pad.clone(),
         });
-        let output = self.lm_head.forward(output.hidden_states);
-        output
+
+        self.lm_head.forward(output.hidden_states)
     }
 
     pub fn from_safetensors(
@@ -248,8 +247,7 @@ impl<B: Backend> BertLMHead<B> {
         let output = gelu(output);
         let output = self.layer_norm.forward(output);
 
-        let output = self.decoder.forward(output);
-        output
+        self.decoder.forward(output)
     }
 
     pub fn from_safetensors(
@@ -277,7 +275,7 @@ impl<B: Backend> BertLMHead<B> {
         );
         let decoder = load_decoder_from_safetensors::<B>(
             &weights["lm_head.bias"],
-            &weights
+            weights
                 .iter()
                 .find(|(k, _)| k.contains("word_embeddings.weight"))
                 .unwrap()

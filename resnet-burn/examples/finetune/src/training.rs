@@ -143,10 +143,14 @@ pub fn train<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
         .metric_train_numeric(LossMetric::new())
         .metric_valid_numeric(LossMetric::new())
         .with_file_checkpointer(CompactRecorder::new())
-        .learning_strategy(LearningStrategy::SingleDevice(device.clone()))
         .num_epochs(config.num_epochs)
         .summary()
-        .build(model, optimizer, config.learning_rate);
+        .build(
+            model,
+            optimizer,
+            config.learning_rate,
+            LearningStrategy::SingleDevice(device.clone()),
+        );
 
     // Training
     let now = Instant::now();

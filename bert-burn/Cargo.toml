@@ -20,7 +20,7 @@ safetensors = ["candle-core/default"]
 
 [dependencies]
 # Burn
-burn = { version = "0.19.1", default-features = false, features = [
+burn = { git = "https://github.com/tracel-ai/burn", branch = "main", default-features = false, features = [
   "dataset",
   "std",
 ] }

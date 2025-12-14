@@ -45,7 +45,7 @@ impl Tokenizer for Tiktoken {
         let file = File::open(tiktoken_bpe_file).map_err(|e| e.to_string())?;
         let mut mergeable_ranks: HashMap<Vec<u8>, usize> = HashMap::default();
 
-        for line in BufReader::new(file).lines().flatten() {
+        for line in BufReader::new(file).lines().map_while(Result::ok) {
             let mut parts = line.split(' ');
             let token = STANDARD
                 .decode(parts.next().ok_or("Missing token")?)
@@ -66,7 +66,6 @@ impl Tokenizer for Tiktoken {
                 .map(|t| t.to_string())
                 .collect::<Vec<_>>(),
             (0..NUM_RESERVED_SPECIAL_TOKENS - SPECIAL_TOKENS.len())
-                .into_iter()
                 .map(|i| format!("<|reserved_special_token_{}|>", i + 2))
                 .collect::<Vec<_>>(),
         ]
