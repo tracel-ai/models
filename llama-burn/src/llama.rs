@@ -11,7 +11,7 @@ use burn::{
 };
 use burn_store::{BurnpackStore, ModuleSnapshot};
 #[cfg(feature = "import")]
-use burn_store::{PyTorchToBurnAdapter, PytorchStore, SafetensorsStore};
+use burn_store::{KeyRemapper, PyTorchToBurnAdapter, PytorchStore, SafetensorsStore};
 
 use crate::{
     sampling::Sampler,
@@ -19,6 +19,9 @@ use crate::{
     transformer::{KeyValueCache, Transformer, TransformerConfig},
 };
 
+#[cfg(feature = "pretrained")]
+#[allow(unused_imports)]
+use crate::pretrained::{self, ModelMeta};
 #[cfg(feature = "tiny")]
 use crate::tokenizer::SentiencePieceTokenizer;
 #[cfg(feature = "llama3")]
@@ -470,82 +473,88 @@ impl LlamaConfig {
         println!("Loading record...");
         let now = Instant::now();
 
+        // Key mappings for HuggingFace -> Burn model tensor names
+        #[cfg(not(feature = "tiny"))]
+        let key_mappings: Vec<(&str, &str)> = vec![
+            // Map layers.[i].feed_forward.w1.* -> layers.[i].feed_forward.swiglu.linear_inner.*
+            (
+                "(layers\\.[0-9]+\\.feed_forward)\\.w1\\.(.+)",
+                "$1.swiglu.linear_inner.$2",
+            ),
+            // Map layers.[i].feed_forward.w3.* -> layers.[i].feed_forward.swiglu.linear_outer.*
+            (
+                "(layers\\.[0-9]+\\.feed_forward)\\.w3\\.(.+)",
+                "$1.swiglu.linear_outer.$2",
+            ),
+            // Map norm.weight -> norm.gamma for all layers
+            ("(.*)norm\\.weight", "${1}norm.gamma"),
+        ];
+
+        #[cfg(feature = "tiny")]
+        let key_mappings: Vec<(&str, &str)> = vec![
+            // Map lm_head.* -> output.*
+            ("lm_head\\.(.+)", "output.$1"),
+            // Remove model. prefix
+            ("model\\.(.+)", "$1"),
+            // Map embed_tokens.* -> tok_embeddings.*
+            ("embed_tokens\\.(.+)", "tok_embeddings.$1"),
+            // Map layers.[i].input_layernorm.* -> layers.[i].attention_norm.*
+            (
+                "(layers\\.[0-9]+)\\.input_layernorm\\.(.+)",
+                "$1.attention_norm.$2",
+            ),
+            // Map layers.[i].post_attention_layernorm.* -> layers.[i].ffn_norm.*
+            (
+                "(layers\\.[0-9]+)\\.post_attention_layernorm\\.(.+)",
+                "$1.ffn_norm.$2",
+            ),
+            // Map layers.[i].mlp.down_proj.* -> layers.[i].feed_forward.w2.*
+            (
+                "(layers\\.[0-9]+)\\.mlp\\.down_proj\\.(.+)",
+                "$1.feed_forward.w2.$2",
+            ),
+            // Map layers.[i].mlp.gate_proj.* -> layers.[i].feed_forward.swiglu.linear_inner.*
+            (
+                "(layers\\.[0-9]+)\\.mlp\\.gate_proj\\.(.+)",
+                "$1.feed_forward.swiglu.linear_inner.$2",
+            ),
+            // Map layers.[i].mlp.up_proj.* -> layers.[i].feed_forward.swiglu.linear_outer.*
+            (
+                "(layers\\.[0-9]+)\\.mlp\\.up_proj\\.(.+)",
+                "$1.feed_forward.swiglu.linear_outer.$2",
+            ),
+            // Map layers.[i].self_attn.k_proj.* -> layers.[i].attention.wk.*
+            (
+                "(layers\\.[0-9]+)\\.self_attn\\.k_proj\\.(.+)",
+                "$1.attention.wk.$2",
+            ),
+            // Map layers.[i].self_attn.o_proj.* -> layers.[i].attention.wo.*
+            (
+                "(layers\\.[0-9]+)\\.self_attn\\.o_proj\\.(.+)",
+                "$1.attention.wo.$2",
+            ),
+            // Map layers.[i].self_attn.q_proj.* -> layers.[i].attention.wq.*
+            (
+                "(layers\\.[0-9]+)\\.self_attn\\.q_proj\\.(.+)",
+                "$1.attention.wq.$2",
+            ),
+            // Map layers.[i].self_attn.v_proj.* -> layers.[i].attention.wv.*
+            (
+                "(layers\\.[0-9]+)\\.self_attn\\.v_proj\\.(.+)",
+                "$1.attention.wv.$2",
+            ),
+            // Map norm.weight -> norm.gamma for all layers
+            ("(.*)norm\\.weight", "${1}norm.gamma"),
+        ];
+
+        let remapper = KeyRemapper::from_patterns(key_mappings).expect("Invalid key mapping regex");
+
         // Detect file format and load accordingly
         if checkpoint.ends_with(".safetensors") {
             // Load from SafeTensors format (with PyTorch weight convention)
-            let mut store =
-                SafetensorsStore::from_file(checkpoint).with_from_adapter(PyTorchToBurnAdapter);
-
-            if !cfg!(feature = "tiny") {
-                store = store
-                    // Map layers.[i].feed_forward.w1.* -> layers.[i].feed_forward.swiglu.linear_inner.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+\\.feed_forward)\\.w1\\.(.+)",
-                        "$1.swiglu.linear_inner.$2",
-                    )
-                    // Map layers.[i].feed_forward.w3.* -> layers.[i].feed_forward.swiglu.linear_outer.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+\\.feed_forward)\\.w3\\.(.+)",
-                        "$1.swiglu.linear_outer.$2",
-                    )
-                    // Map norm.weight -> norm.gamma for all layers
-                    .with_key_remapping("(.*)norm\\.weight", "${1}norm.gamma");
-            } else {
-                store = store
-                    // Map lm_head.* -> output.*
-                    .with_key_remapping("lm_head\\.(.+)", "output.$1")
-                    // Remove model. prefix
-                    .with_key_remapping("model\\.(.+)", "$1")
-                    // Map embed_tokens.* -> tok_embeddings.*
-                    .with_key_remapping("embed_tokens\\.(.+)", "tok_embeddings.$1")
-                    // Map layers.[i].input_layernorm.* -> layers.[i].attention_norm.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.input_layernorm\\.(.+)",
-                        "$1.attention_norm.$2",
-                    )
-                    // Map layers.[i].post_attention_layernorm.* -> layers.[i].ffn_norm.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.post_attention_layernorm\\.(.+)",
-                        "$1.ffn_norm.$2",
-                    )
-                    // Map layers.[i].mlp.down_proj.* -> layers.[i].feed_forward.w2.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.mlp\\.down_proj\\.(.+)",
-                        "$1.feed_forward.w2.$2",
-                    )
-                    // Map layers.[i].mlp.gate_proj.* -> layers.[i].feed_forward.swiglu.linear_inner.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.mlp\\.gate_proj\\.(.+)",
-                        "$1.feed_forward.swiglu.linear_inner.$2",
-                    )
-                    // Map layers.[i].mlp.up_proj.* -> layers.[i].feed_forward.swiglu.linear_outer.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.mlp\\.up_proj\\.(.+)",
-                        "$1.feed_forward.swiglu.linear_outer.$2",
-                    )
-                    // Map layers.[i].self_attn.k_proj.* -> layers.[i].attention.wk.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.self_attn\\.k_proj\\.(.+)",
-                        "$1.attention.wk.$2",
-                    )
-                    // Map layers.[i].self_attn.o_proj.* -> layers.[i].attention.wo.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.self_attn\\.o_proj\\.(.+)",
-                        "$1.attention.wo.$2",
-                    )
-                    // Map layers.[i].self_attn.q_proj.* -> layers.[i].attention.wq.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.self_attn\\.q_proj\\.(.+)",
-                        "$1.attention.wq.$2",
-                    )
-                    // Map layers.[i].self_attn.v_proj.* -> layers.[i].attention.wv.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.self_attn\\.v_proj\\.(.+)",
-                        "$1.attention.wv.$2",
-                    )
-                    // Map norm.weight -> norm.gamma for all layers
-                    .with_key_remapping("(.*)norm\\.weight", "${1}norm.gamma");
-            }
+            let mut store = SafetensorsStore::from_file(checkpoint)
+                .with_from_adapter(PyTorchToBurnAdapter)
+                .remap(remapper);
 
             llama
                 .model
@@ -553,78 +562,7 @@ impl LlamaConfig {
                 .map_err(|e| e.to_string())?;
         } else {
             // Load from PyTorch format (.pt, .pth, .bin)
-            let mut store = PytorchStore::from_file(checkpoint);
-
-            if !cfg!(feature = "tiny") {
-                store = store
-                    // Map layers.[i].feed_forward.w1.* -> layers.[i].feed_forward.swiglu.linear_inner.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+\\.feed_forward)\\.w1\\.(.+)",
-                        "$1.swiglu.linear_inner.$2",
-                    )
-                    // Map layers.[i].feed_forward.w3.* -> layers.[i].feed_forward.swiglu.linear_outer.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+\\.feed_forward)\\.w3\\.(.+)",
-                        "$1.swiglu.linear_outer.$2",
-                    )
-                    // Map norm.weight -> norm.gamma for all layers
-                    .with_key_remapping("(.*)norm\\.weight", "${1}norm.gamma");
-            } else {
-                store = store
-                    // Map lm_head.* -> output.*
-                    .with_key_remapping("lm_head\\.(.+)", "output.$1")
-                    // Remove model. prefix
-                    .with_key_remapping("model\\.(.+)", "$1")
-                    // Map embed_tokens.* -> tok_embeddings.*
-                    .with_key_remapping("embed_tokens\\.(.+)", "tok_embeddings.$1")
-                    // Map layers.[i].input_layernorm.* -> layers.[i].attention_norm.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.input_layernorm\\.(.+)",
-                        "$1.attention_norm.$2",
-                    )
-                    // Map layers.[i].post_attention_layernorm.* -> layers.[i].ffn_norm.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.post_attention_layernorm\\.(.+)",
-                        "$1.ffn_norm.$2",
-                    )
-                    // Map layers.[i].mlp.down_proj.* -> layers.[i].feed_forward.w2.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.mlp\\.down_proj\\.(.+)",
-                        "$1.feed_forward.w2.$2",
-                    )
-                    // Map layers.[i].mlp.gate_proj.* -> layers.[i].feed_forward.swiglu.linear_inner.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.mlp\\.gate_proj\\.(.+)",
-                        "$1.feed_forward.swiglu.linear_inner.$2",
-                    )
-                    // Map layers.[i].mlp.up_proj.* -> layers.[i].feed_forward.swiglu.linear_outer.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.mlp\\.up_proj\\.(.+)",
-                        "$1.feed_forward.swiglu.linear_outer.$2",
-                    )
-                    // Map layers.[i].self_attn.k_proj.* -> layers.[i].attention.wk.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.self_attn\\.k_proj\\.(.+)",
-                        "$1.attention.wk.$2",
-                    )
-                    // Map layers.[i].self_attn.o_proj.* -> layers.[i].attention.wo.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.self_attn\\.o_proj\\.(.+)",
-                        "$1.attention.wo.$2",
-                    )
-                    // Map layers.[i].self_attn.q_proj.* -> layers.[i].attention.wq.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.self_attn\\.q_proj\\.(.+)",
-                        "$1.attention.wq.$2",
-                    )
-                    // Map layers.[i].self_attn.v_proj.* -> layers.[i].attention.wv.*
-                    .with_key_remapping(
-                        "(layers\\.[0-9]+)\\.self_attn\\.v_proj\\.(.+)",
-                        "$1.attention.wv.$2",
-                    )
-                    // Map norm.weight -> norm.gamma for all layers
-                    .with_key_remapping("(.*)norm\\.weight", "${1}norm.gamma");
-            }
+            let mut store = PytorchStore::from_file(checkpoint).remap(remapper);
 
             llama
                 .model
