@@ -576,78 +576,17 @@ impl LlamaConfig {
         #[cfg(feature = "tiny")]
         {
             // TinyLlama weights from HuggingFace use a different rotary positional encoding
-            // which requires weight permutation.
+            // which requires weight permutation for wq/wk tensors.
             // See: https://github.com/huggingface/transformers/issues/25199#issuecomment-1687720247
             // See: https://github.com/jzhang38/TinyLlama/issues/24
-            use burn::module::ParamId;
-            use burn_store::TensorSnapshot;
-
             println!("Permuting TinyLlama attention weights...");
-            let n_heads = self.num_attention_heads;
-            let n_kv_heads = self.num_key_value_heads.unwrap_or(n_heads);
-            let d_model = self.d_model;
-
-            // Collect current model tensors as snapshots
-            let snapshots = llama.model.collect(None, None, false);
-
-            // Create modified snapshots with permuted wq/wk weights
-            let modified_snapshots: Vec<TensorSnapshot> = snapshots
-                .into_iter()
-                .map(|snapshot| {
-                    let path = snapshot.full_path();
-
-                    // Check if this is a wq or wk weight that needs permutation
-                    if path.contains(".wq.weight") {
-                        // Permute wq weight
-                        let data = snapshot.to_data().expect("Failed to get tensor data");
-                        let shape = data.shape.clone();
-                        let dim1 = shape[0];
-                        let dim2 = shape[1];
-
-                        // Create tensor, permute, get data back
-                        let tensor: Tensor<B, 2> = Tensor::from_data(data, device);
-                        let permuted = tensor
-                            .reshape([dim1, n_heads, 2, dim2 / n_heads / 2])
-                            .swap_dims(2, 3)
-                            .reshape([dim1, dim2]);
-                        let permuted_data = permuted.to_data();
-
-                        TensorSnapshot::from_data(
-                            permuted_data,
-                            snapshot.path_stack.clone().unwrap_or_default(),
-                            snapshot.container_stack.clone().unwrap_or_default(),
-                            snapshot.tensor_id.unwrap_or_else(ParamId::new),
-                        )
-                    } else if path.contains(".wk.weight") {
-                        // Permute wk weight
-                        let data = snapshot.to_data().expect("Failed to get tensor data");
-                        let shape = data.shape.clone();
-                        let dim1 = shape[0];
-                        let wk_dim = d_model * n_kv_heads / n_heads;
-
-                        // Create tensor, permute, get data back
-                        let tensor: Tensor<B, 2> = Tensor::from_data(data, device);
-                        let permuted = tensor
-                            .reshape([dim1, n_kv_heads, 2, wk_dim / n_kv_heads / 2])
-                            .swap_dims(2, 3)
-                            .reshape([dim1, wk_dim]);
-                        let permuted_data = permuted.to_data();
-
-                        TensorSnapshot::from_data(
-                            permuted_data,
-                            snapshot.path_stack.clone().unwrap_or_default(),
-                            snapshot.container_stack.clone().unwrap_or_default(),
-                            snapshot.tensor_id.unwrap_or_else(ParamId::new),
-                        )
-                    } else {
-                        // Keep other tensors unchanged
-                        snapshot
-                    }
-                })
-                .collect();
-
-            // Apply modified snapshots back to the model
-            llama.model.apply(modified_snapshots, None, None, false);
+            permute_rotary_weights(
+                &mut llama.model,
+                self.num_attention_heads,
+                self.num_key_value_heads.unwrap_or(self.num_attention_heads),
+                self.d_model,
+                device,
+            );
         }
 
         println!("Llama record loaded");
@@ -858,6 +797,97 @@ pub(crate) fn temperature_scaled_softmax<B: Backend>(
     temperature: f64,
 ) -> Tensor<B, 2> {
     softmax(logits / temperature, 1)
+}
+
+/// Permute wq/wk weights to convert HuggingFace rotary encoding format to Burn format.
+///
+/// HuggingFace TinyLlama uses interleaved rotary position encoding, while Burn expects
+/// the standard LLaMA format. This function permutes the query and key projection weights
+/// to handle the different conventions.
+#[cfg(all(feature = "tiny", feature = "import"))]
+fn permute_rotary_weights<B: Backend>(
+    model: &mut Transformer<B>,
+    n_heads: usize,
+    n_kv_heads: usize,
+    d_model: usize,
+    device: &Device<B>,
+) {
+    use burn_store::TensorSnapshot;
+
+    let snapshots = model.collect(None, None, false);
+
+    let modified: Vec<TensorSnapshot> = snapshots
+        .into_iter()
+        .map(|snapshot| {
+            let path = snapshot.full_path();
+
+            if path.contains(".wq.weight") {
+                permute_attention_weight::<B>(&snapshot, n_heads, device)
+            } else if path.contains(".wk.weight") {
+                let kv_dim = d_model * n_kv_heads / n_heads;
+                permute_attention_weight_with_dim::<B>(&snapshot, n_kv_heads, kv_dim, device)
+            } else {
+                snapshot
+            }
+        })
+        .collect();
+
+    model.apply(modified, None, None, false);
+}
+
+/// Helper to permute a single attention weight tensor.
+#[cfg(all(feature = "tiny", feature = "import"))]
+fn permute_attention_weight<B: Backend>(
+    snapshot: &burn_store::TensorSnapshot,
+    n_heads: usize,
+    device: &Device<B>,
+) -> burn_store::TensorSnapshot {
+    use burn::module::ParamId;
+    use burn_store::TensorSnapshot;
+
+    let data = snapshot.to_data().expect("Failed to get tensor data");
+    let [dim1, dim2] = [data.shape[0], data.shape[1]];
+
+    let tensor: Tensor<B, 2> = Tensor::from_data(data, device);
+    let permuted = tensor
+        .reshape([dim1, n_heads, 2, dim2 / n_heads / 2])
+        .swap_dims(2, 3)
+        .reshape([dim1, dim2]);
+
+    TensorSnapshot::from_data(
+        permuted.to_data(),
+        snapshot.path_stack.clone().unwrap_or_default(),
+        snapshot.container_stack.clone().unwrap_or_default(),
+        snapshot.tensor_id.unwrap_or_else(ParamId::new),
+    )
+}
+
+/// Helper to permute attention weight with explicit output dimension.
+#[cfg(all(feature = "tiny", feature = "import"))]
+fn permute_attention_weight_with_dim<B: Backend>(
+    snapshot: &burn_store::TensorSnapshot,
+    n_heads: usize,
+    out_dim: usize,
+    device: &Device<B>,
+) -> burn_store::TensorSnapshot {
+    use burn::module::ParamId;
+    use burn_store::TensorSnapshot;
+
+    let data = snapshot.to_data().expect("Failed to get tensor data");
+    let dim1 = data.shape[0];
+
+    let tensor: Tensor<B, 2> = Tensor::from_data(data, device);
+    let permuted = tensor
+        .reshape([dim1, n_heads, 2, out_dim / n_heads / 2])
+        .swap_dims(2, 3)
+        .reshape([dim1, out_dim]);
+
+    TensorSnapshot::from_data(
+        permuted.to_data(),
+        snapshot.path_stack.clone().unwrap_or_default(),
+        snapshot.container_stack.clone().unwrap_or_default(),
+        snapshot.tensor_id.unwrap_or_else(ParamId::new),
+    )
 }
 
 #[cfg(test)]
