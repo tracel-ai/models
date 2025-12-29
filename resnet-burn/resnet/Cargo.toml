@@ -8,10 +8,10 @@ license.workspace = true
 [features]
 default = []
 std = []
-pretrained = ["burn/network", "std", "dep:dirs"]
+pretrained = ["burn/network", "std", "dep:dirs", "dep:burn-store"]
 
 [dependencies]
 burn = { workspace = true }
-burn-import = { workspace = true }
+burn-store = { workspace = true, optional = true }
 dirs = { workspace = true, optional = true }
 serde = { workspace = true }

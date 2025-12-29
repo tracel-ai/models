@@ -4,6 +4,7 @@ use burn::{
         dataset::vision::{Annotation, ImageDatasetItem, PixelDepth},
     },
     prelude::*,
+    tensor::IndexingUpdateOp,
 };
 
 use super::dataset::CLASSES;
@@ -41,6 +42,7 @@ pub fn multi_hot<B: Backend>(
             device,
         ),
         Tensor::ones(Shape::new([indices.len()]), device),
+        IndexingUpdateOp::Add,
     )
 }
 
