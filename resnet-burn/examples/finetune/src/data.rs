@@ -7,6 +7,8 @@ use burn::{
     tensor::IndexingUpdateOp,
 };
 
+pub use resnet_burn::ClassificationBatch;
+
 use super::dataset::CLASSES;
 
 // ImageNet mean and std values
@@ -85,12 +87,6 @@ impl<B: Backend> Normalizer<B> {
 #[derive(Clone)]
 pub struct ClassificationBatcher<B: Backend> {
     normalizer: Normalizer<B>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ClassificationBatch<B: Backend> {
-    pub images: Tensor<B, 4>,
-    pub targets: Tensor<B, 2, Int>,
 }
 
 impl<B: Backend> ClassificationBatcher<B> {

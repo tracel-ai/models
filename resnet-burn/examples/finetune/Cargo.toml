@@ -12,7 +12,7 @@ wgpu = ["burn/wgpu"]
 cuda = ["burn/cuda"]
 
 [dependencies]
-resnet-burn = { path = "../../resnet", features = ["pretrained"] }
+resnet-burn = { path = "../../resnet", features = ["pretrained", "train"] }
 burn = { workspace = true, features = ["train", "vision", "network"] }
 
 # Dataset files
