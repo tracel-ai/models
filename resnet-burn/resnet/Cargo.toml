@@ -9,6 +9,7 @@ license.workspace = true
 default = []
 std = []
 pretrained = ["burn/network", "std", "dep:dirs", "dep:burn-store"]
+train = ["burn/train"]
 
 [dependencies]
 burn = { workspace = true }

@@ -1,70 +1,23 @@
 use std::time::Instant;
 
 use crate::{
-    data::{ClassificationBatch, ClassificationBatcher},
+    data::ClassificationBatcher,
     dataset::{PlanetLoader, CLASSES},
 };
 use burn::{
     data::{dataloader::DataLoaderBuilder, dataset::vision::ImageFolderDataset},
-    nn::loss::BinaryCrossEntropyLossConfig,
     optim::{decay::WeightDecayConfig, AdamConfig},
     prelude::*,
     record::CompactRecorder,
     tensor::backend::AutodiffBackend,
     train::{
         metric::{HammingScore, LossMetric},
-        Learner, LearningParadigm, MultiLabelClassificationOutput, SupervisedTraining, TrainOutput,
-        TrainStep, ValidStep,
+        Learner, SupervisedTraining,
     },
 };
 use resnet_burn::{weights, ResNet};
 
 const NUM_CLASSES: usize = CLASSES.len();
-
-pub trait MultiLabelClassification<B: Backend> {
-    fn forward_classification(
-        &self,
-        images: Tensor<B, 4>,
-        targets: Tensor<B, 2, Int>,
-    ) -> MultiLabelClassificationOutput<B>;
-}
-
-impl<B: Backend> MultiLabelClassification<B> for ResNet<B> {
-    fn forward_classification(
-        &self,
-        images: Tensor<B, 4>,
-        targets: Tensor<B, 2, Int>,
-    ) -> MultiLabelClassificationOutput<B> {
-        let output = self.forward(images);
-        let loss = BinaryCrossEntropyLossConfig::new()
-            .with_logits(true)
-            .init(&output.device())
-            .forward(output.clone(), targets.clone());
-
-        MultiLabelClassificationOutput::new(loss, output, targets)
-    }
-}
-
-impl<B: AutodiffBackend> TrainStep<ClassificationBatch<B>, MultiLabelClassificationOutput<B>>
-    for ResNet<B>
-{
-    fn step(
-        &self,
-        batch: ClassificationBatch<B>,
-    ) -> TrainOutput<MultiLabelClassificationOutput<B>> {
-        let item = self.forward_classification(batch.images, batch.targets);
-
-        TrainOutput::new(self, item.loss.backward(), item)
-    }
-}
-
-impl<B: Backend> ValidStep<ClassificationBatch<B>, MultiLabelClassificationOutput<B>>
-    for ResNet<B>
-{
-    fn step(&self, batch: ClassificationBatch<B>) -> MultiLabelClassificationOutput<B> {
-        self.forward_classification(batch.images, batch.targets)
-    }
-}
 
 #[derive(Config, Debug)]
 pub struct TrainingConfig {
@@ -145,7 +98,7 @@ pub fn train<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
 
     // Training
     let now = Instant::now();
-    let training_result = training.run(Learner::new(model, optimizer, config.learning_rate));
+    let training_result = training.launch(Learner::new(model, optimizer, config.learning_rate));
     let elapsed = now.elapsed().as_secs();
     println!("Training completed in {}m{}s", (elapsed / 60), elapsed % 60);
 

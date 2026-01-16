@@ -24,8 +24,8 @@ vulkan = ["burn/vulkan"]
 import = ["burn-store/pytorch", "burn-store/safetensors"]
 
 [dependencies]
-burn = { version = "0.20.0-pre.6", default-features = false, features = ["std"] }
-burn-store = { version = "0.20.0-pre.6", features = ["std", "burnpack"] }
+burn = { version = "0.20.0", default-features = false, features = ["std"] }
+burn-store = { version = "0.20.0", features = ["std", "burnpack"] }
 
 itertools = { version = "0.12.1", default-features = false, features = [
     "use_alloc",
@@ -52,7 +52,7 @@ rand = { version = "0.8.5", default-features = false, features = [
 ] } # std_rng is for no_std
 
 [dev-dependencies]
-burn = { version = "0.20.0-pre.6", default-features = false }
+burn = { version = "0.20.0", default-features = false }
 clap = { version = "4.5.4", features = ["derive"] }
 
 [[example]]
