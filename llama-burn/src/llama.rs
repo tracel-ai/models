@@ -1,5 +1,7 @@
 use std::time::Instant;
 
+use burn::module::Module;
+use burn::record::{FileRecorder, RecorderError};
 use burn::tensor::cast::ToElement;
 use burn::{
     config::Config,
@@ -9,9 +11,10 @@ use burn::{
         TensorData,
     },
 };
-use burn_store::{BurnpackStore, ModuleSnapshot};
 #[cfg(feature = "import")]
-use burn_store::{KeyRemapper, PyTorchToBurnAdapter, PytorchStore, SafetensorsStore};
+use burn_store::{
+    KeyRemapper, ModuleSnapshot, PyTorchToBurnAdapter, PytorchStore, SafetensorsStore,
+};
 
 use crate::{
     sampling::Sampler,
@@ -143,19 +146,16 @@ impl LlamaConfig {
         max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, Tiktoken>, String> {
+        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
+
         let mut llama = Self::llama3_2_3b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
             .init::<B, Tiktoken>(device)?;
 
-        println!("Loading record...");
-        let now = Instant::now();
-        let mut store = BurnpackStore::from_file(checkpoint);
-        llama
-            .model
-            .load_from(&mut store)
+        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        llama = llama
+            .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
-        let elapsed = now.elapsed().as_secs();
-        println!("Loaded in {}s", elapsed);
 
         Ok(llama)
     }
@@ -198,19 +198,16 @@ impl LlamaConfig {
         max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, Tiktoken>, String> {
+        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
+
         let mut llama = Self::llama3_2_1b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
             .init::<B, Tiktoken>(device)?;
 
-        println!("Loading record...");
-        let now = Instant::now();
-        let mut store = BurnpackStore::from_file(checkpoint);
-        llama
-            .model
-            .load_from(&mut store)
+        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        llama = llama
+            .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
-        let elapsed = now.elapsed().as_secs();
-        println!("Loaded in {}s", elapsed);
 
         Ok(llama)
     }
@@ -253,19 +250,16 @@ impl LlamaConfig {
         max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, Tiktoken>, String> {
+        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
+
         let mut llama = Self::llama3_1_8b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
             .init::<B, Tiktoken>(device)?;
 
-        println!("Loading record...");
-        let now = Instant::now();
-        let mut store = BurnpackStore::from_file(checkpoint);
-        llama
-            .model
-            .load_from(&mut store)
+        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        llama = llama
+            .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
-        let elapsed = now.elapsed().as_secs();
-        println!("Loaded in {}s", elapsed);
 
         Ok(llama)
     }
@@ -308,19 +302,16 @@ impl LlamaConfig {
         max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, Tiktoken>, String> {
+        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
+
         let mut llama = Self::llama3_8b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
             .init::<B, Tiktoken>(device)?;
 
-        println!("Loading record...");
-        let now = Instant::now();
-        let mut store = BurnpackStore::from_file(checkpoint);
-        llama
-            .model
-            .load_from(&mut store)
+        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        llama = llama
+            .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
-        let elapsed = now.elapsed().as_secs();
-        println!("Loaded in {}s", elapsed);
 
         Ok(llama)
     }
@@ -363,19 +354,16 @@ impl LlamaConfig {
         max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, SentiencePieceTokenizer>, String> {
+        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
+
         let mut llama = Self::tiny_llama(tokenizer_path)
             .with_max_seq_len(max_seq_len)
             .init::<B, SentiencePieceTokenizer>(device)?;
 
-        println!("Loading record...");
-        let now = Instant::now();
-        let mut store = BurnpackStore::from_file(checkpoint);
-        llama
-            .model
-            .load_from(&mut store)
+        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+        llama = llama
+            .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
-        let elapsed = now.elapsed().as_secs();
-        println!("Loaded in {}s", elapsed);
 
         Ok(llama)
     }
@@ -708,28 +696,30 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
         Tensor::<B, 1, Int>::from_data(TensorData::new(tokens, shape), &self.device)
     }
 
-    /// Save Llama model to file in burnpack format.
-    pub fn save(self, file_path: &str) -> Result<(), String> {
+    /// Save Llama model to file using the specified recorder.
+    pub fn save<R: FileRecorder<B>>(
+        self,
+        file_path: &str,
+        recorder: &R,
+    ) -> Result<(), RecorderError> {
         println!("Saving record...");
         let now = Instant::now();
-        let mut store = BurnpackStore::from_file(file_path);
-        self.model
-            .save_into(&mut store)
-            .map_err(|err| format!("Failed to save Llama model.\nError: {err}"))?;
+        self.model.save_file(file_path, recorder)?;
         let elapsed = now.elapsed().as_secs();
         println!("Saved in {}s", elapsed);
 
         Ok(())
     }
 
-    /// Load Llama model from file in burnpack format.
-    pub fn load(mut self, file_path: &str) -> Result<Self, String> {
+    /// Load Llama model from file using the specified recorder.
+    pub fn load<R: FileRecorder<B>>(
+        mut self,
+        file_path: &str,
+        recorder: &R,
+    ) -> Result<Self, RecorderError> {
         println!("Loading record...");
         let now = Instant::now();
-        let mut store = BurnpackStore::from_file(file_path);
-        self.model
-            .load_from(&mut store)
-            .map_err(|err| format!("Failed to load Llama model.\nError: {err}"))?;
+        self.model = self.model.load_file(file_path, recorder, &self.device)?;
         let elapsed = now.elapsed().as_secs();
         println!("Loaded in {}s", elapsed);
 
