@@ -12,8 +12,8 @@ pretrained = ["burn/network", "std", "dep:dirs", "dep:burn-store"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std
-burn = { version = "0.20.0-pre.6" }
-burn-store = { version = "0.20.0-pre.6", features = ["std", "pytorch"], optional = true }
+burn = { version = "0.20.0" }
+burn-store = { version = "0.20.0", features = ["std", "pytorch"], optional = true }
 dirs = { version = "5.0.1", optional = true }
 serde = { version = "1.0.192", default-features = false, features = [
   "derive",
@@ -21,7 +21,7 @@ serde = { version = "1.0.192", default-features = false, features = [
 ] } # alloc is for no_std, derive is needed
 
 [dev-dependencies]
-burn = { version = "0.20.0-pre.6", features = ["ndarray"] }
+burn = { version = "0.20.0", features = ["ndarray"] }
 image = { version = "0.24.9", features = ["png", "jpeg"] }
 
 [[example]]

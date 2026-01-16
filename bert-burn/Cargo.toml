@@ -20,7 +20,7 @@ safetensors = ["candle-core/default"]
 
 [dependencies]
 # Burn
-burn = { version = "0.20.0-pre.6", default-features = false, features = [
+burn = { version = "0.20.0", default-features = false, features = [
   "dataset",
   "std",
 ] }
