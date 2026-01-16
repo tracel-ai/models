@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use burn::tensor::{backend::Backend, ElementConversion, Tensor};
 use itertools::Itertools;
 
@@ -38,9 +39,8 @@ pub fn nms<B: Backend>(
     let mut bboxes = boxes
         .iter_dim(0)
         .zip(scores.iter_dim(0))
-        .enumerate()
         // Per-batch
-        .map(|(_, (candidate_boxes, candidate_scores))| {
+        .map(|(candidate_boxes, candidate_scores)| {
             // Keep max scoring boxes only ([num_boxes, 1], [num_boxes, 1])
             let (cls_score, cls_idx) = candidate_scores.squeeze_dim::<2>(0).max_dim_with_indices(1);
             let cls_score: Vec<_> = cls_score

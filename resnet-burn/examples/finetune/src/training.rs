@@ -13,8 +13,8 @@ use burn::{
     tensor::backend::AutodiffBackend,
     train::{
         metric::{HammingScore, LossMetric},
-        LearnerBuilder, LearningStrategy, MultiLabelClassificationOutput, TrainOutput, TrainStep,
-        ValidStep,
+        Learner, LearningParadigm, MultiLabelClassificationOutput, SupervisedTraining, TrainOutput,
+        TrainStep, ValidStep,
     },
 };
 use resnet_burn::{weights, ResNet};
@@ -136,21 +136,16 @@ pub fn train<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
         .unwrap()
         .with_classes(NUM_CLASSES);
 
-    // Learner config
-    let learner = LearnerBuilder::new(artifact_dir)
-        .metric_train_numeric(HammingScore::new())
-        .metric_valid_numeric(HammingScore::new())
-        .metric_train_numeric(LossMetric::new())
-        .metric_valid_numeric(LossMetric::new())
+    // Training config
+    let training = SupervisedTraining::new(artifact_dir, dataloader_train, dataloader_test)
+        .metrics((HammingScore::new(), LossMetric::new()))
         .with_file_checkpointer(CompactRecorder::new())
-        .learning_strategy(LearningStrategy::SingleDevice(device.clone()))
         .num_epochs(config.num_epochs)
-        .summary()
-        .build(model, optimizer, config.learning_rate);
+        .summary();
 
     // Training
     let now = Instant::now();
-    let training_result = learner.fit(dataloader_train, dataloader_test);
+    let training_result = training.run(Learner::new(model, optimizer, config.learning_rate));
     let elapsed = now.elapsed().as_secs();
     println!("Training completed in {}m{}s", (elapsed / 60), elapsed % 60);
 

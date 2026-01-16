@@ -100,8 +100,7 @@ impl<B: Backend> BertEmbeddings<B> {
 
         // Layer normalization and dropout
         let embeddings = self.layer_norm.forward(embeddings);
-        let embeddings = self.dropout.forward(embeddings);
 
-        embeddings
+        self.dropout.forward(embeddings)
     }
 }

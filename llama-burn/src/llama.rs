@@ -1,21 +1,19 @@
 use std::time::Instant;
 
+use burn::module::Module;
+use burn::record::{FileRecorder, RecorderError};
 use burn::tensor::cast::ToElement;
 use burn::{
     config::Config,
-    module::Module,
     nn::{RotaryEncoding, RotaryEncodingConfig},
-    record::{FileRecorder, HalfPrecisionSettings, RecorderError},
     tensor::{
         activation::softmax, backend::Backend, Device, ElementConversion, Int, Shape, Tensor,
         TensorData,
     },
 };
 #[cfg(feature = "import")]
-use {
-    crate::transformer::TransformerRecord,
-    burn::record::Recorder,
-    burn_import::pytorch::{LoadArgs, PyTorchFileRecorder},
+use burn_store::{
+    KeyRemapper, ModuleSnapshot, PyTorchToBurnAdapter, PytorchStore, SafetensorsStore,
 };
 
 use crate::{
@@ -25,6 +23,7 @@ use crate::{
 };
 
 #[cfg(feature = "pretrained")]
+#[allow(unused_imports)]
 use crate::pretrained::{self, ModelMeta};
 #[cfg(feature = "tiny")]
 use crate::tokenizer::SentiencePieceTokenizer;
@@ -147,14 +146,14 @@ impl LlamaConfig {
         max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, Tiktoken>, String> {
-        use burn::record::NamedMpkFileRecorder;
+        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
 
-        let llama = Self::llama3_2_3b(tokenizer_path)
+        let mut llama = Self::llama3_2_3b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
             .init::<B, Tiktoken>(device)?;
 
         let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
-        let llama = llama
+        llama = llama
             .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
 
@@ -199,14 +198,14 @@ impl LlamaConfig {
         max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, Tiktoken>, String> {
-        use burn::record::NamedMpkFileRecorder;
+        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
 
-        let llama = Self::llama3_2_1b(tokenizer_path)
+        let mut llama = Self::llama3_2_1b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
             .init::<B, Tiktoken>(device)?;
 
         let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
-        let llama = llama
+        llama = llama
             .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
 
@@ -251,14 +250,14 @@ impl LlamaConfig {
         max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, Tiktoken>, String> {
-        use burn::record::NamedMpkFileRecorder;
+        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
 
-        let llama = Self::llama3_1_8b(tokenizer_path)
+        let mut llama = Self::llama3_1_8b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
             .init::<B, Tiktoken>(device)?;
 
         let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
-        let llama = llama
+        llama = llama
             .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
 
@@ -303,14 +302,14 @@ impl LlamaConfig {
         max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, Tiktoken>, String> {
-        use burn::record::NamedMpkFileRecorder;
+        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
 
-        let llama = Self::llama3_8b(tokenizer_path)
+        let mut llama = Self::llama3_8b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
             .init::<B, Tiktoken>(device)?;
 
         let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
-        let llama = llama
+        llama = llama
             .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
 
@@ -355,14 +354,14 @@ impl LlamaConfig {
         max_seq_len: usize,
         device: &Device<B>,
     ) -> Result<Llama<B, SentiencePieceTokenizer>, String> {
-        use burn::record::NamedMpkFileRecorder;
+        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
 
-        let llama = Self::tiny_llama(tokenizer_path)
+        let mut llama = Self::tiny_llama(tokenizer_path)
             .with_max_seq_len(max_seq_len)
             .init::<B, SentiencePieceTokenizer>(device)?;
 
         let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
-        let llama = llama
+        llama = llama
             .load(checkpoint, &recorder)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
 
@@ -449,6 +448,8 @@ impl LlamaConfig {
     }
 
     /// Load pre-trained Llama checkpoint.
+    ///
+    /// Supports both PyTorch (.pt, .pth, .bin) and SafeTensors (.safetensors) formats.
     #[cfg(feature = "import")]
     pub fn load_pretrained<B: Backend, T: Tokenizer>(
         &self,
@@ -457,134 +458,129 @@ impl LlamaConfig {
     ) -> Result<Llama<B, T>, String> {
         let mut llama = self.init(device)?;
 
-        // Load weights from torch state_dict
-        let mut load_args = LoadArgs::new(checkpoint.into());
-
-        if !cfg!(feature = "tiny") {
-            load_args = load_args
-                // Map layers.[i].feed_forward.w1.* -> layers.[i].feed_forward.swiglu.linear_inner.*
-                .with_key_remap(
-                    "(layers\\.[0-9]+\\.feed_forward)\\.w1\\.(.+)",
-                    "$1.swiglu.linear_inner.$2",
-                )
-                // Map layers.[i].feed_forward.w3.* -> layers.[i].feed_forward.swiglu.linear_outer.*
-                .with_key_remap(
-                    "(layers\\.[0-9]+\\.feed_forward)\\.w3\\.(.+)",
-                    "$1.swiglu.linear_outer.$2",
-                )
-                // Map norm.weight -> norm.gamma for all layers
-                .with_key_remap("(.*)norm\\.weight", "${1}norm.gamma");
-        } else {
-            load_args = load_args
-                // Map lm_head.* -> output.*
-                .with_key_remap("lm_head\\.(.+)", "output.$1")
-                // Remove model. prefix
-                .with_key_remap("model\\.(.+)", "$1")
-                // Map embed_tokens.* -> tok_embeddings.*
-                .with_key_remap("embed_tokens\\.(.+)", "tok_embeddings.$1")
-                // Map layers.[i].input_layernorm.* -> layers.[i].attention_norm.*
-                .with_key_remap(
-                    "(layers\\.[0-9]+)\\.input_layernorm\\.(.+)",
-                    "$1.attention_norm.$2",
-                )
-                // Map layers.[i].post_attention_layernorm.* -> layers.[i].ffn_norm.*
-                .with_key_remap(
-                    "(layers\\.[0-9]+)\\.post_attention_layernorm\\.(.+)",
-                    "$1.ffn_norm.$2",
-                )
-                // Map layers.[i].mlp.down_proj.* -> layers.[i].feed_forward.w2.*
-                .with_key_remap(
-                    "(layers\\.[0-9]+)\\.mlp\\.down_proj\\.(.+)",
-                    "$1.feed_forward.w2.$2",
-                )
-                // Map layers.[i].mlp.gate_proj.* -> layers.[i].feed_forward.swiglu.linear_inner.*
-                .with_key_remap(
-                    "(layers\\.[0-9]+)\\.mlp\\.gate_proj\\.(.+)",
-                    "$1.feed_forward.swiglu.linear_inner.$2",
-                )
-                // Map layers.[i].mlp.up_proj.* -> layers.[i].feed_forward.swiglu.linear_outer.*
-                .with_key_remap(
-                    "(layers\\.[0-9]+)\\.mlp\\.up_proj\\.(.+)",
-                    "$1.feed_forward.swiglu.linear_outer.$2",
-                )
-                // Map layers.[i].self_attn.k_proj.* -> layers.[i].attention.wk.*
-                .with_key_remap(
-                    "(layers\\.[0-9]+)\\.self_attn\\.k_proj\\.(.+)",
-                    "$1.attention.wk.$2",
-                )
-                // Map layers.[i].self_attn.o_proj.* -> layers.[i].attention.wo.*
-                .with_key_remap(
-                    "(layers\\.[0-9]+)\\.self_attn\\.o_proj\\.(.+)",
-                    "$1.attention.wo.$2",
-                )
-                // Map layers.[i].self_attn.q_proj.* -> layers.[i].attention.wq.*
-                .with_key_remap(
-                    "(layers\\.[0-9]+)\\.self_attn\\.q_proj\\.(.+)",
-                    "$1.attention.wq.$2",
-                )
-                // Map layers.[i].self_attn.v_proj.* -> layers.[i].attention.wv.*
-                .with_key_remap(
-                    "(layers\\.[0-9]+)\\.self_attn\\.v_proj\\.(.+)",
-                    "$1.attention.wv.$2",
-                )
-                // Map norm.weight -> norm.gamma for all layers
-                .with_key_remap("(.*)norm\\.weight", "${1}norm.gamma");
-        }
         println!("Loading record...");
         let now = Instant::now();
-        let mut record: TransformerRecord<B> = PyTorchFileRecorder::<HalfPrecisionSettings>::new()
-            .load(load_args, device)
-            .map_err(|e| e.to_string())?;
+
+        // Key mappings for HuggingFace -> Burn model tensor names
+        #[cfg(not(feature = "tiny"))]
+        let key_mappings: Vec<(&str, &str)> = vec![
+            // Map layers.[i].feed_forward.w1.* -> layers.[i].feed_forward.swiglu.linear_inner.*
+            (
+                "(layers\\.[0-9]+\\.feed_forward)\\.w1\\.(.+)",
+                "$1.swiglu.linear_inner.$2",
+            ),
+            // Map layers.[i].feed_forward.w3.* -> layers.[i].feed_forward.swiglu.linear_outer.*
+            (
+                "(layers\\.[0-9]+\\.feed_forward)\\.w3\\.(.+)",
+                "$1.swiglu.linear_outer.$2",
+            ),
+            // Map norm.weight -> norm.gamma for all layers
+            ("(.*)norm\\.weight", "${1}norm.gamma"),
+        ];
+
+        #[cfg(feature = "tiny")]
+        let key_mappings: Vec<(&str, &str)> = vec![
+            // Map lm_head.* -> output.*
+            ("lm_head\\.(.+)", "output.$1"),
+            // Remove model. prefix
+            ("model\\.(.+)", "$1"),
+            // Map embed_tokens.* -> tok_embeddings.*
+            ("embed_tokens\\.(.+)", "tok_embeddings.$1"),
+            // Map layers.[i].input_layernorm.* -> layers.[i].attention_norm.*
+            (
+                "(layers\\.[0-9]+)\\.input_layernorm\\.(.+)",
+                "$1.attention_norm.$2",
+            ),
+            // Map layers.[i].post_attention_layernorm.* -> layers.[i].ffn_norm.*
+            (
+                "(layers\\.[0-9]+)\\.post_attention_layernorm\\.(.+)",
+                "$1.ffn_norm.$2",
+            ),
+            // Map layers.[i].mlp.down_proj.* -> layers.[i].feed_forward.w2.*
+            (
+                "(layers\\.[0-9]+)\\.mlp\\.down_proj\\.(.+)",
+                "$1.feed_forward.w2.$2",
+            ),
+            // Map layers.[i].mlp.gate_proj.* -> layers.[i].feed_forward.swiglu.linear_inner.*
+            (
+                "(layers\\.[0-9]+)\\.mlp\\.gate_proj\\.(.+)",
+                "$1.feed_forward.swiglu.linear_inner.$2",
+            ),
+            // Map layers.[i].mlp.up_proj.* -> layers.[i].feed_forward.swiglu.linear_outer.*
+            (
+                "(layers\\.[0-9]+)\\.mlp\\.up_proj\\.(.+)",
+                "$1.feed_forward.swiglu.linear_outer.$2",
+            ),
+            // Map layers.[i].self_attn.k_proj.* -> layers.[i].attention.wk.*
+            (
+                "(layers\\.[0-9]+)\\.self_attn\\.k_proj\\.(.+)",
+                "$1.attention.wk.$2",
+            ),
+            // Map layers.[i].self_attn.o_proj.* -> layers.[i].attention.wo.*
+            (
+                "(layers\\.[0-9]+)\\.self_attn\\.o_proj\\.(.+)",
+                "$1.attention.wo.$2",
+            ),
+            // Map layers.[i].self_attn.q_proj.* -> layers.[i].attention.wq.*
+            (
+                "(layers\\.[0-9]+)\\.self_attn\\.q_proj\\.(.+)",
+                "$1.attention.wq.$2",
+            ),
+            // Map layers.[i].self_attn.v_proj.* -> layers.[i].attention.wv.*
+            (
+                "(layers\\.[0-9]+)\\.self_attn\\.v_proj\\.(.+)",
+                "$1.attention.wv.$2",
+            ),
+            // Map norm.weight -> norm.gamma for all layers
+            ("(.*)norm\\.weight", "${1}norm.gamma"),
+        ];
+
+        let remapper = KeyRemapper::from_patterns(key_mappings).expect("Invalid key mapping regex");
+
+        // Detect file format and load accordingly
+        if checkpoint.ends_with(".safetensors") {
+            // Load from SafeTensors format (with PyTorch weight convention)
+            let mut store = SafetensorsStore::from_file(checkpoint)
+                .with_from_adapter(PyTorchToBurnAdapter)
+                .remap(remapper);
+
+            llama
+                .model
+                .load_from(&mut store)
+                .map_err(|e| e.to_string())?;
+        } else {
+            // Load from PyTorch format (.pt, .pth, .bin)
+            let mut store = PytorchStore::from_file(checkpoint).remap(remapper);
+
+            llama
+                .model
+                .load_from(&mut store)
+                .map_err(|e| e.to_string())?;
+        }
+
         let elapsed = now.elapsed().as_secs();
         println!("Loaded in {}s", elapsed);
 
-        if cfg!(feature = "tiny") {
+        #[cfg(feature = "tiny")]
+        {
             // TinyLlama weights from HuggingFace use a different rotary positional encoding
-            // which requires weight permutation:
-            // https://github.com/huggingface/transformers/issues/25199#issuecomment-1687720247
-            // https://github.com/jzhang38/TinyLlama/issues/24
-            let n_heads = self.num_attention_heads;
-            let n_kv_heads = self.num_key_value_heads.unwrap_or(n_heads);
-            let wk_dim = self.d_model * n_kv_heads / n_heads;
-            let permute = |w: Tensor<B, 2>, n_heads: usize, dim1: usize, dim2: usize| {
-                let w = w // [2048, 256]
-                    .reshape([dim1, n_heads, 2, dim2 / n_heads / 2]) // [2048, 4, 2, 32]
-                    .swap_dims(2, 3) // [2048, 4, 32, 2]
-                    .reshape([dim1, dim2]);
-                w
-            };
-
-            record.layers = record
-                .layers
-                .into_iter()
-                .map(|mut layer| {
-                    layer.attention.wq.weight = layer
-                        .attention
-                        .wq
-                        .weight
-                        .map(|w| permute(w, n_heads, self.d_model, self.d_model));
-                    layer.attention.wk.weight = layer
-                        .attention
-                        .wk
-                        .weight
-                        .map(|w| permute(w, n_kv_heads, self.d_model, wk_dim));
-                    layer
-                })
-                .collect::<Vec<_>>();
+            // which requires weight permutation for wq/wk tensors.
+            // See: https://github.com/huggingface/transformers/issues/25199#issuecomment-1687720247
+            // See: https://github.com/jzhang38/TinyLlama/issues/24
+            println!("Permuting TinyLlama attention weights...");
+            permute_rotary_weights(
+                &mut llama.model,
+                self.num_attention_heads,
+                self.num_key_value_heads.unwrap_or(self.num_attention_heads),
+                self.d_model,
+                device,
+            );
         }
 
-        llama.model = llama.model.load_record(record);
         println!("Llama record loaded");
 
         Ok(llama)
     }
-}
-
-fn check_context_length(max_seq_len: usize, max_context_len: usize) {
-    assert!(
-        max_seq_len <= max_context_len,
-        "Maximum sequence length must not exceed {max_context_len}"
-    );
 }
 
 /// Generated text sample output.
@@ -617,11 +613,12 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
     /// - `prompt`: The prompt string to use for generating the samples.
     /// - `sample_len`: The number of new tokens to generate (i.e., the number of generation steps to take).
     /// - `temperature`: Temperature value for controlling randomness in sampling (scales logits by `1 / temperature`).
-    ///                  High values result in more random sampling.
+    ///   High values result in more random sampling.
     /// - `sampler`: The sampling strategy to use when selecting the next token based on the predicted probabilities.
     ///
     /// # Returns
     /// The generated text along with some other metadata (see [GenerationOutput]).
+    #[allow(clippy::single_range_in_vec_init)]
     pub fn generate(
         &mut self,
         prompt: &str,
@@ -768,9 +765,20 @@ impl RopeFrequencyScaling {
 
         // if wavelen < high_freq_wavelen
         let cond = wavelen.lower_elem(high_freq_wavelen);
-        let new_freqs = new_freqs.mask_where(cond, freqs);
 
-        new_freqs
+        new_freqs.mask_where(cond, freqs)
+    }
+}
+
+/// Check that the requested context length is within the model's supported maximum.
+#[cfg(feature = "pretrained")]
+#[allow(dead_code)]
+fn check_context_length(max_seq_len: usize, max_context_len: usize) {
+    if max_seq_len > max_context_len {
+        eprintln!(
+            "Warning: max_seq_len ({}) exceeds the model's maximum context length ({})",
+            max_seq_len, max_context_len
+        );
     }
 }
 
@@ -779,6 +787,97 @@ pub(crate) fn temperature_scaled_softmax<B: Backend>(
     temperature: f64,
 ) -> Tensor<B, 2> {
     softmax(logits / temperature, 1)
+}
+
+/// Permute wq/wk weights to convert HuggingFace rotary encoding format to Burn format.
+///
+/// HuggingFace TinyLlama uses interleaved rotary position encoding, while Burn expects
+/// the standard LLaMA format. This function permutes the query and key projection weights
+/// to handle the different conventions.
+#[cfg(all(feature = "tiny", feature = "import"))]
+fn permute_rotary_weights<B: Backend>(
+    model: &mut Transformer<B>,
+    n_heads: usize,
+    n_kv_heads: usize,
+    d_model: usize,
+    device: &Device<B>,
+) {
+    use burn_store::TensorSnapshot;
+
+    let snapshots = model.collect(None, None, false);
+
+    let modified: Vec<TensorSnapshot> = snapshots
+        .into_iter()
+        .map(|snapshot| {
+            let path = snapshot.full_path();
+
+            if path.contains(".wq.weight") {
+                permute_attention_weight::<B>(&snapshot, n_heads, device)
+            } else if path.contains(".wk.weight") {
+                let kv_dim = d_model * n_kv_heads / n_heads;
+                permute_attention_weight_with_dim::<B>(&snapshot, n_kv_heads, kv_dim, device)
+            } else {
+                snapshot
+            }
+        })
+        .collect();
+
+    model.apply(modified, None, None, false);
+}
+
+/// Helper to permute a single attention weight tensor.
+#[cfg(all(feature = "tiny", feature = "import"))]
+fn permute_attention_weight<B: Backend>(
+    snapshot: &burn_store::TensorSnapshot,
+    n_heads: usize,
+    device: &Device<B>,
+) -> burn_store::TensorSnapshot {
+    use burn::module::ParamId;
+    use burn_store::TensorSnapshot;
+
+    let data = snapshot.to_data().expect("Failed to get tensor data");
+    let [dim1, dim2] = [data.shape[0], data.shape[1]];
+
+    let tensor: Tensor<B, 2> = Tensor::from_data(data, device);
+    let permuted = tensor
+        .reshape([dim1, n_heads, 2, dim2 / n_heads / 2])
+        .swap_dims(2, 3)
+        .reshape([dim1, dim2]);
+
+    TensorSnapshot::from_data(
+        permuted.to_data(),
+        snapshot.path_stack.clone().unwrap_or_default(),
+        snapshot.container_stack.clone().unwrap_or_default(),
+        snapshot.tensor_id.unwrap_or_else(ParamId::new),
+    )
+}
+
+/// Helper to permute attention weight with explicit output dimension.
+#[cfg(all(feature = "tiny", feature = "import"))]
+fn permute_attention_weight_with_dim<B: Backend>(
+    snapshot: &burn_store::TensorSnapshot,
+    n_heads: usize,
+    out_dim: usize,
+    device: &Device<B>,
+) -> burn_store::TensorSnapshot {
+    use burn::module::ParamId;
+    use burn_store::TensorSnapshot;
+
+    let data = snapshot.to_data().expect("Failed to get tensor data");
+    let dim1 = data.shape[0];
+
+    let tensor: Tensor<B, 2> = Tensor::from_data(data, device);
+    let permuted = tensor
+        .reshape([dim1, n_heads, 2, out_dim / n_heads / 2])
+        .swap_dims(2, 3)
+        .reshape([dim1, out_dim]);
+
+    TensorSnapshot::from_data(
+        permuted.to_data(),
+        snapshot.path_stack.clone().unwrap_or_default(),
+        snapshot.container_stack.clone().unwrap_or_default(),
+        snapshot.tensor_id.unwrap_or_else(ParamId::new),
+    )
 }
 
 #[cfg(test)]

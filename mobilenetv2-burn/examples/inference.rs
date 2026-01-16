@@ -61,12 +61,14 @@ pub fn main() {
 
     // Output class index w/ score (raw)
     let (score, idx) = out.max_dim_with_indices(1);
-    let idx = idx.into_scalar() as usize;
+    let idx: i64 = idx.into_scalar();
+    let idx = idx as usize;
 
+    let score: f32 = score.into_scalar();
     println!(
         "Predicted: {}\nCategory Id: {}\nScore: {:.4}",
         imagenet::CLASSES[idx],
         idx,
-        score.into_scalar()
+        score
     );
 }

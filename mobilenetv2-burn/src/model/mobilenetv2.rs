@@ -20,9 +20,8 @@ use super::{
 #[cfg(feature = "pretrained")]
 use {
     super::weights::{self, WeightsMeta},
-    burn::record::{FullPrecisionSettings, Recorder, RecorderError},
     burn::tensor::Device,
-    burn_import::pytorch::{LoadArgs, PyTorchFileRecorder},
+    burn_store::{ModuleSnapshot, PytorchStore, PytorchStoreError},
 };
 
 /// Network blocks structure
@@ -67,66 +66,64 @@ impl<B: Backend> MobileNetV2<B> {
         self.classifier.forward(x)
     }
 
-    /// Load specified pre-trained PyTorch weights as a record.
+    /// Load specified pre-trained PyTorch weights into the model.
     #[cfg(feature = "pretrained")]
-    fn load_weights_record(
-        weights: &weights::Weights,
-        device: &Device<B>,
-    ) -> Result<MobileNetV2Record<B>, RecorderError> {
+    fn load_weights(model: &mut Self, weights: &weights::Weights) -> Result<(), PytorchStoreError> {
         // Download torch weights
         let torch_weights = weights.download().map_err(|err| {
-            RecorderError::Unknown(format!("Could not download weights.\nError: {err}"))
+            PytorchStoreError::Other(format!("Could not download weights.\nError: {err}"))
         })?;
 
         // Load weights from torch state_dict
-        let load_args = LoadArgs::new(torch_weights)
+        let mut store = PytorchStore::from_file(torch_weights)
             // Map features.{0,18}.0.* -> features.{0,18}.conv.*
-            .with_key_remap("features\\.(0|18)\\.0.(.+)", "features.$1.conv.$2")
+            .with_key_remapping("features\\.(0|18)\\.0.(.+)", "features.$1.conv.$2")
             // Map features.{0,18}.1.* -> features.{0,18}.norm.*
-            .with_key_remap("features\\.(0|18)\\.1.(.+)", "features.$1.norm.$2")
+            .with_key_remapping("features\\.(0|18)\\.1.(.+)", "features.$1.norm.$2")
             // Map features.1.conv.0.0.* -> features.1.dw.conv.*
-            .with_key_remap("features\\.1\\.conv.0.0.(.+)", "features.1.dw.conv.$1")
+            .with_key_remapping("features\\.1\\.conv.0.0.(.+)", "features.1.dw.conv.$1")
             // Map features.1.conv.0.1.* -> features.1.dw.conv.*
-            .with_key_remap("features\\.1\\.conv.0.1.(.+)", "features.1.dw.norm.$1")
+            .with_key_remapping("features\\.1\\.conv.0.1.(.+)", "features.1.dw.norm.$1")
             // Map features.1.conv.1.* -> features.1.pw_linear.conv.*
-            .with_key_remap("features\\.1\\.conv.1.(.+)", "features.1.pw_linear.conv.$1")
+            .with_key_remapping("features\\.1\\.conv.1.(.+)", "features.1.pw_linear.conv.$1")
             // Map features.1.conv.2.* -> features.1.pw_linear.norm.*
-            .with_key_remap("features\\.1\\.conv.2.(.+)", "features.1.pw_linear.norm.$1")
+            .with_key_remapping("features\\.1\\.conv.2.(.+)", "features.1.pw_linear.norm.$1")
             // Map features.[i].conv.0.0.* -> features.[i].pw.conv.*
-            .with_key_remap(
+            .with_key_remapping(
                 "features\\.([2-9]|1[0-7])\\.conv.0.0.(.+)", // for i in [2, 17]
                 "features.$1.pw.conv.$2",
             )
             // Map features.[i].conv.0.1.* -> features.[i].pw.conv.*
-            .with_key_remap(
+            .with_key_remapping(
                 "features\\.([2-9]|1[0-7])\\.conv.0.1.(.+)", // for i in [2, 17]
                 "features.$1.pw.norm.$2",
             )
             // Map features.[i].conv.1.0.* -> features.[i].dw.conv.*
-            .with_key_remap(
+            .with_key_remapping(
                 "features\\.([2-9]|1[0-7])\\.conv.1.0.(.+)", // for i in [2, 17]
                 "features.$1.dw.conv.$2",
             )
             // Map features.[i].conv.1.1.* -> features.[i].dw.norm.*
-            .with_key_remap(
+            .with_key_remapping(
                 "features\\.([2-9]|1[0-7])\\.conv.1.1.(.+)", // for i in [2, 17]
                 "features.$1.dw.norm.$2",
             )
             // Map features.[i].conv.2.* -> features.[i].pw_linear.conv.*
-            .with_key_remap(
+            .with_key_remapping(
                 "features\\.([2-9]|1[0-7])\\.conv.2.(.+)", // for i in [2, 17]
                 "features.$1.pw_linear.conv.$2",
             )
             // Map features.[i].conv.3.* -> features.[i].pw_linear.norm.*
-            .with_key_remap(
+            .with_key_remapping(
                 "features\\.([2-9]|1[0-7])\\.conv.3.(.+)", // for i in [2, 17]
                 "features.$1.pw_linear.norm.$2",
             )
             // Map classifier.1.* -> classifier.linear.*
-            .with_key_remap("classifier.1.(.+)", "classifier.linear.$1");
-        let record = PyTorchFileRecorder::<FullPrecisionSettings>::new().load(load_args, device)?;
+            .with_key_remapping("classifier.1.(.+)", "classifier.linear.$1");
 
-        Ok(record)
+        model.load_from(&mut store)?;
+
+        Ok(())
     }
 
     /// MobileNetV2 from [`MobileNetV2: Inverted Residuals and Linear Bottlenecks`](https://arxiv.org/abs/1801.04381)
@@ -144,14 +141,12 @@ impl<B: Backend> MobileNetV2<B> {
     pub fn pretrained(
         weights: weights::MobileNetV2,
         device: &Device<B>,
-    ) -> Result<Self, RecorderError> {
+    ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let record = Self::load_weights_record(&weights, device)?;
-        let model = MobileNetV2Config::new()
+        let mut model = MobileNetV2Config::new()
             .with_num_classes(weights.num_classes)
-            .init(device)
-            .load_record(record);
-
+            .init(device);
+        Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
 }

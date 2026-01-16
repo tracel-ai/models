@@ -3,10 +3,9 @@ use resnet_burn::{weights, ResNet};
 
 use burn::{
     backend::NdArray,
-    module::Module,
-    record::{FullPrecisionSettings, NamedMpkFileRecorder},
     tensor::{backend::Backend, Device, Element, Tensor, TensorData},
 };
+use burn_store::{BurnpackStore, ModuleSnapshot};
 
 const MODEL_PATH: &str = "resnet18-ImageNet1k";
 const HEIGHT: usize = 224;
@@ -33,15 +32,18 @@ pub fn main() {
             .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
             .unwrap();
 
-    // Save the model to a supported format and load it back
-    let recorder = NamedMpkFileRecorder::<FullPrecisionSettings>::new();
+    // Save the model to burnpack format and load it back
+    let mut store = BurnpackStore::from_file(MODEL_PATH);
     model
-        .clone() // `save_file` takes ownership but we want to load the file after
-        .save_file(MODEL_PATH, &recorder)
+        .save_into(&mut store)
         .map_err(|err| format!("Failed to save weights to file {MODEL_PATH}.\nError: {err}"))
         .unwrap();
-    let model = model
-        .load_file(MODEL_PATH, &recorder, &device)
+
+    // Load the model back
+    let mut store = BurnpackStore::from_file(MODEL_PATH);
+    let mut model = model;
+    model
+        .load_from(&mut store)
         .map_err(|err| format!("Failed to load weights from file {MODEL_PATH}.\nError: {err}"))
         .unwrap();
 

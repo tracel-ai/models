@@ -27,7 +27,7 @@ pub fn fill_mask<B: Backend>(
     let mut results = vec![];
 
     // Embedding size
-    let d_model = model_config.vocab_size.clone();
+    let d_model = model_config.vocab_size;
     for i in 0..batch_size {
         let mut batch_results = vec![];
         let input_tokens = input
@@ -85,12 +85,12 @@ fn top_k<B: Backend>(k: usize, logits: Tensor<B, 1>) -> Vec<(usize, f32)> {
     let (pre_soft_probs, indices) = logits.sort_with_indices(0);
     let (probabilities, indices) = (
         data_to_vec_f32(
-            &softmax(pre_soft_probs, 0)
+            softmax(pre_soft_probs, 0)
                 .into_data()
                 .as_slice::<B::FloatElem>()
                 .unwrap(),
         ),
-        data_to_vec_usize(&indices.into_data().as_slice::<B::IntElem>().unwrap()),
+        data_to_vec_usize(indices.into_data().as_slice::<B::IntElem>().unwrap()),
     );
     probabilities
         .iter()

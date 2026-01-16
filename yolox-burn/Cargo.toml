@@ -8,12 +8,12 @@ edition = "2021"
 [features]
 default = []
 std = []
-pretrained = ["burn/network", "std", "dep:dirs"]
+pretrained = ["burn/network", "std", "dep:dirs", "dep:burn-store"]
 
 [dependencies]
 # Note: default-features = false is needed to disable std
-burn = { version = "0.19.1", default-features = false }
-burn-import = { version = "0.19.1" }
+burn = { version = "0.20.0-pre.6", default-features = false }
+burn-store = { version = "0.20.0-pre.6", features = ["std", "pytorch"], optional = true }
 itertools = { version = "0.12.1", default-features = false, features = [
     "use_alloc",
 ] }
@@ -24,5 +24,9 @@ serde = { version = "1.0.192", default-features = false, features = [
 ] } # alloc is for no_std, derive is needed
 
 [dev-dependencies]
-burn = { version = "0.19.1", features = ["ndarray"] }
+burn = { version = "0.20.0-pre.6", features = ["ndarray"] }
 image = { version = "0.24.9", features = ["png", "jpeg"] }
+
+[[example]]
+name = "inference"
+required-features = ["pretrained"]

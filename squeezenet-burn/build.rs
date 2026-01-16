@@ -4,12 +4,11 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 
-use burn_import::burn::graph::RecordType;
 use burn_import::onnx::ModelGen;
 
 const LABEL_SOURCE_FILE: &str = "src/model/label.txt";
 const LABEL_DEST_FILE: &str = "model/label.rs";
-const GENERATED_MODEL_WEIGHTS_FILE: &str = "squeezenet1.mpk";
+const GENERATED_MODEL_WEIGHTS_FILE: &str = "squeezenet1.bpk";
 const INPUT_ONNX_FILE: &str = "src/model/squeezenet1.onnx";
 const OUT_DIR: &str = "model/";
 
@@ -28,22 +27,13 @@ fn main() {
     }
 
     // Check if the weights are embedded.
-    let (record_type, embed_states) = if cfg!(feature = "weights_embedded") {
-        (RecordType::Bincode, true)
-    } else {
-        (RecordType::NamedMpk, false)
-    };
-
-    // Check if half precision is enabled.
-    let half_precision = cfg!(feature = "weights_f16");
+    let embed_states = cfg!(feature = "weights_embedded");
 
     // Generate the model code from the ONNX file.
     ModelGen::new()
         .input(INPUT_ONNX_FILE)
         .out_dir(OUT_DIR)
-        .record_type(record_type)
         .embed_states(embed_states)
-        .half_precision(half_precision)
         .run_from_script();
 
     // Copy the weights next to the executable.

@@ -6,11 +6,15 @@ use rand::{
 };
 
 pub enum Sampler {
-    TopP(TopP),
+    TopP(Box<TopP>),
     Argmax,
 }
 
 impl Sampler {
+    pub fn new_top_p(p: f64, seed: u64) -> Self {
+        Self::TopP(Box::new(TopP::new(p, seed)))
+    }
+
     pub fn sample<B: Backend>(&mut self, logits: Tensor<B, 2>) -> Tensor<B, 2, Int> {
         match self {
             Self::TopP(s) => s.sample(logits),

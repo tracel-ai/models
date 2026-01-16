@@ -1,4 +1,5 @@
 /// Pre-trained weights metadata.
+#[allow(dead_code)]
 pub struct Weights {
     pub(super) url: &'static str,
     pub(super) num_classes: usize,
