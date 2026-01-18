@@ -394,7 +394,7 @@ impl LlamaConfig {
         )
     }
 
-    /// Initialize a new [Llama](Llama) module.
+    /// Initialize a new [Llama] module.
     pub fn init<B: Backend, T: Tokenizer>(
         &self,
         device: &Device<B>,
@@ -735,7 +735,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
 impl RopeFrequencyScaling {
     /// Applies frequency scaling by parts following Llama 3.1's scheme.
     ///
-    /// Adapted from: https://github.com/meta-llama/llama-models/blob/main/models/llama3/reference_impl/model.py#L45
+    /// Adapted from: <https://github.com/meta-llama/llama-models/blob/main/models/llama3/reference_impl/model.py#L45>
     pub fn freq_scaling_by_parts<B: Backend>(&self, freqs: Tensor<B, 1>) -> Tensor<B, 1> {
         let low_freq_wavelen = self.old_context_len / self.low_freq_factor;
         let high_freq_wavelen = self.old_context_len / self.high_freq_factor;
