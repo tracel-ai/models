@@ -140,6 +140,7 @@ impl LlamaConfig {
 
     /// Load pre-trained Llama-3.2-3B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
     #[cfg(feature = "llama3")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "llama3")))]
     pub fn load_llama3_2_3b<B: Backend>(
         checkpoint: &str,
         tokenizer_path: &str,
@@ -166,6 +167,7 @@ impl LlamaConfig {
     /// - `max_seq_len` - The maximum sequence length for input text.
     /// - `device` - The device to load the model on.
     #[cfg(all(feature = "llama3", feature = "pretrained"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "llama3", feature = "pretrained"))))]
     pub fn llama3_2_3b_pretrained<B: Backend>(
         max_seq_len: usize,
         device: &Device<B>,
@@ -192,6 +194,7 @@ impl LlamaConfig {
 
     /// Load pre-trained Llama-3.2-1B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
     #[cfg(feature = "llama3")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "llama3")))]
     pub fn load_llama3_2_1b<B: Backend>(
         checkpoint: &str,
         tokenizer_path: &str,
@@ -218,6 +221,7 @@ impl LlamaConfig {
     /// - `max_seq_len` - The maximum sequence length for input text.
     /// - `device` - The device to load the model on.
     #[cfg(all(feature = "llama3", feature = "pretrained"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "llama3", feature = "pretrained"))))]
     pub fn llama3_2_1b_pretrained<B: Backend>(
         max_seq_len: usize,
         device: &Device<B>,
@@ -244,6 +248,7 @@ impl LlamaConfig {
 
     /// Load pre-trained Llama-3.1-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
     #[cfg(feature = "llama3")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "llama3")))]
     pub fn load_llama3_1_8b<B: Backend>(
         checkpoint: &str,
         tokenizer_path: &str,
@@ -270,6 +275,7 @@ impl LlamaConfig {
     /// - `max_seq_len` - The maximum sequence length for input text.
     /// - `device` - The device to load the model on.
     #[cfg(all(feature = "llama3", feature = "pretrained"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "llama3", feature = "pretrained"))))]
     pub fn llama3_1_8b_pretrained<B: Backend>(
         max_seq_len: usize,
         device: &Device<B>,
@@ -296,6 +302,7 @@ impl LlamaConfig {
 
     /// Load pre-trained Llama-3-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
     #[cfg(feature = "llama3")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "llama3")))]
     pub fn load_llama3_8b<B: Backend>(
         checkpoint: &str,
         tokenizer_path: &str,
@@ -322,6 +329,7 @@ impl LlamaConfig {
     /// - `max_seq_len` - The maximum sequence length for input text.
     /// - `device` - The device to load the model on.
     #[cfg(all(feature = "llama3", feature = "pretrained"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "llama3", feature = "pretrained"))))]
     pub fn llama3_8b_pretrained<B: Backend>(
         max_seq_len: usize,
         device: &Device<B>,
@@ -348,6 +356,7 @@ impl LlamaConfig {
 
     /// Load pre-trained TinyLlama-1.1B Chat v1.0 model with [SentenciePiece](https://github.com/google/sentencepiece) tokenizer.
     #[cfg(feature = "tiny")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "tiny")))]
     pub fn load_tiny_llama<B: Backend>(
         checkpoint: &str,
         tokenizer_path: &str,
@@ -370,6 +379,7 @@ impl LlamaConfig {
 
     /// Load pre-trained TinyLlama-1.1B Chat v1.0 model with [SentenciePiece](https://github.com/google/sentencepiece) tokenizer.
     #[cfg(all(feature = "tiny", feature = "pretrained"))]
+    #[cfg_attr(docsrs, doc(cfg(all(feature = "tiny", feature = "pretrained"))))]
     pub fn tiny_llama_pretrained<B: Backend>(
         max_seq_len: usize,
         device: &Device<B>,

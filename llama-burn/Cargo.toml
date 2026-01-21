@@ -55,6 +55,10 @@ rand = { version = "0.8.5", default-features = false, features = [
 burn = { version = "0.20.0", default-features = false }
 clap = { version = "4.5.4", features = ["derive"] }
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [[example]]
 name = "chat"
 required-features = ["llama3", "pretrained"]
