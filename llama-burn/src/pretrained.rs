@@ -6,6 +6,7 @@ pub struct Pretrained {
 }
 
 #[cfg(feature = "pretrained")]
+#[cfg_attr(docsrs, doc(cfg(feature = "pretrained")))]
 mod downloader {
     use super::*;
     use burn::data::network::downloader;
