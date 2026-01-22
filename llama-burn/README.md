@@ -1,6 +1,8 @@
 # Llama Burn
 
-<img src="./assets/llama-burn.jpeg" alt="An image of a llama surrounded by fiery colors and a gust of fire" width="500px"/>
+<div align="center">
+    <img src="./assets/llama-burn.jpeg" alt="An image of a llama surrounded by fiery colors and a gust of fire" width="500px"/>
+</div>
 
 The popular Llama LLM is here!
 
