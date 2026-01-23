@@ -1,10 +1,10 @@
 use crate::embedding::{MiniLmEmbeddings, MiniLmEmbeddingsConfig};
 use burn::config::Config;
 use burn::module::Module;
+use burn::nn::Initializer::KaimingUniform;
 use burn::nn::transformer::{
     TransformerEncoder, TransformerEncoderConfig, TransformerEncoderInput,
 };
-use burn::nn::Initializer::KaimingUniform;
 use burn::tensor::backend::Backend;
 use burn::tensor::{Bool, Int, Tensor};
 use std::path::Path;
@@ -85,14 +85,19 @@ impl MiniLmConfig {
     }
 
     fn encoder_config(&self) -> TransformerEncoderConfig {
-        TransformerEncoderConfig::new(self.hidden_size, self.intermediate_size, self.num_attention_heads, self.num_hidden_layers)
-            .with_dropout(self.hidden_dropout_prob)
-            .with_norm_first(false) // BERT-style post-LayerNorm
-            .with_quiet_softmax(false)
-            .with_initializer(KaimingUniform {
-                gain: 1.0 / libm::sqrt(3.0),
-                fan_out_only: false,
-            })
+        TransformerEncoderConfig::new(
+            self.hidden_size,
+            self.intermediate_size,
+            self.num_attention_heads,
+            self.num_hidden_layers,
+        )
+        .with_dropout(self.hidden_dropout_prob)
+        .with_norm_first(false) // BERT-style post-LayerNorm
+        .with_quiet_softmax(false)
+        .with_initializer(KaimingUniform {
+            gain: 1.0 / libm::sqrt(3.0),
+            fan_out_only: false,
+        })
     }
 }
 

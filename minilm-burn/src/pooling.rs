@@ -1,5 +1,5 @@
-use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
+use burn::tensor::backend::Backend;
 
 // TODO: Consider proposing MeanPooler for Burn's nn module
 
@@ -45,8 +45,8 @@ pub fn mean_pooling<B: Backend>(
 mod tests {
     use super::*;
     use burn::backend::NdArray;
-    use burn::tensor::Tolerance;
     use burn::tensor::TensorData;
+    use burn::tensor::Tolerance;
 
     type B = NdArray<f32>;
 
@@ -57,7 +57,11 @@ mod tests {
         // Hidden states: [2, 3, 4] (batch=2, seq=3, hidden=4)
         let hidden = Tensor::<B, 3>::from_floats(
             [
-                [[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0], [0.0, 0.0, 0.0, 0.0]], // seq 3 is padding
+                [
+                    [1.0, 2.0, 3.0, 4.0],
+                    [5.0, 6.0, 7.0, 8.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                ], // seq 3 is padding
                 [
                     [1.0, 1.0, 1.0, 1.0],
                     [2.0, 2.0, 2.0, 2.0],
@@ -68,8 +72,7 @@ mod tests {
         );
 
         // Attention mask: [2, 3]
-        let mask =
-            Tensor::<B, 2>::from_floats([[1.0, 1.0, 0.0], [1.0, 1.0, 1.0]], &device);
+        let mask = Tensor::<B, 2>::from_floats([[1.0, 1.0, 0.0], [1.0, 1.0, 1.0]], &device);
 
         let pooled = mean_pooling(hidden, mask);
 

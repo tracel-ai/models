@@ -65,8 +65,14 @@ pub fn load_pretrained<B: Backend>(
         ("(layers\\.[0-9]+)\\.output\\.dense", "$1.pwff.linear_outer"),
         ("(layers\\.[0-9]+)\\.output\\.LayerNorm", "$1.norm_2"),
         // Embedding LayerNorm: weight -> gamma, bias -> beta
-        ("embeddings\\.LayerNorm\\.weight", "embeddings.layer_norm.gamma"),
-        ("embeddings\\.LayerNorm\\.bias", "embeddings.layer_norm.beta"),
+        (
+            "embeddings\\.LayerNorm\\.weight",
+            "embeddings.layer_norm.gamma",
+        ),
+        (
+            "embeddings\\.LayerNorm\\.bias",
+            "embeddings.layer_norm.beta",
+        ),
         // Encoder LayerNorm: weight -> gamma, bias -> beta
         ("(norm_[12])\\.weight", "$1.gamma"),
         ("(norm_[12])\\.bias", "$1.beta"),
