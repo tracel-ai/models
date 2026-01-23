@@ -70,6 +70,18 @@ cargo bench --features tch-cpu
 
 Results are saved to `target/criterion/` for comparison across backends.
 
+### Results (Apple M3 Max)
+
+| Benchmark          | ndarray | wgpu  | tch-cpu |
+| ------------------ | ------- | ----- | ------- |
+| forward (batch=1)  | 102 ms  | 35 ms | 26 ms   |
+| forward (batch=4)  | 387 ms  | 39 ms | 49 ms   |
+| forward (batch=8)  | 774 ms  | 44 ms | 77 ms   |
+| forward (batch=16) | 1.54 s  | 73 ms | 130 ms  |
+| full_pipeline      | 101 ms  | 35 ms | 26 ms   |
+| mean_pooling       | 41 µs   | 97 µs | 89 µs   |
+| normalize_l2       | 1.1 µs  | 99 µs | 2.8 µs  |
+
 ## License
 
 MIT OR Apache-2.0
