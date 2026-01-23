@@ -44,6 +44,20 @@ Run the inference example:
 cargo run --example inference --features ndarray --release
 ```
 
+## Testing
+
+Unit tests:
+
+```bash
+cargo test --features ndarray
+```
+
+Integration tests (requires model download):
+
+```bash
+cargo test --features ndarray -- --ignored
+```
+
 ## License
 
 MIT OR Apache-2.0

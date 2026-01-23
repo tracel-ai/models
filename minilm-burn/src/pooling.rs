@@ -41,6 +41,14 @@ pub fn mean_pooling<B: Backend>(
     sum_hidden / token_counts
 }
 
+/// L2 normalize embeddings (each row to unit length).
+///
+/// This matches the default behavior of sentence-transformers.
+pub fn normalize_l2<B: Backend>(embeddings: Tensor<B, 2>) -> Tensor<B, 2> {
+    use burn::tensor::linalg::{vector_normalize, Norm};
+    vector_normalize(embeddings, Norm::L2, 1, 1e-12)
+}
+
 #[cfg(all(test, feature = "ndarray"))]
 mod tests {
     use super::*;
