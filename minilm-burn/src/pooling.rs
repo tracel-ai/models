@@ -45,7 +45,7 @@ pub fn mean_pooling<B: Backend>(
 ///
 /// This matches the default behavior of sentence-transformers.
 pub fn normalize_l2<B: Backend>(embeddings: Tensor<B, 2>) -> Tensor<B, 2> {
-    use burn::tensor::linalg::{vector_normalize, Norm};
+    use burn::tensor::linalg::{Norm, vector_normalize};
     vector_normalize(embeddings, Norm::L2, 1, 1e-12)
 }
 
