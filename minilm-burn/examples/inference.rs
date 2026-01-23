@@ -1,33 +1,16 @@
 use burn::backend::ndarray::NdArray;
+use burn::tensor::linalg::cosine_similarity;
 use burn::tensor::{Int, Tensor};
-use minilm_burn::{mean_pooling, MiniLmConfig, MiniLmModel};
-use tokenizers::Tokenizer;
+use minilm_burn::{MiniLmModel, mean_pooling};
 
 type B = NdArray<f32>;
-
-const MODEL_NAME: &str = "sentence-transformers/all-MiniLM-L12-v2";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let device = Default::default();
 
-    println!("Downloading model from {}...", MODEL_NAME);
-
-    // Download model files from HuggingFace
-    let api = hf_hub::api::sync::Api::new()?;
-    let repo = api.model(MODEL_NAME.to_string());
-
-    let config_path = repo.get("config.json")?;
-    let weights_path = repo.get("model.safetensors")?;
-    let tokenizer_path = repo.get("tokenizer.json")?;
-
+    // Load pretrained model and tokenizer (downloads from HuggingFace)
     println!("Loading model...");
-    let config = MiniLmConfig::load_from_hf(&config_path)?;
-    let mut model: MiniLmModel<B> = config.init(&device);
-    minilm_burn::load_pretrained(&mut model, &weights_path)?;
-
-    println!("Loading tokenizer...");
-    let tokenizer = Tokenizer::from_file(&tokenizer_path)
-        .map_err(|e| format!("Failed to load tokenizer: {}", e))?;
+    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device)?;
 
     // Example sentences
     let sentences = vec![
@@ -99,9 +82,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let emb1: Tensor<B, 1> = embeddings.clone().slice([1..2, 0..384]).squeeze();
     let emb2: Tensor<B, 1> = embeddings.clone().slice([2..3, 0..384]).squeeze();
 
-    let sim_01 = cosine_similarity(&emb0, &emb1);
-    let sim_02 = cosine_similarity(&emb0, &emb2);
-    let sim_12 = cosine_similarity(&emb1, &emb2);
+    let sim_01: f32 = cosine_similarity(emb0.clone(), emb1.clone(), 0, None).into_scalar();
+    let sim_02: f32 = cosine_similarity(emb0, emb2.clone(), 0, None).into_scalar();
+    let sim_12: f32 = cosine_similarity(emb1, emb2, 0, None).into_scalar();
 
     println!("\nCosine similarities:");
     println!("  Sentence 0 vs 1: {:.4}", sim_01);
@@ -109,11 +92,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Sentence 1 vs 2: {:.4}", sim_12);
 
     Ok(())
-}
-
-fn cosine_similarity(a: &Tensor<B, 1>, b: &Tensor<B, 1>) -> f32 {
-    let dot = a.clone().mul(b.clone()).sum().into_scalar();
-    let norm_a = a.clone().powf_scalar(2.0).sum().sqrt().into_scalar();
-    let norm_b = b.clone().powf_scalar(2.0).sum().sqrt().into_scalar();
-    dot / (norm_a * norm_b)
 }

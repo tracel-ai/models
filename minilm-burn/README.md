@@ -16,10 +16,10 @@ type B = NdArray<f32>;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let device = Default::default();
 
-    // Load pretrained model (downloads from HuggingFace)
-    let model: MiniLmModel<B> = MiniLmModel::pretrained(&device)?;
+    // Load pretrained model and tokenizer (downloads from HuggingFace)
+    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device)?;
 
-    // Run inference (after tokenization)
+    // Tokenize and run inference
     let output = model.forward(input_ids, attention_mask.clone(), None);
     let embeddings = mean_pooling(output.hidden_states, attention_mask);
 

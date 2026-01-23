@@ -41,10 +41,11 @@ pub fn mean_pooling<B: Backend>(
     sum_hidden / token_counts
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "ndarray"))]
 mod tests {
     use super::*;
     use burn::backend::NdArray;
+    use burn::tensor::Tolerance;
     use burn::tensor::TensorData;
 
     type B = NdArray<f32>;
@@ -75,7 +76,9 @@ mod tests {
         // Expected:
         // Batch 0: mean of [[1,2,3,4], [5,6,7,8]] = [3, 4, 5, 6]
         // Batch 1: mean of [[1,1,1,1], [2,2,2,2], [3,3,3,3]] = [2, 2, 2, 2]
-        let expected = TensorData::from([[3.0, 4.0, 5.0, 6.0], [2.0, 2.0, 2.0, 2.0]]);
-        pooled.into_data().assert_approx_eq(&expected, 5);
+        let expected = TensorData::from([[3.0f32, 4.0, 5.0, 6.0], [2.0, 2.0, 2.0, 2.0]]);
+        pooled
+            .into_data()
+            .assert_approx_eq(&expected, Tolerance::<f32>::rel_abs(1e-5, 1e-5));
     }
 }

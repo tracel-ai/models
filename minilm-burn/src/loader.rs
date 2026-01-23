@@ -97,24 +97,41 @@ pub fn load_pretrained<B: Backend>(
 ///
 /// # Returns
 /// Tuple of (config_path, weights_path)
+/// Downloaded model files from HuggingFace.
+#[cfg(feature = "pretrained")]
+pub struct HfModelFiles {
+    pub config_path: PathBuf,
+    pub weights_path: PathBuf,
+    pub tokenizer_path: PathBuf,
+}
+
 #[cfg(feature = "pretrained")]
 #[tokio::main]
-pub async fn download_hf_model(model_name: &str) -> Result<(PathBuf, PathBuf), LoadError> {
+pub async fn download_hf_model(model_name: &str) -> Result<HfModelFiles, LoadError> {
     let api = hf_hub::api::tokio::Api::new()
         .map_err(|e| LoadError::Download(format!("Failed to create HF API: {}", e)))?;
     let repo = api.model(model_name.to_string());
-
-    let weights_path = repo
-        .get("model.safetensors")
-        .await
-        .map_err(|e| LoadError::Download(format!("Failed to download weights: {}", e)))?;
 
     let config_path = repo
         .get("config.json")
         .await
         .map_err(|e| LoadError::Download(format!("Failed to download config: {}", e)))?;
 
-    Ok((config_path, weights_path))
+    let weights_path = repo
+        .get("model.safetensors")
+        .await
+        .map_err(|e| LoadError::Download(format!("Failed to download weights: {}", e)))?;
+
+    let tokenizer_path = repo
+        .get("tokenizer.json")
+        .await
+        .map_err(|e| LoadError::Download(format!("Failed to download tokenizer: {}", e)))?;
+
+    Ok(HfModelFiles {
+        config_path,
+        weights_path,
+        tokenizer_path,
+    })
 }
 
 /// Load model configuration from a JSON file.
@@ -123,21 +140,23 @@ pub fn load_config(path: impl AsRef<Path>) -> Result<MiniLmConfig, LoadError> {
 }
 
 #[cfg(feature = "pretrained")]
-impl MiniLmConfig {
+impl<B: Backend> MiniLmModel<B> {
     /// Load a pre-trained all-MiniLM-L12-v2 model.
     ///
-    /// Downloads weights from HuggingFace Hub (cached after first download).
-    pub fn pretrained<B: Backend>(device: &B::Device) -> Result<MiniLmModel<B>, LoadError> {
-        let (config_path, weights_path) =
-            download_hf_model("sentence-transformers/all-MiniLM-L12-v2")?;
+    /// Downloads from HuggingFace Hub (cached after first download).
+    /// Returns the model and tokenizer.
+    pub fn pretrained(device: &B::Device) -> Result<(Self, tokenizers::Tokenizer), LoadError> {
+        let files = download_hf_model("sentence-transformers/all-MiniLM-L12-v2")?;
 
-        // Load config from HuggingFace's config.json
-        let config = MiniLmConfig::load_from_hf(&config_path)
+        let config = MiniLmConfig::load_from_hf(&files.config_path)
             .map_err(|e| LoadError::Config(e.to_string()))?;
         let mut model = config.init(device);
 
-        load_pretrained(&mut model, weights_path)?;
+        load_pretrained(&mut model, &files.weights_path)?;
 
-        Ok(model)
+        let tokenizer = tokenizers::Tokenizer::from_file(&files.tokenizer_path)
+            .map_err(|e| LoadError::Config(format!("Failed to load tokenizer: {}", e)))?;
+
+        Ok((model, tokenizer))
     }
 }
