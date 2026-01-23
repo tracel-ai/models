@@ -64,18 +64,8 @@ pub fn load_pretrained<B: Backend>(
         // This needs to match "layers.X.output.dense" but not "attention.output.dense"
         ("(layers\\.[0-9]+)\\.output\\.dense", "$1.pwff.linear_outer"),
         ("(layers\\.[0-9]+)\\.output\\.LayerNorm", "$1.norm_2"),
-        // Embedding LayerNorm: weight -> gamma, bias -> beta
-        (
-            "embeddings\\.LayerNorm\\.weight",
-            "embeddings.layer_norm.gamma",
-        ),
-        (
-            "embeddings\\.LayerNorm\\.bias",
-            "embeddings.layer_norm.beta",
-        ),
-        // Encoder LayerNorm: weight -> gamma, bias -> beta
-        ("(norm_[12])\\.weight", "$1.gamma"),
-        ("(norm_[12])\\.bias", "$1.beta"),
+        // Embedding LayerNorm -> layer_norm
+        ("embeddings\\.LayerNorm", "embeddings.layer_norm"),
     ];
 
     let remapper =
