@@ -29,11 +29,12 @@ pub fn mean_pooling<B: Backend>(
 
     // Apply mask and sum
     let masked_hidden = hidden_states * mask_expanded;
-    let sum_hidden: Tensor<B, 2> = masked_hidden.sum_dim(1).squeeze::<2>(); // [batch, hidden]
+    let sum_hidden: Tensor<B, 2> = masked_hidden.sum_dim(1).reshape([batch_size, hidden_size]);
 
     // Count non-padding tokens per batch
     let token_counts: Tensor<B, 2> = attention_mask
-        .sum_dim(1) // [batch, 1]
+        .sum_dim(1)
+        .reshape([batch_size, 1])
         .expand([batch_size, hidden_size])
         .clamp_min(1e-9); // Avoid division by zero
 

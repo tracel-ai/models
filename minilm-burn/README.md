@@ -58,6 +58,18 @@ Integration tests (requires model download):
 cargo test --features ndarray -- --ignored
 ```
 
+## Benchmarks
+
+Run for each backend:
+
+```bash
+cargo bench --features ndarray
+cargo bench --features wgpu
+cargo bench --features tch-cpu
+```
+
+Results are saved to `target/criterion/` for comparison across backends.
+
 ## License
 
 MIT OR Apache-2.0
