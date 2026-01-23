@@ -102,8 +102,7 @@ pub fn load_pretrained<B: Backend>(
 /// - `model_name`: HuggingFace model identifier (e.g., "sentence-transformers/all-MiniLM-L12-v2")
 ///
 /// # Returns
-/// Tuple of (config_path, weights_path)
-/// Downloaded model files from HuggingFace.
+/// [`HfModelFiles`] containing paths to config, weights, and tokenizer.
 #[cfg(feature = "pretrained")]
 pub struct HfModelFiles {
     pub config_path: PathBuf,

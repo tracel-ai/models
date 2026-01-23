@@ -17,8 +17,8 @@ def main():
     model = SentenceTransformer(MODEL_NAME)
 
     print(f"\nGenerating embeddings for {len(SENTENCES)} sentences...")
-    # normalize_embeddings=False to get raw mean-pooled output
-    embeddings = model.encode(SENTENCES, normalize_embeddings=False)
+    # normalize_embeddings=True to match sentence-transformers default behavior
+    embeddings = model.encode(SENTENCES, normalize_embeddings=True)
 
     print("\n// Reference embeddings for integration tests")
     print("// Generated with sentence-transformers Python library")
