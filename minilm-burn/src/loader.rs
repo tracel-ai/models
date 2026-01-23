@@ -95,7 +95,7 @@ pub fn load_pretrained<B: Backend>(
 
 /// Download model files from HuggingFace Hub.
 ///
-/// Downloads to the HuggingFace cache directory and returns paths.
+/// Downloads to `~/.cache/burn-models/` and returns paths.
 /// Files are cached and won't be re-downloaded if they exist.
 ///
 /// # Arguments
@@ -111,9 +111,22 @@ pub struct HfModelFiles {
 }
 
 #[cfg(feature = "pretrained")]
+fn default_cache_dir() -> PathBuf {
+    dirs::cache_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("burn-models")
+}
+
+#[cfg(feature = "pretrained")]
 #[tokio::main]
-pub async fn download_hf_model(model_name: &str) -> Result<HfModelFiles, LoadError> {
-    let api = hf_hub::api::tokio::Api::new()
+pub async fn download_hf_model(
+    model_name: &str,
+    cache_dir: Option<PathBuf>,
+) -> Result<HfModelFiles, LoadError> {
+    let cache_dir = cache_dir.unwrap_or_else(default_cache_dir);
+    let api = hf_hub::api::tokio::ApiBuilder::new()
+        .with_cache_dir(cache_dir)
+        .build()
         .map_err(|e| LoadError::Download(format!("Failed to create HF API: {}", e)))?;
     let repo = api.model(model_name.to_string());
 
@@ -150,8 +163,15 @@ impl<B: Backend> MiniLmModel<B> {
     ///
     /// Downloads from HuggingFace Hub (cached after first download).
     /// Returns the model and tokenizer.
-    pub fn pretrained(device: &B::Device) -> Result<(Self, tokenizers::Tokenizer), LoadError> {
-        let files = download_hf_model("sentence-transformers/all-MiniLM-L12-v2")?;
+    ///
+    /// # Arguments
+    /// - `device`: The device to load the model on.
+    /// - `cache_dir`: Optional cache directory. Defaults to system cache dir.
+    pub fn pretrained(
+        device: &B::Device,
+        cache_dir: Option<PathBuf>,
+    ) -> Result<(Self, tokenizers::Tokenizer), LoadError> {
+        let files = download_hf_model("sentence-transformers/all-MiniLM-L12-v2", cache_dir)?;
 
         let config = MiniLmConfig::load_from_hf(&files.config_path)
             .map_err(|e| LoadError::Config(e.to_string()))?;

@@ -9,8 +9,8 @@
 
 use burn::tensor::backend::Backend;
 use burn::tensor::{Int, Tensor};
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use minilm_burn::{mean_pooling, normalize_l2, MiniLmModel};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use minilm_burn::{MiniLmModel, mean_pooling, normalize_l2};
 
 // Backend selection via features
 #[cfg(feature = "ndarray")]
@@ -78,7 +78,8 @@ fn prepare_inputs<BE: Backend>(
 
 fn bench_forward(c: &mut Criterion) {
     let device = Default::default();
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device).expect("Failed to load model");
+    let (model, tokenizer) =
+        MiniLmModel::<B>::pretrained(&device, None).expect("Failed to load model");
 
     let sentences = vec!["The quick brown fox jumps over the lazy dog"];
     let (input_ids, attention_mask) = prepare_inputs::<B>(&tokenizer, &sentences, &device);
@@ -97,7 +98,8 @@ fn bench_forward(c: &mut Criterion) {
 
 fn bench_forward_batch(c: &mut Criterion) {
     let device = Default::default();
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device).expect("Failed to load model");
+    let (model, tokenizer) =
+        MiniLmModel::<B>::pretrained(&device, None).expect("Failed to load model");
 
     let mut group = c.benchmark_group(format!("{}/forward_batch", NAME));
     group.sample_size(20);
@@ -128,7 +130,8 @@ fn bench_forward_batch(c: &mut Criterion) {
 
 fn bench_full_pipeline(c: &mut Criterion) {
     let device = Default::default();
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device).expect("Failed to load model");
+    let (model, tokenizer) =
+        MiniLmModel::<B>::pretrained(&device, None).expect("Failed to load model");
 
     let sentences = vec!["The quick brown fox jumps over the lazy dog"];
 

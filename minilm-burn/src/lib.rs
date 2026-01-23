@@ -12,7 +12,7 @@
 //! type B = NdArray<f32>;
 //!
 //! let device = Default::default();
-//! let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device)?;
+//! let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, None)?;
 //! ```
 
 mod embedding;

@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let device = Default::default();
 
     // Load pretrained model and tokenizer (downloads from HuggingFace)
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device)?;
+    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, None)?;
 
     // Tokenize and run inference
     let output = model.forward(input_ids, attention_mask.clone(), None);

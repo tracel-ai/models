@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Load pretrained model and tokenizer (downloads from HuggingFace)
     println!("Loading model...");
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device)?;
+    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, None)?;
 
     // Example sentences
     let sentences = vec![
