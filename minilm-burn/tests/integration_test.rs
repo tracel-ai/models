@@ -111,12 +111,13 @@ fn test_embeddings_match_python() {
     let embeddings = normalize_l2(embeddings); // Match sentence-transformers default
 
     // Extract first 10 dims for each sentence
+    let [_, hidden_size] = embeddings.dims();
     let emb_data = embeddings.to_data();
     let emb_slice = emb_data.as_slice::<f32>().unwrap();
 
     let rust_0: Vec<f32> = emb_slice[0..10].to_vec();
-    let rust_1: Vec<f32> = emb_slice[384..394].to_vec();
-    let rust_2: Vec<f32> = emb_slice[768..778].to_vec();
+    let rust_1: Vec<f32> = emb_slice[hidden_size..hidden_size + 10].to_vec();
+    let rust_2: Vec<f32> = emb_slice[hidden_size * 2..hidden_size * 2 + 10].to_vec();
 
     // Compare embeddings (allow small tolerance for floating point differences)
     let tolerance = 1e-4;
@@ -185,9 +186,10 @@ fn test_cosine_similarities_match_python() {
     let embeddings = normalize_l2(embeddings);
 
     // Extract individual embeddings
-    let emb0: Tensor<B, 1> = embeddings.clone().slice([0..1, 0..384]).squeeze();
-    let emb1: Tensor<B, 1> = embeddings.clone().slice([1..2, 0..384]).squeeze();
-    let emb2: Tensor<B, 1> = embeddings.clone().slice([2..3, 0..384]).squeeze();
+    let [_, hidden_size] = embeddings.dims();
+    let emb0: Tensor<B, 1> = embeddings.clone().slice([0..1, 0..hidden_size]).squeeze();
+    let emb1: Tensor<B, 1> = embeddings.clone().slice([1..2, 0..hidden_size]).squeeze();
+    let emb2: Tensor<B, 1> = embeddings.clone().slice([2..3, 0..hidden_size]).squeeze();
 
     // Compute cosine similarities
     let sim_01: f32 = cosine_similarity(emb0.clone(), emb1.clone(), 0, None).into_scalar();

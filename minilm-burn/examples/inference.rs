@@ -1,7 +1,7 @@
 use burn::backend::ndarray::NdArray;
 use burn::tensor::linalg::cosine_similarity;
 use burn::tensor::{Int, Tensor};
-use minilm_burn::{MiniLmModel, mean_pooling};
+use minilm_burn::{MiniLmModel, mean_pooling, normalize_l2};
 
 type B = NdArray<f32>;
 
@@ -61,15 +61,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Running inference...");
     let output = model.forward(input_ids, attention_mask.clone(), None);
 
-    // Mean pooling
+    // Mean pooling + L2 normalize (sentence-transformers default)
     let embeddings = mean_pooling(output.hidden_states, attention_mask);
+    let embeddings = normalize_l2(embeddings);
 
+    let [_, hidden_size] = embeddings.dims();
     println!("\nSentence embeddings shape: {:?}", embeddings.dims());
 
     // Print embeddings (first 5 dimensions of each)
     let embeddings_data = embeddings.to_data();
     for (i, sentence) in sentences.iter().enumerate() {
-        let start = i * 384;
+        let start = i * hidden_size;
         let values: Vec<f32> = (0..5)
             .map(|j| embeddings_data.as_slice::<f32>().unwrap()[start + j])
             .collect();
@@ -78,9 +80,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Compute cosine similarity between sentences
-    let emb0: Tensor<B, 1> = embeddings.clone().slice([0..1, 0..384]).squeeze();
-    let emb1: Tensor<B, 1> = embeddings.clone().slice([1..2, 0..384]).squeeze();
-    let emb2: Tensor<B, 1> = embeddings.clone().slice([2..3, 0..384]).squeeze();
+    let emb0: Tensor<B, 1> = embeddings.clone().slice([0..1, 0..hidden_size]).squeeze();
+    let emb1: Tensor<B, 1> = embeddings.clone().slice([1..2, 0..hidden_size]).squeeze();
+    let emb2: Tensor<B, 1> = embeddings.clone().slice([2..3, 0..hidden_size]).squeeze();
 
     let sim_01: f32 = cosine_similarity(emb0.clone(), emb1.clone(), 0, None).into_scalar();
     let sim_02: f32 = cosine_similarity(emb0, emb2.clone(), 0, None).into_scalar();
