@@ -75,7 +75,7 @@ fn test_embeddings_match_python() {
 
     // Load model
     let (model, tokenizer) =
-        MiniLmModel::<B>::pretrained(&device, None).expect("Failed to load model");
+        MiniLmModel::<B>::pretrained(&device, Default::default(), None).expect("Failed to load model");
 
     // Tokenize
     let encodings = tokenizer
@@ -153,7 +153,7 @@ fn test_cosine_similarities_match_python() {
     let device = Default::default();
 
     let (model, tokenizer) =
-        MiniLmModel::<B>::pretrained(&device, None).expect("Failed to load model");
+        MiniLmModel::<B>::pretrained(&device, Default::default(), None).expect("Failed to load model");
 
     let encodings = tokenizer
         .encode_batch(SENTENCES.to_vec(), true)

@@ -147,21 +147,44 @@ pub fn load_config(path: impl AsRef<Path>) -> Result<MiniLmConfig, LoadError> {
     MiniLmConfig::load(path).map_err(|e| LoadError::Config(e.to_string()))
 }
 
+/// Available pretrained MiniLM model variants.
+#[cfg(feature = "pretrained")]
+#[derive(Debug, Clone, Copy, Default)]
+pub enum MiniLmVariant {
+    /// all-MiniLM-L6-v2: 6 layers, faster inference.
+    L6,
+    /// all-MiniLM-L12-v2: 12 layers, better quality.
+    #[default]
+    L12,
+}
+
+#[cfg(feature = "pretrained")]
+impl MiniLmVariant {
+    fn model_id(&self) -> &'static str {
+        match self {
+            MiniLmVariant::L6 => "sentence-transformers/all-MiniLM-L6-v2",
+            MiniLmVariant::L12 => "sentence-transformers/all-MiniLM-L12-v2",
+        }
+    }
+}
+
 #[cfg(feature = "pretrained")]
 impl<B: Backend> MiniLmModel<B> {
-    /// Load a pre-trained all-MiniLM-L12-v2 model.
+    /// Load a pre-trained MiniLM model.
     ///
     /// Downloads from HuggingFace Hub (cached after first download).
     /// Returns the model and tokenizer.
     ///
     /// # Arguments
     /// - `device`: The device to load the model on.
+    /// - `variant`: Model variant (L6 or L12). Defaults to L12.
     /// - `cache_dir`: Optional cache directory. Defaults to system cache dir.
     pub fn pretrained(
         device: &B::Device,
+        variant: MiniLmVariant,
         cache_dir: Option<PathBuf>,
     ) -> Result<(Self, tokenizers::Tokenizer), LoadError> {
-        let files = download_hf_model("sentence-transformers/all-MiniLM-L12-v2", cache_dir)?;
+        let files = download_hf_model(variant.model_id(), cache_dir)?;
 
         let config = MiniLmConfig::load_from_hf(&files.config_path)
             .map_err(|e| LoadError::Config(e.to_string()))?;
