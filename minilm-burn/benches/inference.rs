@@ -10,7 +10,7 @@
 use burn::tensor::backend::Backend;
 use burn::tensor::{Int, Tensor};
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
-use minilm_burn::{MiniLmModel, mean_pooling, normalize_l2};
+use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2};
 
 // Backend selection via features
 #[cfg(feature = "ndarray")]
@@ -172,11 +172,50 @@ fn bench_pooling(c: &mut Criterion) {
     });
 }
 
+fn bench_variants(c: &mut Criterion) {
+    let device = Default::default();
+
+    let (model_l6, tokenizer) =
+        MiniLmModel::<B>::pretrained(&device, MiniLmVariant::L6, None).expect("Failed to load L6");
+    let (model_l12, _) =
+        MiniLmModel::<B>::pretrained(&device, MiniLmVariant::L12, None).expect("Failed to load L12");
+
+    let sentences = vec!["The quick brown fox jumps over the lazy dog"];
+    let (input_ids, attention_mask) = prepare_inputs::<B>(&tokenizer, &sentences, &device);
+
+    let mut group = c.benchmark_group(format!("{}/variants", NAME));
+
+    group.bench_function("L6", |b| {
+        b.iter(|| {
+            let output = model_l6.forward(
+                black_box(input_ids.clone()),
+                black_box(attention_mask.clone()),
+                None,
+            );
+            black_box(output)
+        })
+    });
+
+    group.bench_function("L12", |b| {
+        b.iter(|| {
+            let output = model_l12.forward(
+                black_box(input_ids.clone()),
+                black_box(attention_mask.clone()),
+                None,
+            );
+            black_box(output)
+        })
+    });
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_forward,
     bench_forward_batch,
     bench_full_pipeline,
     bench_pooling,
+    bench_variants,
 );
 criterion_main!(benches);

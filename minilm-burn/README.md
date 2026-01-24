@@ -74,15 +74,21 @@ Results are saved to `target/criterion/` for comparison across backends.
 
 ### Results (Apple M3 Max)
 
-| Benchmark          | ndarray | wgpu  | tch-cpu |
-| ------------------ | ------- | ----- | ------- |
-| forward (batch=1)  | 102 ms  | 35 ms | 26 ms   |
-| forward (batch=4)  | 387 ms  | 39 ms | 49 ms   |
-| forward (batch=8)  | 774 ms  | 44 ms | 77 ms   |
-| forward (batch=16) | 1.54 s  | 73 ms | 130 ms  |
-| full_pipeline      | 101 ms  | 35 ms | 26 ms   |
-| mean_pooling       | 41 µs   | 97 µs | 89 µs   |
-| normalize_l2       | 1.1 µs  | 99 µs | 2.8 µs  |
+**L6 vs L12 (single sentence):**
+
+| Variant | ndarray | wgpu  | tch-cpu |
+| ------- | ------- | ----- | ------- |
+| L6      | 53 ms   | 18 ms | 14 ms   |
+| L12     | 105 ms  | 35 ms | 27 ms   |
+
+**L12 batch scaling:**
+
+| Batch size | ndarray | wgpu  | tch-cpu |
+| ---------- | ------- | ----- | ------- |
+| 1          | 102 ms  | 35 ms | 26 ms   |
+| 4          | 387 ms  | 39 ms | 49 ms   |
+| 8          | 774 ms  | 44 ms | 77 ms   |
+| 16         | 1.54 s  | 73 ms | 130 ms  |
 
 ## License
 
