@@ -78,8 +78,8 @@ fn prepare_inputs<BE: Backend>(
 
 fn bench_forward(c: &mut Criterion) {
     let device = Default::default();
-    let (model, tokenizer) =
-        MiniLmModel::<B>::pretrained(&device, Default::default(), None).expect("Failed to load model");
+    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)
+        .expect("Failed to load model");
 
     let sentences = vec!["The quick brown fox jumps over the lazy dog"];
     let (input_ids, attention_mask) = prepare_inputs::<B>(&tokenizer, &sentences, &device);
@@ -98,8 +98,8 @@ fn bench_forward(c: &mut Criterion) {
 
 fn bench_forward_batch(c: &mut Criterion) {
     let device = Default::default();
-    let (model, tokenizer) =
-        MiniLmModel::<B>::pretrained(&device, Default::default(), None).expect("Failed to load model");
+    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)
+        .expect("Failed to load model");
 
     let mut group = c.benchmark_group(format!("{}/forward_batch", NAME));
     group.sample_size(20);
@@ -130,8 +130,8 @@ fn bench_forward_batch(c: &mut Criterion) {
 
 fn bench_full_pipeline(c: &mut Criterion) {
     let device = Default::default();
-    let (model, tokenizer) =
-        MiniLmModel::<B>::pretrained(&device, Default::default(), None).expect("Failed to load model");
+    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)
+        .expect("Failed to load model");
 
     let sentences = vec!["The quick brown fox jumps over the lazy dog"];
 
@@ -177,8 +177,8 @@ fn bench_variants(c: &mut Criterion) {
 
     let (model_l6, tokenizer) =
         MiniLmModel::<B>::pretrained(&device, MiniLmVariant::L6, None).expect("Failed to load L6");
-    let (model_l12, _) =
-        MiniLmModel::<B>::pretrained(&device, MiniLmVariant::L12, None).expect("Failed to load L12");
+    let (model_l12, _) = MiniLmModel::<B>::pretrained(&device, MiniLmVariant::L12, None)
+        .expect("Failed to load L12");
 
     let sentences = vec!["The quick brown fox jumps over the lazy dog"];
     let (input_ids, attention_mask) = prepare_inputs::<B>(&tokenizer, &sentences, &device);

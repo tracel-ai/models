@@ -74,8 +74,8 @@ fn test_embeddings_match_python() {
     let device = Default::default();
 
     // Load model
-    let (model, tokenizer) =
-        MiniLmModel::<B>::pretrained(&device, Default::default(), None).expect("Failed to load model");
+    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)
+        .expect("Failed to load model");
 
     // Tokenize
     let encodings = tokenizer
@@ -152,8 +152,8 @@ fn test_embeddings_match_python() {
 fn test_cosine_similarities_match_python() {
     let device = Default::default();
 
-    let (model, tokenizer) =
-        MiniLmModel::<B>::pretrained(&device, Default::default(), None).expect("Failed to load model");
+    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)
+        .expect("Failed to load model");
 
     let encodings = tokenizer
         .encode_batch(SENTENCES.to_vec(), true)
@@ -225,11 +225,15 @@ fn test_l6_variant_loads_and_runs() {
     let device = Default::default();
 
     // Load L6 model
-    let (model, tokenizer) =
-        MiniLmModel::<B>::pretrained(&device, MiniLmVariant::L6, None).expect("Failed to load L6 model");
+    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, MiniLmVariant::L6, None)
+        .expect("Failed to load L6 model");
 
     // Verify it has 6 layers (not 12)
-    assert_eq!(model.encoder.layers.len(), 6, "L6 should have 6 encoder layers");
+    assert_eq!(
+        model.encoder.layers.len(),
+        6,
+        "L6 should have 6 encoder layers"
+    );
 
     // Tokenize
     let encodings = tokenizer
