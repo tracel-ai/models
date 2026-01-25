@@ -123,7 +123,9 @@ impl<B: Backend> MiniLmModel<B> {
         // Convert attention_mask to padding mask (bool tensor where true = padding)
         // attention_mask: 1 = real, 0 = padding
         // mask_pad: true = padding, false = real
-        let mask_pad: Tensor<B, 2, Bool> = attention_mask.equal_elem(0);
+        let device = attention_mask.device();
+        let zeros = Tensor::<B, 2>::zeros(attention_mask.shape(), &device);
+        let mask_pad: Tensor<B, 2, Bool> = attention_mask.equal(zeros);
 
         // Forward through encoder
         let encoder_input = TransformerEncoderInput::new(embeddings).mask_pad(mask_pad);
