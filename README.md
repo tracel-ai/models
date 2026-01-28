@@ -29,6 +29,7 @@ Explore the curated list of models developed by the community ♥.
 | [CRAFT](https://arxiv.org/abs/1904.01941)        | A CNN for character-region aware text detection                   | [wingertge/craft-burn](https://github.com/wingertge/craft-burn) |
 | [RWKV v7](https://arxiv.org/abs/2503.14456)        | A large language model architecture that can be used like transformer models (parallel processing of tokens) and like RNNs (sequential generation).                   | [dymat/rwkv-burn](https://github.com/dymat/rwkv-burn) |
 | [Single Shot Detector](https://arxiv.org/abs/1512.02325)        |  A trainable implementation of the Single Shot MultiBox Detector (SSD) multiclass object detection model.                   | [catch-twenty-two/rust-ssd](https://github.com/catch-twenty-two/rust-ssd) |
+| [DeepSeek-OCR-2](https://huggingface.co/deepseek-ai/DeepSeek-OCR-2) | Unofficial pure-Rust inference (Burn) for DeepSeek-OCR-2 OCR. | [huahuadeliaoliao/DeepSeek-OCR-2-burn](https://github.com/huahuadeliaoliao/DeepSeek-OCR-2-burn) |
 
 ## License Information
 
