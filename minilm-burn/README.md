@@ -73,7 +73,11 @@ cargo bench --features cuda
 cargo bench --features tch-cpu
 ```
 
-Results are saved to `target/criterion/` for comparison across backends.
+Results are saved to `target/criterion/` for comparison across backends. View the HTML report:
+
+```bash
+open target/criterion/report/index.html
+```
 
 ### Results (Apple M3 Max)
 
