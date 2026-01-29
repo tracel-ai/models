@@ -32,7 +32,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Features
 
 - `pretrained` - Enables model download utilities (default)
-- `ndarray` - NdArray backend
+- `ndarray` - NdArray backend (required for inference example and tests)
+
+Backend features for benchmarks:
 - `wgpu` - WebGPU backend
 - `cuda` - CUDA backend
 - `tch-cpu` - LibTorch CPU backend
