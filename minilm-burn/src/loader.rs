@@ -182,8 +182,7 @@ impl<B: Backend> MiniLmModel<B> {
     ) -> Result<(Self, tokenizers::Tokenizer), LoadError> {
         let files = download_hf_model(variant.model_id(), cache_dir)?;
 
-        let config = MiniLmConfig::load_from_hf(&files.config_path)
-            .map_err(|e| LoadError::Config(e.to_string()))?;
+        let config = MiniLmConfig::load_from_hf(&files.config_path)?;
         let mut model = config.init(device);
 
         load_pretrained(&mut model, &files.weights_path)?;

@@ -7,6 +7,7 @@ use burn::nn::transformer::{
 };
 use burn::tensor::backend::Backend;
 use burn::tensor::{Bool, Int, Tensor};
+use crate::loader::LoadError;
 use std::path::Path;
 
 /// MiniLM model configuration.
@@ -67,10 +68,10 @@ impl MiniLmConfig {
     /// Load configuration from a HuggingFace config.json file.
     ///
     /// Extra fields in the config file are ignored.
-    pub fn load_from_hf<P: AsRef<Path>>(path: P) -> Result<Self, std::io::Error> {
-        let content = std::fs::read_to_string(path)?;
-        serde_json::from_str(&content)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+    pub fn load_from_hf<P: AsRef<Path>>(path: P) -> Result<Self, LoadError> {
+        let content =
+            std::fs::read_to_string(path).map_err(|e| LoadError::Config(e.to_string()))?;
+        serde_json::from_str(&content).map_err(|e| LoadError::Config(e.to_string()))
     }
 
     fn embeddings_config(&self) -> MiniLmEmbeddingsConfig {
