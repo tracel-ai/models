@@ -96,7 +96,7 @@ impl MiniLmConfig {
         .with_norm_first(false) // BERT-style post-LayerNorm
         .with_quiet_softmax(false)
         .with_initializer(KaimingUniform {
-            gain: 1.0 / libm::sqrt(3.0),
+            gain: 1.0 / 3.0f64.sqrt(),
             fan_out_only: false,
         })
     }
