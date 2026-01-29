@@ -19,18 +19,18 @@ examples constructed using the [Burn] deep learning framework.
 
 Explore the curated list of models developed by the community ♥.
 
-| Model                 | Description                   | Repository                                |
-| --------------------- | ----------------------------- | ----------------------------------------- |
-| [Llama 2]             | Large language models         | [Gadersd/llama2-burn]                     |
-| [Whisper]             | Speech recognition            | [Gadersd/whisper-burn]                    |
-| Stable Diffusion v1.4 | Image generation              | [Gadersd/stable-diffusion-burn]           |
-| kord                  | Music note detection          | [twitchax/kord]                           |
-| Whisper-Live          | Live speech transcription     | [sudomonikers/whisper-burn]               |
-| [Inception V3]        | Image classification          | [varonroy/inception-v3-burn]              |
-| [CRAFT]               | Text detection                | [wingertge/craft-burn]                    |
-| [RWKV v7]             | Hybrid transformer/RNN LLM    | [dymat/rwkv-burn]                         |
-| [SSD]                 | Object detection              | [catch-twenty-two/rust-ssd]               |
-| [DeepSeek-OCR-2]      | OCR inference                 | [huahuadeliaoliao/DeepSeek-OCR-2-burn]    |
+| Model                 | Description                | Repository                             |
+| --------------------- | -------------------------- | -------------------------------------- |
+| [Llama 2]             | Large language models      | [Gadersd/llama2-burn]                  |
+| [Whisper]             | Speech recognition         | [Gadersd/whisper-burn]                 |
+| Stable Diffusion v1.4 | Image generation           | [Gadersd/stable-diffusion-burn]        |
+| kord                  | Music note detection       | [twitchax/kord]                        |
+| Whisper-Live          | Live speech transcription  | [sudomonikers/whisper-burn]            |
+| [Inception V3]        | Image classification       | [varonroy/inception-v3-burn]           |
+| [CRAFT]               | Text detection             | [wingertge/craft-burn]                 |
+| [RWKV v7]             | Hybrid transformer/RNN LLM | [dymat/rwkv-burn]                      |
+| [SSD]                 | Object detection           | [catch-twenty-two/rust-ssd]            |
+| [DeepSeek-OCR-2]      | OCR inference              | [huahuadeliaoliao/DeepSeek-OCR-2-burn] |
 
 ## License Information
 
