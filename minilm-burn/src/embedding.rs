@@ -6,7 +6,7 @@ use burn::tensor::{Int, Tensor};
 
 /// Configuration for MiniLM embeddings.
 #[derive(Config, Debug)]
-pub struct MiniLmEmbeddingsConfig {
+pub(crate) struct MiniLmEmbeddingsConfig {
     /// Vocabulary size.
     pub vocab_size: usize,
     /// Maximum sequence length.
