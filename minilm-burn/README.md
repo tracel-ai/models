@@ -69,6 +69,7 @@ Run for each backend:
 ```bash
 cargo bench --features ndarray
 cargo bench --features wgpu
+cargo bench --features cuda
 cargo bench --features tch-cpu
 ```
 
