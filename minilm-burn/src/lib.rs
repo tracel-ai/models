@@ -23,8 +23,10 @@ mod embedding;
 mod loader;
 mod model;
 mod pooling;
+mod tokenize;
 
 pub use embedding::*;
 pub use loader::*;
 pub use model::*;
 pub use pooling::*;
+pub use tokenize::*;

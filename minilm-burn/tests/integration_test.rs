@@ -10,9 +10,9 @@
 #![cfg(feature = "ndarray")]
 
 use burn::backend::ndarray::NdArray;
+use burn::tensor::Tensor;
 use burn::tensor::linalg::cosine_similarity;
-use burn::tensor::{Int, Tensor};
-use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2};
+use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2, tokenize_batch};
 
 type B = NdArray<f32>;
 
@@ -68,50 +68,26 @@ const SIM_0_1: f32 = 0.04713578;
 const SIM_0_2: f32 = 0.21687716;
 const SIM_1_2: f32 = 0.14440186;
 
-#[test]
-#[ignore] // Requires model download; run with: cargo test --features ndarray -- --ignored
-fn test_embeddings_match_python() {
+/// Load default model and encode test sentences, returning normalized embeddings.
+fn encode_test_sentences() -> (Tensor<B, 2>, usize) {
     let device = Default::default();
-
-    // Load model
     let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)
         .expect("Failed to load model");
 
-    // Tokenize
-    let encodings = tokenizer
-        .encode_batch(SENTENCES.to_vec(), true)
-        .expect("Failed to tokenize");
-
-    let max_len = encodings.iter().map(|e| e.get_ids().len()).max().unwrap();
-    let batch_size = SENTENCES.len();
-
-    // Prepare tensors
-    let mut input_ids_data = vec![0i64; batch_size * max_len];
-    let mut attention_mask_data = vec![0.0f32; batch_size * max_len];
-
-    for (i, encoding) in encodings.iter().enumerate() {
-        let ids = encoding.get_ids();
-        let mask = encoding.get_attention_mask();
-        for (j, &id) in ids.iter().enumerate() {
-            input_ids_data[i * max_len + j] = id as i64;
-            attention_mask_data[i * max_len + j] = mask[j] as f32;
-        }
-    }
-
-    let input_ids: Tensor<B, 2, Int> =
-        Tensor::<B, 1, Int>::from_data(input_ids_data.as_slice(), &device)
-            .reshape([batch_size, max_len]);
-    let attention_mask: Tensor<B, 2> =
-        Tensor::<B, 1>::from_data(attention_mask_data.as_slice(), &device)
-            .reshape([batch_size, max_len]);
-
-    // Run inference
+    let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &SENTENCES, &device);
     let output = model.forward(input_ids, attention_mask.clone(), None);
     let embeddings = mean_pooling(output.hidden_states, attention_mask);
-    let embeddings = normalize_l2(embeddings); // Match sentence-transformers default
+    let embeddings = normalize_l2(embeddings);
 
-    // Extract first 10 dims for each sentence
     let [_, hidden_size] = embeddings.dims();
+    (embeddings, hidden_size)
+}
+
+#[test]
+#[ignore] // Requires model download; run with: cargo test --features ndarray -- --ignored
+fn test_embeddings_match_python() {
+    let (embeddings, hidden_size) = encode_test_sentences();
+
     let emb_data = embeddings.to_data();
     let emb_slice = emb_data.as_slice::<f32>().unwrap();
 
@@ -119,7 +95,6 @@ fn test_embeddings_match_python() {
     let rust_1: Vec<f32> = emb_slice[hidden_size..hidden_size + 10].to_vec();
     let rust_2: Vec<f32> = emb_slice[hidden_size * 2..hidden_size * 2 + 10].to_vec();
 
-    // Compare embeddings (allow small tolerance for floating point differences)
     let tolerance = 1e-4;
 
     for i in 0..10 {
@@ -150,53 +125,16 @@ fn test_embeddings_match_python() {
 #[test]
 #[ignore] // Requires model download; run with: cargo test --features ndarray -- --ignored
 fn test_cosine_similarities_match_python() {
-    let device = Default::default();
+    let (embeddings, hidden_size) = encode_test_sentences();
 
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)
-        .expect("Failed to load model");
-
-    let encodings = tokenizer
-        .encode_batch(SENTENCES.to_vec(), true)
-        .expect("Failed to tokenize");
-
-    let max_len = encodings.iter().map(|e| e.get_ids().len()).max().unwrap();
-    let batch_size = SENTENCES.len();
-
-    let mut input_ids_data = vec![0i64; batch_size * max_len];
-    let mut attention_mask_data = vec![0.0f32; batch_size * max_len];
-
-    for (i, encoding) in encodings.iter().enumerate() {
-        let ids = encoding.get_ids();
-        let mask = encoding.get_attention_mask();
-        for (j, &id) in ids.iter().enumerate() {
-            input_ids_data[i * max_len + j] = id as i64;
-            attention_mask_data[i * max_len + j] = mask[j] as f32;
-        }
-    }
-
-    let input_ids: Tensor<B, 2, Int> =
-        Tensor::<B, 1, Int>::from_data(input_ids_data.as_slice(), &device)
-            .reshape([batch_size, max_len]);
-    let attention_mask: Tensor<B, 2> =
-        Tensor::<B, 1>::from_data(attention_mask_data.as_slice(), &device)
-            .reshape([batch_size, max_len]);
-
-    let output = model.forward(input_ids, attention_mask.clone(), None);
-    let embeddings = mean_pooling(output.hidden_states, attention_mask);
-    let embeddings = normalize_l2(embeddings);
-
-    // Extract individual embeddings
-    let [_, hidden_size] = embeddings.dims();
     let emb0: Tensor<B, 1> = embeddings.clone().slice([0..1, 0..hidden_size]).squeeze();
     let emb1: Tensor<B, 1> = embeddings.clone().slice([1..2, 0..hidden_size]).squeeze();
     let emb2: Tensor<B, 1> = embeddings.clone().slice([2..3, 0..hidden_size]).squeeze();
 
-    // Compute cosine similarities
     let sim_01: f32 = cosine_similarity(emb0.clone(), emb1.clone(), 0, None).into_scalar();
     let sim_02: f32 = cosine_similarity(emb0, emb2.clone(), 0, None).into_scalar();
     let sim_12: f32 = cosine_similarity(emb1, emb2, 0, None).into_scalar();
 
-    // Allow slightly larger tolerance for accumulated floating point errors
     let tolerance = 1e-3;
 
     assert!(
@@ -224,55 +162,25 @@ fn test_cosine_similarities_match_python() {
 fn test_l6_variant_loads_and_runs() {
     let device = Default::default();
 
-    // Load L6 model
     let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, MiniLmVariant::L6, None)
         .expect("Failed to load L6 model");
 
-    // Verify it has 6 layers (not 12)
     assert_eq!(
         model.encoder.layers.len(),
         6,
         "L6 should have 6 encoder layers"
     );
 
-    // Tokenize
-    let encodings = tokenizer
-        .encode_batch(SENTENCES.to_vec(), true)
-        .expect("Failed to tokenize");
+    let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &SENTENCES, &device);
 
-    let max_len = encodings.iter().map(|e| e.get_ids().len()).max().unwrap();
-    let batch_size = SENTENCES.len();
-
-    let mut input_ids_data = vec![0i64; batch_size * max_len];
-    let mut attention_mask_data = vec![0.0f32; batch_size * max_len];
-
-    for (i, encoding) in encodings.iter().enumerate() {
-        let ids = encoding.get_ids();
-        let mask = encoding.get_attention_mask();
-        for (j, &id) in ids.iter().enumerate() {
-            input_ids_data[i * max_len + j] = id as i64;
-            attention_mask_data[i * max_len + j] = mask[j] as f32;
-        }
-    }
-
-    let input_ids: Tensor<B, 2, Int> =
-        Tensor::<B, 1, Int>::from_data(input_ids_data.as_slice(), &device)
-            .reshape([batch_size, max_len]);
-    let attention_mask: Tensor<B, 2> =
-        Tensor::<B, 1>::from_data(attention_mask_data.as_slice(), &device)
-            .reshape([batch_size, max_len]);
-
-    // Run inference
     let output = model.forward(input_ids, attention_mask.clone(), None);
     let embeddings = mean_pooling(output.hidden_states, attention_mask);
     let embeddings = normalize_l2(embeddings);
 
-    // Verify output shape
     let [b, hidden] = embeddings.dims();
     assert_eq!(b, 3, "Batch size should be 3");
     assert_eq!(hidden, 384, "Hidden size should be 384");
 
-    // Verify embeddings are normalized (L2 norm ≈ 1)
     let emb0: Tensor<B, 1> = embeddings.clone().slice([0..1, 0..hidden]).squeeze();
     let norm: f32 = emb0.clone().powf_scalar(2.0).sum().sqrt().into_scalar();
     assert!(

@@ -1,4 +1,5 @@
 use crate::embedding::{MiniLmEmbeddings, MiniLmEmbeddingsConfig};
+use crate::loader::LoadError;
 use burn::config::Config;
 use burn::module::Module;
 use burn::nn::Initializer::KaimingUniform;
@@ -7,7 +8,6 @@ use burn::nn::transformer::{
 };
 use burn::tensor::backend::Backend;
 use burn::tensor::{Bool, Int, Tensor};
-use crate::loader::LoadError;
 use std::path::Path;
 
 /// MiniLM model configuration.

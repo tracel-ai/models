@@ -1,7 +1,7 @@
 use burn::backend::ndarray::NdArray;
+use burn::tensor::Tensor;
 use burn::tensor::linalg::cosine_similarity;
-use burn::tensor::{Int, Tensor};
-use minilm_burn::{MiniLmModel, mean_pooling, normalize_l2};
+use minilm_burn::{MiniLmModel, mean_pooling, normalize_l2, tokenize_batch};
 
 type B = NdArray<f32>;
 
@@ -21,39 +21,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("\nEncoding {} sentences...", sentences.len());
 
-    // Tokenize all sentences
-    let encodings = tokenizer
-        .encode_batch(sentences.clone(), true)
-        .map_err(|e| format!("Failed to encode: {}", e))?;
-
-    // Find max length for padding
-    let max_len = encodings
-        .iter()
-        .map(|e: &tokenizers::Encoding| e.get_ids().len())
-        .max()
-        .unwrap();
-
-    // Prepare input tensors
-    let batch_size = sentences.len();
-    let mut input_ids_data = vec![0i64; batch_size * max_len];
-    let mut attention_mask_data = vec![0.0f32; batch_size * max_len];
-
-    for (i, encoding) in encodings.iter().enumerate() {
-        let ids = encoding.get_ids();
-        let mask = encoding.get_attention_mask();
-
-        for (j, &id) in ids.iter().enumerate() {
-            input_ids_data[i * max_len + j] = id as i64;
-            attention_mask_data[i * max_len + j] = mask[j] as f32;
-        }
-    }
-
-    let input_ids: Tensor<B, 2, Int> =
-        Tensor::<B, 1, Int>::from_data(input_ids_data.as_slice(), &device)
-            .reshape([batch_size, max_len]);
-    let attention_mask: Tensor<B, 2> =
-        Tensor::<B, 1>::from_data(attention_mask_data.as_slice(), &device)
-            .reshape([batch_size, max_len]);
+    // Tokenize and prepare input tensors
+    let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &sentences, &device);
 
     println!("Input shape: {:?}", input_ids.dims());
 
