@@ -108,13 +108,12 @@ fn default_cache_dir() -> PathBuf {
 }
 
 #[cfg(feature = "pretrained")]
-#[tokio::main]
-pub async fn download_hf_model(
+pub fn download_hf_model(
     model_name: &str,
     cache_dir: Option<PathBuf>,
 ) -> Result<HfModelFiles, LoadError> {
     let cache_dir = cache_dir.unwrap_or_else(default_cache_dir);
-    let api = hf_hub::api::tokio::ApiBuilder::new()
+    let api = hf_hub::api::sync::ApiBuilder::new()
         .with_cache_dir(cache_dir)
         .build()
         .map_err(|e| LoadError::Download(format!("Failed to create HF API: {}", e)))?;
@@ -122,17 +121,14 @@ pub async fn download_hf_model(
 
     let config_path = repo
         .get("config.json")
-        .await
         .map_err(|e| LoadError::Download(format!("Failed to download config: {}", e)))?;
 
     let weights_path = repo
         .get("model.safetensors")
-        .await
         .map_err(|e| LoadError::Download(format!("Failed to download weights: {}", e)))?;
 
     let tokenizer_path = repo
         .get("tokenizer.json")
-        .await
         .map_err(|e| LoadError::Download(format!("Failed to download tokenizer: {}", e)))?;
 
     Ok(HfModelFiles {
