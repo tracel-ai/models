@@ -50,7 +50,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\nTop 5 predictions for [MASK]:");
     for i in 0..5 {
         let token_id = indices[i] as u32;
-        let token = tokenizer.id_to_token(token_id).unwrap_or("?".to_string());
+        let token = tokenizer
+            .id_to_token(token_id)
+            .unwrap_or("?".to_string())
+            .trim_start_matches('▁')
+            .to_string();
         println!("  {}: \"{}\" (logit: {:.4})", i + 1, token, scores[i]);
     }
 
