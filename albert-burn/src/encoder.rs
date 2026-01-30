@@ -1,4 +1,5 @@
 use burn::module::Module;
+use burn::nn::activation::ActivationConfig;
 use burn::nn::transformer::{TransformerEncoderConfig, TransformerEncoderLayer};
 use burn::nn::{Linear, LinearConfig};
 use burn::tensor::backend::Backend;
@@ -21,13 +22,30 @@ pub struct AlbertEncoder<B: Backend> {
 impl<B: Backend> AlbertEncoder<B> {
     /// Create a new ALBERT encoder.
     pub fn new(
-        config: &TransformerEncoderConfig,
+        hidden_size: usize,
+        intermediate_size: usize,
+        num_attention_heads: usize,
         embedding_size: usize,
         num_hidden_layers: usize,
+        dropout: f64,
+        layer_norm_eps: f64,
         device: &B::Device,
     ) -> Self {
-        let projection = LinearConfig::new(embedding_size, config.d_model).init(device);
-        let layer = TransformerEncoderLayer::new(config, device);
+        let projection = LinearConfig::new(embedding_size, hidden_size).init(device);
+
+        let encoder_config = TransformerEncoderConfig::new(
+            hidden_size,
+            intermediate_size,
+            num_attention_heads,
+            1, // single layer — we loop manually for weight sharing
+        )
+        .with_dropout(dropout)
+        .with_norm_first(false)
+        .with_activation(ActivationConfig::GeluApproximate)
+        .with_layer_norm_eps(layer_norm_eps);
+
+        let layer = TransformerEncoderLayer::new(&encoder_config, device);
+
         Self {
             projection,
             layer,

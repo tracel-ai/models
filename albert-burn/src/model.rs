@@ -3,8 +3,6 @@ use crate::encoder::AlbertEncoder;
 use crate::loader::LoadError;
 use burn::config::Config;
 use burn::module::{Module, Param};
-use burn::nn::Initializer::KaimingUniform;
-use burn::nn::transformer::TransformerEncoderConfig;
 use burn::nn::{Gelu, LayerNorm, LayerNormConfig, Linear, LinearConfig};
 use burn::tensor::backend::Backend;
 use burn::tensor::{Bool, Int, Tensor};
@@ -60,9 +58,13 @@ impl AlbertConfig {
     pub fn init<B: Backend>(&self, device: &B::Device) -> AlbertModel<B> {
         let embeddings = self.embeddings_config().init(device);
         let encoder = AlbertEncoder::new(
-            &self.encoder_config(),
+            self.hidden_size,
+            self.intermediate_size,
+            self.num_attention_heads,
             self.embedding_size,
             self.num_hidden_layers,
+            self.hidden_dropout_prob,
+            self.layer_norm_eps,
             device,
         );
 
@@ -111,22 +113,6 @@ impl AlbertConfig {
             self.hidden_dropout_prob,
             self.layer_norm_eps,
         )
-    }
-
-    fn encoder_config(&self) -> TransformerEncoderConfig {
-        TransformerEncoderConfig::new(
-            self.hidden_size,
-            self.intermediate_size,
-            self.num_attention_heads,
-            1, // n_layers=1, we manage repetition ourselves
-        )
-        .with_dropout(self.hidden_dropout_prob)
-        .with_norm_first(false)
-        .with_quiet_softmax(false)
-        .with_initializer(KaimingUniform {
-            gain: 1.0 / 3.0f64.sqrt(),
-            fan_out_only: false,
-        })
     }
 }
 
