@@ -60,18 +60,55 @@ Run the fill-mask inference example:
 cargo run --example inference --features ndarray --release
 ```
 
-Output:
+Specify a variant:
 
+```bash
+cargo run --example inference --features ndarray --release -- xxlarge
 ```
-Input: "The capital of France is [MASK]."
 
-Top 5 predictions for [MASK]:
-  1: "reims" (logit: 16.3455)
-  2: "toulouse" (logit: 16.1738)
-  3: "paris" (logit: 15.8940)
-  4: "amiens" (logit: 15.6570)
-  5: "cannes" (logit: 15.6186)
-```
+### Results by variant
+
+Prompt: `"The capital of France is [MASK]."`
+
+**BaseV2** (12M params):
+
+| Rank | Token | Logit |
+|------|-------|-------|
+| 1 | reims | 16.35 |
+| 2 | toulouse | 16.17 |
+| 3 | paris | 15.89 |
+| 4 | amiens | 15.66 |
+| 5 | cannes | 15.62 |
+
+**LargeV2** (18M params):
+
+| Rank | Token | Logit |
+|------|-------|-------|
+| 1 | paris | 14.41 |
+| 2 | strasbourg | 12.26 |
+| 3 | lyon | 11.82 |
+| 4 | brest | 11.62 |
+| 5 | cannes | 11.58 |
+
+**XLargeV2** (60M params):
+
+| Rank | Token | Logit |
+|------|-------|-------|
+| 1 | paris | 16.82 |
+| 2 | lyon | 16.06 |
+| 3 | strasbourg | 15.86 |
+| 4 | toulouse | 15.02 |
+| 5 | grenoble | 13.91 |
+
+**XXLargeV2** (235M params):
+
+| Rank | Token | Logit |
+|------|-------|-------|
+| 1 | paris | 20.15 |
+| 2 | reims | 17.17 |
+| 3 | marseille | 17.02 |
+| 4 | versailles | 17.01 |
+| 5 | nantes | 16.96 |
 
 ## Testing
 
