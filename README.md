@@ -7,6 +7,7 @@ examples constructed using the [Burn] deep learning framework.
 
 | Model         | Description                   | Repository                            |
 | ------------- | ----------------------------- | ------------------------------------- |
+| [ALBERT]      | Masked language model         | [albert-burn](albert-burn/)           |
 | [Llama]       | Large language models         | [llama-burn](llama-burn/)             |
 | [MiniLM]      | Sentence embeddings           | [minilm-burn](minilm-burn/)           |
 | [MobileNetV2] | Mobile image classification   | [mobilenetv2-burn](mobilenetv2-burn/) |
@@ -51,6 +52,7 @@ respective repositories for specific license information.
 
 <!-- Official Models -->
 
+[ALBERT]: https://arxiv.org/abs/1909.11942
 [Llama]: https://github.com/meta-llama/llama3
 [MiniLM]: https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2
 [MobileNetV2]: https://arxiv.org/abs/1801.04381
