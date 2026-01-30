@@ -8,7 +8,7 @@
 //!
 //! ```ignore
 //! use albert_burn::{AlbertMaskedLM, tokenize_batch};
-//! use burn::backend::NdArray;
+//! use burn::backend::ndarray::NdArray;
 //!
 //! type B = NdArray<f32>;
 //!

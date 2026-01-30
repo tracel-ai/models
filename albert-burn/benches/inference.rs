@@ -109,10 +109,8 @@ macro_rules! bench_backend {
                     $state.with(|s| {
                         let s = s.borrow();
                         let s = s.as_ref().expect("state not initialized");
-                        // TODO: Implement inference call
-                        // Consider: should we include argmax/top-k in the measurement,
-                        // or only the raw forward pass? Pure forward is more comparable
-                        // across backends since post-processing is CPU-bound.
+                        // Benchmark only the raw forward pass, excluding argmax/top-k
+                        // post-processing so results are comparable across backends.
                         s.model.forward(
                             s.input_ids.clone(),
                             s.attention_mask.clone(),
