@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Load pretrained ALBERT model and tokenizer
     println!("Loading ALBERT model...");
-    let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(&device, None)?;
+    let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(&device, Default::default(), None)?;
 
     // Fill-mask example
     let sentence = "The capital of France is [MASK].";

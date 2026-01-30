@@ -13,7 +13,7 @@
 //! type B = NdArray<f32>;
 //!
 //! let device = Default::default();
-//! let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(&device, None)?;
+//! let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(&device, Default::default(), None)?;
 //! ```
 
 mod embedding;

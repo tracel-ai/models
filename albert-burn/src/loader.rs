@@ -137,6 +137,33 @@ fn default_cache_dir() -> PathBuf {
         .join("burn-models")
 }
 
+/// Available pretrained ALBERT model variants.
+#[cfg(feature = "pretrained")]
+#[derive(Debug, Clone, Copy, Default)]
+pub enum AlbertVariant {
+    /// albert-base-v2: 12M parameters, hidden_size=768.
+    #[default]
+    BaseV2,
+    /// albert-large-v2: 18M parameters, hidden_size=1024.
+    LargeV2,
+    /// albert-xlarge-v2: 60M parameters, hidden_size=2048.
+    XLargeV2,
+    /// albert-xxlarge-v2: 235M parameters, hidden_size=4096.
+    XXLargeV2,
+}
+
+#[cfg(feature = "pretrained")]
+impl AlbertVariant {
+    fn model_id(&self) -> &'static str {
+        match self {
+            AlbertVariant::BaseV2 => "albert/albert-base-v2",
+            AlbertVariant::LargeV2 => "albert/albert-large-v2",
+            AlbertVariant::XLargeV2 => "albert/albert-xlarge-v2",
+            AlbertVariant::XXLargeV2 => "albert/albert-xxlarge-v2",
+        }
+    }
+}
+
 #[cfg(feature = "pretrained")]
 pub fn download_hf_model(
     model_name: &str,
@@ -178,11 +205,15 @@ impl<B: Backend> AlbertMaskedLM<B> {
     ///
     /// Downloads from HuggingFace Hub (cached after first download).
     /// Returns the model and tokenizer.
+    ///
+    /// - `variant`: Model size. Default is `AlbertVariant::BaseV2`.
+    /// - `cache_dir`: Optional cache directory. Defaults to system cache dir.
     pub fn pretrained(
         device: &B::Device,
+        variant: AlbertVariant,
         cache_dir: Option<PathBuf>,
     ) -> Result<(Self, tokenizers::Tokenizer), LoadError> {
-        let files = download_hf_model("albert/albert-base-v2", cache_dir)?;
+        let files = download_hf_model(variant.model_id(), cache_dir)?;
 
         let config = AlbertConfig::load_from_hf(&files.config_path)?;
         let mut model = config.init_masked_lm(device);

@@ -3,17 +3,23 @@
 ALBERT (A Lite BERT) masked language model implementation in Rust using
 [Burn](https://github.com/tracel-ai/burn).
 
-Loads the pretrained [albert-base-v2](https://huggingface.co/albert/albert-base-v2) model from
-HuggingFace.
-
 ALBERT uses factorized embedding parameterization and cross-layer parameter sharing to reduce model
 size while maintaining performance.
+
+Supports all v2 variants from HuggingFace:
+
+| Variant | Hidden Size | Parameters | HuggingFace |
+|---------|------------|------------|-------------|
+| BaseV2 (default) | 768 | ~12M | [albert-base-v2](https://huggingface.co/albert/albert-base-v2) |
+| LargeV2 | 1,024 | ~18M | [albert-large-v2](https://huggingface.co/albert/albert-large-v2) |
+| XLargeV2 | 2,048 | ~60M | [albert-xlarge-v2](https://huggingface.co/albert/albert-xlarge-v2) |
+| XXLargeV2 | 4,096 | ~235M | [albert-xxlarge-v2](https://huggingface.co/albert/albert-xxlarge-v2) |
 
 ## Usage
 
 ```rust
 use burn::backend::ndarray::NdArray;
-use albert_burn::{AlbertMaskedLM, tokenize_batch};
+use albert_burn::{AlbertMaskedLM, AlbertVariant, tokenize_batch};
 
 type B = NdArray<f32>;
 
@@ -21,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let device = Default::default();
 
     // Load pretrained model and tokenizer (downloads from HuggingFace)
-    let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(&device, None)?;
+    let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(&device, AlbertVariant::BaseV2, None)?;
 
     // Tokenize input with [MASK] token
     let sentence = "The capital of France is [MASK].";
