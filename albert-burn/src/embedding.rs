@@ -1,9 +1,6 @@
 use burn::config::Config;
 use burn::module::Module;
-use burn::nn::{
-    Dropout, DropoutConfig, Embedding, EmbeddingConfig, LayerNorm, LayerNormConfig, Linear,
-    LinearConfig,
-};
+use burn::nn::{Dropout, DropoutConfig, Embedding, EmbeddingConfig, LayerNorm, LayerNormConfig};
 use burn::tensor::backend::Backend;
 use burn::tensor::{Int, Tensor};
 
@@ -14,22 +11,19 @@ pub(crate) struct AlbertEmbeddingsConfig {
     pub max_position_embeddings: usize,
     pub type_vocab_size: usize,
     pub embedding_size: usize,
-    pub hidden_size: usize,
     pub hidden_dropout_prob: f64,
     pub layer_norm_eps: f64,
 }
 
 /// ALBERT embeddings with factorized parameterization.
 ///
-/// Uses a smaller embedding dimension (`embedding_size`) projected up to `hidden_size`
-/// via a linear layer, reducing total embedding parameters.
+/// Outputs `embedding_size`-dimensional vectors. The projection to `hidden_size`
+/// is performed by the encoder (matching HuggingFace's architecture).
 #[derive(Module, Debug)]
 pub struct AlbertEmbeddings<B: Backend> {
     word_embeddings: Embedding<B>,
     position_embeddings: Embedding<B>,
     token_type_embeddings: Embedding<B>,
-    /// Projects from embedding_size to hidden_size.
-    projection: Linear<B>,
     layer_norm: LayerNorm<B>,
     dropout: Dropout,
 }
@@ -42,7 +36,6 @@ impl AlbertEmbeddingsConfig {
             EmbeddingConfig::new(self.max_position_embeddings, self.embedding_size).init(device);
         let token_type_embeddings =
             EmbeddingConfig::new(self.type_vocab_size, self.embedding_size).init(device);
-        let projection = LinearConfig::new(self.embedding_size, self.hidden_size).init(device);
         let layer_norm = LayerNormConfig::new(self.embedding_size)
             .with_epsilon(self.layer_norm_eps)
             .init(device);
@@ -52,7 +45,6 @@ impl AlbertEmbeddingsConfig {
             word_embeddings,
             position_embeddings,
             token_type_embeddings,
-            projection,
             layer_norm,
             dropout,
         }
@@ -65,7 +57,9 @@ impl<B: Backend> AlbertEmbeddings<B> {
         self.word_embeddings.weight.val()
     }
 
-    /// Forward pass: combine embeddings, layer norm, project to hidden_size, dropout.
+    /// Forward pass: combine embeddings, layer norm, dropout.
+    ///
+    /// Output shape: `[batch_size, seq_len, embedding_size]`.
     pub fn forward(
         &self,
         input_ids: Tensor<B, 2, Int>,
@@ -87,7 +81,6 @@ impl<B: Backend> AlbertEmbeddings<B> {
 
         let embeddings = word_embeds + position_embeds + token_type_embeds;
         let embeddings = self.layer_norm.forward(embeddings);
-        let embeddings = self.projection.forward(embeddings);
         self.dropout.forward(embeddings)
     }
 }

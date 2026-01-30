@@ -55,10 +55,10 @@ pub fn load_pretrained<B: Backend>(
     // HF keys start with "albert." for the base model, which matches our Burn field name.
     // We keep the "albert." prefix and only remap the inner structure.
     let key_mappings: Vec<(&str, &str)> = vec![
-        // Embedding projection lives under encoder in HF but under embeddings in Burn
+        // Embedding projection: HF and Burn both have it under encoder
         (
             "albert\\.encoder\\.embedding_hidden_mapping_in",
-            "albert.embeddings.projection",
+            "albert.encoder.projection",
         ),
         // Shared layer attention mappings
         (
@@ -102,7 +102,10 @@ pub fn load_pretrained<B: Backend>(
         // MLM head (HF uses "predictions.*", Burn uses "mlm_*")
         ("predictions\\.dense", "mlm_dense"),
         ("predictions\\.LayerNorm", "mlm_layer_norm"),
-        ("predictions\\.bias", "mlm_decoder_bias"),
+        // predictions.bias in safetensors has non-zero values, but in HF it's tied to
+        // predictions.decoder.bias which ends up as zeros after from_pretrained(). We load
+        // the decoder.bias (zeros) to match HF's runtime behavior.
+        ("predictions\\.decoder\\.bias", "mlm_decoder_bias"),
     ];
 
     let remapper =

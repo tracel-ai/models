@@ -1,14 +1,17 @@
 use burn::module::Module;
 use burn::nn::transformer::{TransformerEncoderConfig, TransformerEncoderLayer};
+use burn::nn::{Linear, LinearConfig};
 use burn::tensor::backend::Backend;
 use burn::tensor::{Bool, Tensor};
 
 /// ALBERT encoder with cross-layer parameter sharing.
 ///
-/// Contains a single `TransformerEncoderLayer` that is applied
-/// `num_hidden_layers` times, sharing all parameters across layers.
+/// Contains a projection from `embedding_size` to `hidden_size` followed by
+/// a single `TransformerEncoderLayer` applied `num_hidden_layers` times.
 #[derive(Module, Debug)]
 pub struct AlbertEncoder<B: Backend> {
+    /// Projects from embedding_size to hidden_size.
+    pub projection: Linear<B>,
     /// The single shared transformer layer.
     pub layer: TransformerEncoderLayer<B>,
     /// Number of times to apply the shared layer.
@@ -16,27 +19,25 @@ pub struct AlbertEncoder<B: Backend> {
 }
 
 impl<B: Backend> AlbertEncoder<B> {
-    /// Create a new ALBERT encoder from a transformer encoder config.
-    ///
-    /// The config's `n_layers` field is ignored; `num_hidden_layers` controls repetition.
+    /// Create a new ALBERT encoder.
     pub fn new(
         config: &TransformerEncoderConfig,
+        embedding_size: usize,
         num_hidden_layers: usize,
         device: &B::Device,
     ) -> Self {
+        let projection = LinearConfig::new(embedding_size, config.d_model).init(device);
         let layer = TransformerEncoderLayer::new(config, device);
         Self {
+            projection,
             layer,
             num_hidden_layers,
         }
     }
 
-    /// Forward pass: apply the shared layer `num_hidden_layers` times.
-    pub fn forward(
-        &self,
-        mut x: Tensor<B, 3>,
-        mask_pad: Option<Tensor<B, 2, Bool>>,
-    ) -> Tensor<B, 3> {
+    /// Forward pass: project embeddings, then apply the shared layer `num_hidden_layers` times.
+    pub fn forward(&self, x: Tensor<B, 3>, mask_pad: Option<Tensor<B, 2, Bool>>) -> Tensor<B, 3> {
+        let mut x = self.projection.forward(x);
         for _ in 0..self.num_hidden_layers {
             x = self.layer.forward(x, mask_pad.clone(), None);
         }

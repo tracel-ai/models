@@ -18,8 +18,8 @@ wgpu = ["burn/wgpu"]
 cuda = ["burn/cuda"]
 
 [dependencies]
-burn = { path = "../../chore-nn-transformer/crates/burn", default-features = false, features = ["std"] }
-burn-store = { path = "../../chore-nn-transformer/crates/burn-store", features = ["std", "safetensors"] }
+burn = { git = "https://github.com/tracel-ai/burn.git", default-features = false, features = ["std"] }
+burn-store = { git = "https://github.com/tracel-ai/burn.git", features = ["std", "safetensors"] }
 
 # Tokenizer
 tokenizers = { version = "0.19.1", default-features = false, features = ["onig"] }

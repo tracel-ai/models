@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for i in 0..5 {
         let token_id = indices[i] as u32;
         let token = tokenizer.id_to_token(token_id).unwrap_or("?".to_string());
-        println!("  {}: \"{}\" (logit: {:.2})", i + 1, token, scores[i]);
+        println!("  {}: \"{}\" (logit: {:.4})", i + 1, token, scores[i]);
     }
 
     Ok(())

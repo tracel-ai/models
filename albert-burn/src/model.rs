@@ -59,7 +59,12 @@ pub struct AlbertOutput<B: Backend> {
 impl AlbertConfig {
     pub fn init<B: Backend>(&self, device: &B::Device) -> AlbertModel<B> {
         let embeddings = self.embeddings_config().init(device);
-        let encoder = AlbertEncoder::new(&self.encoder_config(), self.num_hidden_layers, device);
+        let encoder = AlbertEncoder::new(
+            &self.encoder_config(),
+            self.embedding_size,
+            self.num_hidden_layers,
+            device,
+        );
 
         AlbertModel {
             embeddings,
@@ -103,7 +108,6 @@ impl AlbertConfig {
             self.max_position_embeddings,
             self.type_vocab_size,
             self.embedding_size,
-            self.hidden_size,
             self.hidden_dropout_prob,
             self.layer_norm_eps,
         )
