@@ -18,8 +18,8 @@ wgpu = ["burn/wgpu"]
 cuda = ["burn/cuda"]
 
 [dependencies]
-burn = { git = "https://github.com/antimora/burn.git", branch = "feat/nn/transformer", default-features = false, features = ["std"] }
-burn-store = { git = "https://github.com/antimora/burn.git", branch = "feat/nn/transformer", features = ["std", "safetensors"] }
+burn = { version = "0.21.0", git = "https://github.com/tracel-ai/burn.git", rev = "5e5557ce52e9c434fe735217f91c4f4d48d3d151", default-features = false, features = ["std"] }
+burn-store = { version = "0.21.0", git = "https://github.com/tracel-ai/burn.git", rev = "5e5557ce52e9c434fe735217f91c4f4d48d3d151", features = ["std", "safetensors"] }
 
 # Tokenizer
 tokenizers = { version = "0.19.1", default-features = false, features = ["onig"] }
