@@ -57,13 +57,13 @@ Backend features:
 Run the fill-mask inference example:
 
 ```bash
-cargo run --example inference --features ndarray --release
+cargo run --example inference --features "pretrained,ndarray" --release
 ```
 
 Specify a variant:
 
 ```bash
-cargo run --example inference --features ndarray --release -- xxlarge
+cargo run --example inference --features "pretrained,ndarray" --release -- xxlarge
 ```
 
 ### Results by variant

@@ -25,29 +25,6 @@ impl std::fmt::Display for LoadError {
 impl std::error::Error for LoadError {}
 
 /// Load pre-trained weights from a safetensors file into the masked LM model.
-///
-/// # Key Mappings (HuggingFace ALBERT → Burn)
-///
-/// Embedding keys:
-/// - `albert.embeddings.*` → `albert.embeddings.*`
-/// - `albert.encoder.embedding_hidden_mapping_in` → `albert.embeddings.projection`
-/// - `albert.embeddings.LayerNorm` → `albert.embeddings.layer_norm`
-///
-/// Encoder keys (shared layer):
-/// - `albert.encoder.albert_layer_groups.0.albert_layers.0.attention.query` → `albert.encoder.layer.mha.query`
-/// - `albert.encoder.albert_layer_groups.0.albert_layers.0.attention.key` → `albert.encoder.layer.mha.key`
-/// - `albert.encoder.albert_layer_groups.0.albert_layers.0.attention.value` → `albert.encoder.layer.mha.value`
-/// - `albert.encoder.albert_layer_groups.0.albert_layers.0.attention.dense` → `albert.encoder.layer.mha.output`
-/// - `albert.encoder.albert_layer_groups.0.albert_layers.0.attention.LayerNorm` → `albert.encoder.layer.norm_1`
-/// - `albert.encoder.albert_layer_groups.0.albert_layers.0.ffn` → `albert.encoder.layer.pwff.linear_inner`
-/// - `albert.encoder.albert_layer_groups.0.albert_layers.0.ffn_output` → `albert.encoder.layer.pwff.linear_outer`
-/// - `albert.encoder.albert_layer_groups.0.albert_layers.0.full_layer_layer_norm` → `albert.encoder.layer.norm_2`
-///
-/// MLM head keys:
-/// - `predictions.dense` → `mlm_dense`
-/// - `predictions.LayerNorm` → `mlm_layer_norm`
-/// - `predictions.decoder` → `mlm_decoder`
-/// - `predictions.bias` → `mlm_bias`
 pub fn load_pretrained<B: Backend>(
     model: &mut AlbertMaskedLM<B>,
     checkpoint_path: impl AsRef<Path>,
