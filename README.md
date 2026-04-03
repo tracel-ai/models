@@ -32,6 +32,7 @@ Explore the curated list of models developed by the community ♥.
 | [RWKV v7]             | Hybrid transformer/RNN LLM | [dymat/rwkv-burn]                      |
 | [SSD]                 | Object detection           | [catch-twenty-two/rust-ssd]            |
 | [DeepSeek-OCR-2]      | OCR inference              | [huahuadeliaoliao/DeepSeek-OCR-2-burn] |
+| SpeechAligner         | Speech model training      | [dnvt/burn-speech-training]            |
 
 ## License Information
 
@@ -83,3 +84,4 @@ respective repositories for specific license information.
 [dymat/rwkv-burn]: https://github.com/dymat/rwkv-burn
 [catch-twenty-two/rust-ssd]: https://github.com/catch-twenty-two/rust-ssd
 [huahuadeliaoliao/DeepSeek-OCR-2-burn]: https://github.com/huahuadeliaoliao/DeepSeek-OCR-2-burn
+[dnvt/burn-speech-training]: https://github.com/dnvt/burn-speech-training
