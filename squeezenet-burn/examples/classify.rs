@@ -34,6 +34,7 @@ fn main() {
     let mut img_array = [[[0.0; WIDTH]; HEIGHT]; 3];
 
     // Iterate over the pixels and populate the array
+    #[allow(clippy::needless_range_loop)] // parallel index into three channel arrays
     for y in 0..224usize {
         for x in 0..224usize {
             let pixel = resized_img.get_pixel(x as u32, y as u32);

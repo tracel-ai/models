@@ -7,6 +7,10 @@
 //!
 //! Run with: `cargo test -- --ignored`
 
+// Reference constants are copied verbatim from the Python script so they can
+// be diffed against future regenerations.
+#![allow(clippy::excessive_precision, clippy::needless_range_loop)]
+
 use burn::tensor::Tensor;
 use burn::tensor::linalg::cosine_similarity;
 use burn_flex::Flex;

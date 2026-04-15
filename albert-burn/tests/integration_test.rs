@@ -7,6 +7,15 @@
 //!
 //! Run with: `cargo test --features pretrained -- --ignored`
 
+// Reference constants are copied verbatim from the Python script so they can
+// be diffed against future regenerations; loops index into aligned rust/python
+// arrays where a range-based iterator would obscure the pairing.
+#![allow(
+    clippy::excessive_precision,
+    clippy::needless_range_loop,
+    clippy::single_range_in_vec_init
+)]
+
 use burn::prelude::ElementConversion;
 use burn::tensor::Tensor;
 use burn_flex::Flex;
