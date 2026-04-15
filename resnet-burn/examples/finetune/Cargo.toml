@@ -2,24 +2,17 @@
 authors = ["guillaumelagrange <lagrange.guillaume.1@gmail.com>"]
 name = "finetune"
 license.workspace = true
-version.workspace = true
-edition.workspace = true
-
-[features]
-default = ["burn/default"]
-tch-gpu = ["burn/tch"]
-wgpu = ["burn/wgpu"]
-cuda = ["burn/cuda"]
+version = "0.2.0"
+edition = "2021"
+publish = false
 
 [dependencies]
-resnet-burn = { path = "../../resnet", features = ["pretrained", "train"] }
-burn = { workspace = true, features = ["train", "vision", "network"] }
+resnet-burn = { path = "../..", features = ["pretrained", "train"] }
+burn        = { workspace = true, features = ["train", "vision", "network"] }
+burn-flex   = { workspace = true }
 
-# Dataset files
-csv = "1"
-flate2 = "1"
-rand = { version = "0.9", default-features = false, features = [
-    "std_rng",
-] }
-serde = { version = "1", features = ["std", "derive"] }
-tar = "0.4"
+csv    = { workspace = true }
+flate2 = { workspace = true }
+rand   = { workspace = true, features = ["std_rng"] }
+serde  = { workspace = true, features = ["std", "derive"] }
+tar    = { workspace = true }

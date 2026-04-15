@@ -1,47 +1,33 @@
 [package]
 authors = ["Dilshod Tadjibaev (@antimora)"]
-license = "MIT OR Apache-2.0"
 name = "minilm-burn"
 version = "0.1.0"
 edition = "2024"
+license.workspace = true
 description = "MiniLM sentence transformer with Burn"
 
 [features]
 default = ["pretrained"]
 pretrained = ["burn/network", "dep:dirs", "dep:hf-hub"]
 
-# Backend selection
-flex = ["dep:burn-flex"]
-tch-cpu = ["burn/tch"]
-tch-gpu = ["burn/tch"]
-wgpu = ["burn/wgpu"]
-cuda = ["burn/cuda"]
-
 [dependencies]
-burn = { version = "0.21.0-pre.3", default-features = false, features = ["std"] }
-burn-store = { version = "0.21.0-pre.3", features = ["std", "safetensors"] }
-burn-flex = { version = "0.21.0-pre.3", optional = true }
+burn       = { workspace = true, features = ["std"] }
+burn-store = { workspace = true, features = ["std", "safetensors"] }
 
-# Tokenizer
-tokenizers = { version = "0.22", default-features = false, features = ["onig"] }
-
-# HuggingFace model download
-hf-hub = { version = "0.5", optional = true }
-dirs = { version = "6", optional = true }
-
-# Serialization
-serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
-serde_json = "1"
-
-
+tokenizers = { workspace = true, features = ["onig"] }
+hf-hub     = { workspace = true, optional = true }
+dirs       = { workspace = true, optional = true }
+serde      = { workspace = true, features = ["derive", "alloc"] }
+serde_json = { workspace = true }
 
 [dev-dependencies]
-clap = { version = "4", features = ["derive"] }
-criterion = "0.8"
+burn-flex = { workspace = true }
+clap      = { workspace = true }
+criterion = { workspace = true }
 
 [[example]]
 name = "inference"
-required-features = ["pretrained", "flex"]
+required-features = ["pretrained"]
 
 [[bench]]
 name = "inference"

@@ -5,9 +5,7 @@
 //! uv run --with transformers --with torch --with sentencepiece --with protobuf scripts/generate_reference.py
 //! ```
 //!
-//! Run with: `cargo test --features "pretrained,flex" -- --ignored`
-
-#![cfg(feature = "flex")]
+//! Run with: `cargo test --features pretrained -- --ignored`
 
 use burn::prelude::ElementConversion;
 use burn::tensor::Tensor;

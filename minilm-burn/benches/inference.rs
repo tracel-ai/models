@@ -1,55 +1,14 @@
-//! Benchmarks for MiniLM inference across backends.
+//! Benchmarks for MiniLM inference.
 //!
-//! Run for each backend:
-//!   cargo bench --features flex
-//!   cargo bench --features wgpu
-//!   cargo bench --features tch-cpu
-//!
+//! Run with: `cargo bench -p minilm-burn`
 //! Results are saved to target/criterion/ for comparison.
 
 use burn::tensor::Tensor;
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2, tokenize_batch};
 
-// Ensure exactly one backend is selected
-#[cfg(any(
-    all(feature = "flex", feature = "wgpu"),
-    all(feature = "flex", feature = "tch-cpu"),
-    all(feature = "flex", feature = "cuda"),
-    all(feature = "wgpu", feature = "tch-cpu"),
-    all(feature = "wgpu", feature = "cuda"),
-    all(feature = "tch-cpu", feature = "cuda"),
-))]
-compile_error!(
-    "Only one backend feature may be enabled for benchmarks (flex, wgpu, tch-cpu, cuda)."
-);
-
-// Backend selection via features
-#[cfg(feature = "flex")]
-mod backend {
-    pub type B = burn_flex::Flex;
-    pub const NAME: &str = "flex";
-}
-
-#[cfg(feature = "wgpu")]
-mod backend {
-    pub type B = burn::backend::wgpu::Wgpu;
-    pub const NAME: &str = "wgpu";
-}
-
-#[cfg(feature = "tch-cpu")]
-mod backend {
-    pub type B = burn::backend::libtorch::LibTorch;
-    pub const NAME: &str = "tch-cpu";
-}
-
-#[cfg(feature = "cuda")]
-mod backend {
-    pub type B = burn::backend::cuda::Cuda;
-    pub const NAME: &str = "cuda";
-}
-
-use backend::{B, NAME};
+type B = burn_flex::Flex;
+const NAME: &str = "flex";
 
 fn bench_forward(c: &mut Criterion) {
     let device = Default::default();

@@ -1,6 +1,7 @@
 use std::time::Instant;
 
 use burn::tensor::{backend::Backend, Device};
+use burn_flex::{Flex, FlexDevice};
 use clap::Parser;
 use llama_burn::{
     llama::{Llama, LlamaConfig},
@@ -93,7 +94,6 @@ pub fn generate<B: Backend, T: Tokenizer>(
 pub fn chat<B: Backend>(args: Config, device: Device<B>) {
     let mut prompt = args.prompt;
 
-    // Sampling strategy
     let mut sampler = if args.temperature > 0.0 {
         Sampler::new_top_p(args.top_p, args.seed)
     } else {
@@ -102,11 +102,9 @@ pub fn chat<B: Backend>(args: Config, device: Device<B>) {
 
     #[cfg(feature = "tiny")]
     {
-        // TinyLlama-1.1B Chat v1.0
         let mut llama = LlamaConfig::tiny_llama_pretrained::<B>(args.max_seq_len, &device).unwrap();
         println!("Processing prompt: {}", prompt);
 
-        // Prompt formatting for chat model
         prompt = format!(
             "<|system|>\nYou are a friendly chatbot who always responds in the style of a pirate</s>\n<|user|>\n{prompt}</s>\n<|assistant|>\n"
         );
@@ -122,7 +120,6 @@ pub fn chat<B: Backend>(args: Config, device: Device<B>) {
 
     #[cfg(feature = "llama3")]
     {
-        // Llama-3-8B-Instruct or Llama-3.1-8B-Instruct
         let mut llama = match args.model_version {
             Llama3::V3Instruct => {
                 LlamaConfig::llama3_8b_pretrained::<B>(args.max_seq_len, &device).unwrap()
@@ -139,7 +136,6 @@ pub fn chat<B: Backend>(args: Config, device: Device<B>) {
         };
         println!("Processing prompt: {}", prompt);
 
-        // Prompt formatting for chat model
         prompt = format!(
             "<|start_header_id|>system<|end_header_id|>\n\nA chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
         );
@@ -154,75 +150,7 @@ pub fn chat<B: Backend>(args: Config, device: Device<B>) {
     }
 }
 
-#[cfg(feature = "tch-gpu")]
-mod tch_gpu {
-    use super::*;
-    use burn::{
-        backend::{libtorch::LibTorchDevice, LibTorch},
-        tensor::f16,
-    };
-
-    pub fn run(args: Config) {
-        #[cfg(not(target_os = "macos"))]
-        let device = LibTorchDevice::Cuda(0);
-        #[cfg(target_os = "macos")]
-        let device = LibTorchDevice::Mps;
-
-        chat::<LibTorch<f16>>(args, device);
-    }
-}
-
-#[cfg(feature = "tch-cpu")]
-mod tch_cpu {
-    use super::*;
-    use burn::backend::{libtorch::LibTorchDevice, LibTorch};
-
-    pub fn run(args: Config) {
-        let device = LibTorchDevice::Cpu;
-
-        chat::<LibTorch>(args, device);
-    }
-}
-
-#[cfg(feature = "vulkan")]
-mod wgpu {
-    use super::*;
-    use burn::backend::wgpu::{Vulkan, WgpuDevice};
-    use burn::tensor::f16;
-
-    pub fn run(args: Config) {
-        let device = WgpuDevice::default();
-
-        chat::<Vulkan<f16, i32>>(args, device);
-    }
-}
-
-#[cfg(feature = "cuda")]
-mod cuda {
-    use super::*;
-    use burn::{
-        backend::{cuda::CudaDevice, Cuda},
-        tensor::f16,
-    };
-
-    pub fn run(args: Config) {
-        let device = CudaDevice::default();
-
-        chat::<Cuda<f16, i32>>(args, device);
-    }
-}
-
-#[allow(unused_variables)]
 pub fn main() {
-    // Parse arguments
     let args = Config::parse();
-
-    #[cfg(feature = "tch-gpu")]
-    tch_gpu::run(args);
-    #[cfg(feature = "tch-cpu")]
-    tch_cpu::run(args);
-    #[cfg(feature = "vulkan")]
-    wgpu::run(args);
-    #[cfg(feature = "cuda")]
-    cuda::run(args);
+    chat::<Flex>(args, FlexDevice);
 }

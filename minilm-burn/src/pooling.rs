@@ -50,7 +50,7 @@ pub fn normalize_l2<B: Backend>(embeddings: Tensor<B, 2>) -> Tensor<B, 2> {
     vector_normalize(embeddings, Norm::L2, 1, 1e-12)
 }
 
-#[cfg(all(test, feature = "flex"))]
+#[cfg(test)]
 mod tests {
     use super::*;
     use burn_flex::Flex;

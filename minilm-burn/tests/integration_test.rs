@@ -5,9 +5,7 @@
 //! uv run --with sentence-transformers scripts/generate_reference.py
 //! ```
 //!
-//! Run with: `cargo test --features flex -- --ignored`
-
-#![cfg(feature = "flex")]
+//! Run with: `cargo test -- --ignored`
 
 use burn_flex::Flex;
 use burn::tensor::Tensor;
