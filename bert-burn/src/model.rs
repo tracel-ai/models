@@ -10,6 +10,7 @@ use burn::module::Module;
 use burn::nn::transformer::{
     TransformerEncoder, TransformerEncoderConfig, TransformerEncoderInput,
 };
+use burn::nn::activation::ActivationConfig;
 use burn::nn::Initializer::KaimingUniform;
 use burn::nn::{LayerNorm, LayerNormConfig, Linear, LinearConfig};
 use burn::tensor::activation::gelu;
@@ -126,6 +127,8 @@ impl BertModelConfig {
                 gain: 1.0 / libm::sqrt(3.0),
                 fan_out_only: false,
             },
+            activation: ActivationConfig::Gelu,
+            layer_norm_eps: self.layer_norm_eps,
         }
     }
 }

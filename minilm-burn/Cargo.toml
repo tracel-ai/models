@@ -18,8 +18,8 @@ wgpu = ["burn/wgpu"]
 cuda = ["burn/cuda"]
 
 [dependencies]
-burn = { version = "0.20.0", default-features = false, features = ["std"] }
-burn-store = { version = "0.20.0", features = ["std", "safetensors"] }
+burn = { version = "0.21.0-pre.3", default-features = false, features = ["std"] }
+burn-store = { version = "0.21.0-pre.3", features = ["std", "safetensors"] }
 
 # Tokenizer
 tokenizers = { version = "0.19.1", default-features = false, features = ["onig"] }

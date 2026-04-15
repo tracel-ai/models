@@ -181,14 +181,14 @@ impl BasicBlockConfig {
         // conv3x3
         let conv1 = Conv2dConfig::new([in_channels, out_channels], [3, 3])
             .with_stride([stride, stride])
-            .with_padding(PaddingConfig2d::Explicit(1, 1))
+            .with_padding(PaddingConfig2d::Explicit(1, 1, 1, 1))
             .with_bias(false);
         let bn1 = BatchNormConfig::new(out_channels);
 
         // conv3x3
         let conv2 = Conv2dConfig::new([out_channels, out_channels], [3, 3])
             .with_stride([1, 1])
-            .with_padding(PaddingConfig2d::Explicit(1, 1))
+            .with_padding(PaddingConfig2d::Explicit(1, 1, 1, 1))
             .with_bias(false);
         let bn2 = BatchNormConfig::new(out_channels);
 
@@ -255,19 +255,19 @@ impl BottleneckConfig {
         // conv1x1
         let conv1 = Conv2dConfig::new([in_channels, int_out_channels], [1, 1])
             .with_stride([1, 1])
-            .with_padding(PaddingConfig2d::Explicit(0, 0))
+            .with_padding(PaddingConfig2d::Explicit(0, 0, 0, 0))
             .with_bias(false);
         let bn1 = BatchNormConfig::new(int_out_channels);
         // conv3x3
         let conv2 = Conv2dConfig::new([int_out_channels, int_out_channels], [3, 3])
             .with_stride([stride, stride])
-            .with_padding(PaddingConfig2d::Explicit(1, 1))
+            .with_padding(PaddingConfig2d::Explicit(1, 1, 1, 1))
             .with_bias(false);
         let bn2 = BatchNormConfig::new(int_out_channels);
         // conv1x1
         let conv3 = Conv2dConfig::new([int_out_channels, out_channels], [1, 1])
             .with_stride([1, 1])
-            .with_padding(PaddingConfig2d::Explicit(0, 0))
+            .with_padding(PaddingConfig2d::Explicit(0, 0, 0, 0))
             .with_bias(false);
         let bn3 = BatchNormConfig::new(out_channels);
 
@@ -335,7 +335,7 @@ impl DownsampleConfig {
         // conv1x1
         let conv = Conv2dConfig::new([in_channels, out_channels], [1, 1])
             .with_stride([stride, stride])
-            .with_padding(PaddingConfig2d::Explicit(0, 0))
+            .with_padding(PaddingConfig2d::Explicit(0, 0, 0, 0))
             .with_bias(false);
         let bn = BatchNormConfig::new(out_channels);
 

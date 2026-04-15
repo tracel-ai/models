@@ -55,7 +55,7 @@ impl InvertedResidualConfig {
         let pw_linear = PointWiseLinear {
             conv: Conv2dConfig::new([hidden_dim, self.oup], [1, 1])
                 .with_stride([1, 1])
-                .with_padding(burn::nn::PaddingConfig2d::Explicit(0, 0))
+                .with_padding(burn::nn::PaddingConfig2d::Explicit(0, 0, 0, 0))
                 .with_bias(false)
                 .init(device),
             norm: BatchNormConfig::new(self.oup).init(device),

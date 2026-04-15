@@ -5,7 +5,8 @@ use crate::embedding::BertEmbeddingsRecord;
 use crate::model::BertModelConfig;
 use crate::pooler::PoolerRecord;
 use burn::config::Config;
-use burn::module::{ConstantRecord, Param};
+use burn::module::{ConstantRecord, Module, Param};
+use burn::nn::activation::ActivationConfig;
 use burn::nn::attention::MultiHeadAttentionRecord;
 use burn::nn::transformer::{
     PositionWiseFeedForwardRecord, TransformerEncoderLayerRecord, TransformerEncoderRecord,
@@ -91,7 +92,7 @@ pub(crate) fn load_intermediate_layer_safetensor<B: Backend>(
         linear_inner,
         linear_outer,
         dropout: ConstantRecord::new(),
-        gelu: ConstantRecord::new(),
+        activation: ActivationConfig::Gelu.init(device).into_record(),
     }
 }
 

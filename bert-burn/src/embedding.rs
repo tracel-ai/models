@@ -74,7 +74,7 @@ impl<B: Backend> BertEmbeddings<B> {
         // The position embeddings thus start from padding_idx + 1 to max_position_embeddings: [2 - 514)
         // https://github.com/facebookresearch/fairseq/issues/1187
 
-        let seq_length = input_shape.dims[1];
+        let seq_length = input_shape.dims::<2>()[1];
         let mut position_ids_tensor: Tensor<B, 2, Int> =
             Tensor::arange(0..seq_length as i64, device)
                 .reshape([1, seq_length])

@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 
-use burn_import::onnx::ModelGen;
+use burn_import::onnx::{LoadStrategy, ModelGen};
 
 const LABEL_SOURCE_FILE: &str = "src/model/label.txt";
 const LABEL_DEST_FILE: &str = "model/label.rs";
@@ -26,14 +26,18 @@ fn main() {
         panic!("One of the features weights_file and weights_embedded must be enabled");
     }
 
-    // Check if the weights are embedded.
-    let embed_states = cfg!(feature = "weights_embedded");
+    // Select weight-loading strategy based on feature flags.
+    let load_strategy = if cfg!(feature = "weights_embedded") {
+        LoadStrategy::Embedded
+    } else {
+        LoadStrategy::File
+    };
 
     // Generate the model code from the ONNX file.
     ModelGen::new()
         .input(INPUT_ONNX_FILE)
         .out_dir(OUT_DIR)
-        .embed_states(embed_states)
+        .load_strategy(load_strategy)
         .run_from_script();
 
     // Copy the weights next to the executable.

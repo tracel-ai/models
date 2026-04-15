@@ -157,12 +157,12 @@ impl HeadConfig {
 
                 let cls_pred =
                     Conv2dConfig::new([expand(hidden_channels, width), num_classes], [1, 1])
-                        .with_padding(PaddingConfig2d::Explicit(0, 0))
+                        .with_padding(PaddingConfig2d::Explicit(0, 0, 0, 0))
                         .with_initializer(Initializer::Constant { value: bias });
                 let reg_pred = Conv2dConfig::new([expand(hidden_channels, width), 4], [1, 1])
-                    .with_padding(PaddingConfig2d::Explicit(0, 0));
+                    .with_padding(PaddingConfig2d::Explicit(0, 0, 0, 0));
                 let obj_pred = Conv2dConfig::new([expand(hidden_channels, width), 1], [1, 1])
-                    .with_padding(PaddingConfig2d::Explicit(0, 0))
+                    .with_padding(PaddingConfig2d::Explicit(0, 0, 0, 0))
                     .with_initializer(Initializer::Constant { value: bias });
 
                 (stem, cls_conv, reg_conv, cls_pred, reg_pred, obj_pred)
