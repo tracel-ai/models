@@ -42,7 +42,8 @@ fn assert_close(actual: f32, expected: f32, label: &str) {
 
 fn load_model() -> (AlbertMaskedLM<B>, tokenizers::Tokenizer) {
     let device = Default::default();
-    AlbertMaskedLM::<B>::pretrained(&device, Default::default(), None).expect("Failed to load model")
+    AlbertMaskedLM::<B>::pretrained(&device, Default::default(), None)
+        .expect("Failed to load model")
 }
 
 fn predict_at_mask(

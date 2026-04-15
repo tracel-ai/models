@@ -53,9 +53,9 @@ pub fn normalize_l2<B: Backend>(embeddings: Tensor<B, 2>) -> Tensor<B, 2> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use burn_flex::Flex;
     use burn::tensor::TensorData;
     use burn::tensor::Tolerance;
+    use burn_flex::Flex;
 
     type B = Flex;
 

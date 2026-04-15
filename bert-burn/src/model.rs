@@ -7,10 +7,10 @@ use crate::loader::{
 use crate::pooler::{Pooler, PoolerConfig};
 use burn::config::Config;
 use burn::module::Module;
+use burn::nn::activation::ActivationConfig;
 use burn::nn::transformer::{
     TransformerEncoder, TransformerEncoderConfig, TransformerEncoderInput,
 };
-use burn::nn::activation::ActivationConfig;
 use burn::nn::Initializer::KaimingUniform;
 use burn::nn::{LayerNorm, LayerNormConfig, Linear, LinearConfig};
 use burn::tensor::activation::gelu;

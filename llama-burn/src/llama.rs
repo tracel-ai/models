@@ -889,4 +889,3 @@ fn permute_attention_weight_with_dim<B: Backend>(
         snapshot.tensor_id.unwrap_or_else(ParamId::new),
     )
 }
-

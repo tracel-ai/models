@@ -63,7 +63,9 @@ impl Conv2dNormActivationConfig {
                 [self.in_channels, self.out_channels],
                 [self.kernel_size, self.kernel_size],
             )
-            .with_padding(PaddingConfig2d::Explicit(padding, padding, padding, padding))
+            .with_padding(PaddingConfig2d::Explicit(
+                padding, padding, padding, padding,
+            ))
             .with_stride([self.stride, self.stride])
             .with_bias(self.bias)
             .with_dilation([self.dilation, self.dilation])

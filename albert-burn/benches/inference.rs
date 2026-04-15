@@ -25,9 +25,8 @@ struct BenchState<B: Backend> {
 }
 
 fn init_state<B: Backend>(device: &B::Device) -> BenchState<B> {
-    let (model, tokenizer) =
-        AlbertMaskedLM::<B>::pretrained(device, AlbertVariant::BaseV2, None)
-            .expect("Failed to load pretrained model");
+    let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(device, AlbertVariant::BaseV2, None)
+        .expect("Failed to load pretrained model");
 
     let sentence = "The capital of France is [MASK].";
     let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &[sentence], device);

@@ -7,9 +7,9 @@
 //!
 //! Run with: `cargo test -- --ignored`
 
-use burn_flex::Flex;
 use burn::tensor::Tensor;
 use burn::tensor::linalg::cosine_similarity;
+use burn_flex::Flex;
 use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2, tokenize_batch};
 
 type B = Flex;
