@@ -5,8 +5,8 @@
 
 use burn::tensor::Tensor;
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use std::hint::black_box;
 use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2, tokenize_batch};
+use std::hint::black_box;
 
 type B = burn_flex::Flex;
 const NAME: &str = "flex";
