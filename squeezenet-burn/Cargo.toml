@@ -42,4 +42,4 @@ image = { version = "0.24.7", features = ["png", "jpeg"] }
 
 [build-dependencies]
 # Used to generate code from ONNX model
-burn-import = { version = "0.21.0-pre.3" }
+burn-onnx = { version = "0.21.0-pre.3" }
