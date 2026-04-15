@@ -19,8 +19,8 @@ burn-store = { version = "0.21.0-pre.3", features = [
     "std",
     "pytorch",
 ] }
-dirs = "5.0.1"
-serde = { version = "1.0.192", default-features = false, features = [
+dirs = "6"
+serde = { version = "1", default-features = false, features = [
     "derive",
     "alloc",
 ] } # alloc is for no_std, derive is needed

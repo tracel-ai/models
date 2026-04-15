@@ -1,6 +1,6 @@
 use burn::tensor::{backend::Backend, Int, Tensor};
 use rand::{
-    distributions::{Distribution, WeightedIndex},
+    distr::{Distribution, weighted::WeightedIndex},
     rngs::StdRng,
     SeedableRng,
 };

@@ -28,17 +28,15 @@ burn = { version = "0.21.0-pre.3", default-features = false }
 burn-store = { version = "0.21.0-pre.3" }
 
 # Used to load weights from a file
-serde = { version = "1.0.183", default-features = false, features = [
+serde = { version = "1", default-features = false, features = [
     "derive",
     "alloc",
 ] } # alloc is for no_std, derive is needed
-# NOTE: require for release 0.20 since candle-core 0.9.2 introduced new variants (breaking)
-candle-core = { version = "=0.9.1" }
 
 [dev-dependencies]
 # Used by the classify example
 burn = { version = "0.21.0-pre.3", features = ["ndarray"] }
-image = { version = "0.24.7", features = ["png", "jpeg"] }
+image = { version = "0.25", features = ["png", "jpeg"] }
 
 [build-dependencies]
 # Used to generate code from ONNX model

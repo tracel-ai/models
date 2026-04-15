@@ -24,20 +24,17 @@ burn = { version = "0.21.0-pre.3", default-features = false, features = [
   "dataset",
   "std",
 ] }
-cubecl-runtime = { version = "0.3.0", features = [
-  "channel-mpsc",
-] } # missing feature flag when burn default-features are off
-candle-core = { version = "0.8.4" }
+candle-core = { version = "0.9" }
 # Tokenizer
-tokenizers = { version = "0.15.0", default-features = false, features = [
+tokenizers = { version = "0.22", default-features = false, features = [
   "onig",
   "http",
 ] }
-derive-new = "0.7.0"
-hf-hub = { version = "0.3.2", features = ["tokio"] }
+derive-new = "0.7"
+hf-hub = { version = "0.5", features = ["tokio"] }
 
 # Utils
-serde = { version = "1.0.196", features = ["std", "derive"] }
-libm = "0.2.8"
-serde_json = "1.0.113"
-tokio = "1.35.1"
+serde = { version = "1.0", features = ["std", "derive"] }
+libm = "0.2"
+serde_json = "1.0"
+tokio = "1"
