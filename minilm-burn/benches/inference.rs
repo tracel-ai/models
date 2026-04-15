@@ -4,7 +4,8 @@
 //! Results are saved to target/criterion/ for comparison.
 
 use burn::tensor::Tensor;
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2, tokenize_batch};
 
 type B = burn_flex::Flex;
