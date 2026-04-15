@@ -1,10 +1,8 @@
 use inference::imagenet;
 use resnet_burn::{weights, ResNet};
 
-use burn::{
-    backend::NdArray,
-    tensor::{backend::Backend, Device, Element, Tensor, TensorData},
-};
+use burn::tensor::{backend::Backend, Device, Element, Tensor, TensorData};
+use burn_flex::Flex;
 use burn_store::{BurnpackStore, ModuleSnapshot};
 
 const MODEL_PATH: &str = "resnet18-ImageNet1k";
@@ -27,7 +25,7 @@ pub fn main() {
 
     // Create ResNet-18
     let device = Default::default();
-    let model: ResNet<NdArray> =
+    let model: ResNet<Flex> =
         ResNet::resnet18_pretrained(weights::ResNet18::ImageNet1kV1, &device)
             .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
             .unwrap();

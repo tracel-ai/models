@@ -14,7 +14,7 @@ llama3 = ["dep:tiktoken-rs", "dep:rustc-hash", "dep:base64"]
 tiny = ["dep:tokenizers"]
 
 # Example feature flags (backend selection)
-ndarray = ["burn/ndarray"]
+flex = ["dep:burn-flex"]
 tch-cpu = ["burn/tch"]
 tch-gpu = ["burn/tch"]
 cuda = ["burn/cuda"]
@@ -26,6 +26,7 @@ import = ["burn-store/pytorch", "burn-store/safetensors"]
 [dependencies]
 burn = { version = "0.21.0-pre.3", default-features = false, features = ["std"] }
 burn-store = { version = "0.21.0-pre.3", features = ["std", "burnpack"] }
+burn-flex = { version = "0.21.0-pre.3", optional = true }
 
 itertools = { version = "0.14", default-features = false, features = [
     "use_alloc",

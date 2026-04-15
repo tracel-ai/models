@@ -5,16 +5,16 @@
 //! uv run --with sentence-transformers scripts/generate_reference.py
 //! ```
 //!
-//! Run with: `cargo test --features ndarray -- --ignored`
+//! Run with: `cargo test --features flex -- --ignored`
 
-#![cfg(feature = "ndarray")]
+#![cfg(feature = "flex")]
 
-use burn::backend::ndarray::NdArray;
+use burn_flex::Flex;
 use burn::tensor::Tensor;
 use burn::tensor::linalg::cosine_similarity;
 use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2, tokenize_batch};
 
-type B = NdArray<f32>;
+type B = Flex;
 
 // Test sentences (must match Python script)
 const SENTENCES: [&str; 3] = [
@@ -84,7 +84,7 @@ fn encode_test_sentences() -> (Tensor<B, 2>, usize) {
 }
 
 #[test]
-#[ignore] // Requires model download; run with: cargo test --features ndarray -- --ignored
+#[ignore] // Requires model download; run with: cargo test --features flex -- --ignored
 fn test_embeddings_match_python() {
     let (embeddings, hidden_size) = encode_test_sentences();
 
@@ -123,7 +123,7 @@ fn test_embeddings_match_python() {
 }
 
 #[test]
-#[ignore] // Requires model download; run with: cargo test --features ndarray -- --ignored
+#[ignore] // Requires model download; run with: cargo test --features flex -- --ignored
 fn test_cosine_similarities_match_python() {
     let (embeddings, hidden_size) = encode_test_sentences();
 
@@ -158,7 +158,7 @@ fn test_cosine_similarities_match_python() {
 }
 
 #[test]
-#[ignore] // Requires model download; run with: cargo test --features ndarray -- --ignored
+#[ignore] // Requires model download; run with: cargo test --features flex -- --ignored
 fn test_l6_variant_loads_and_runs() {
     let device = Default::default();
 

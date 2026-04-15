@@ -50,14 +50,14 @@ pub fn normalize_l2<B: Backend>(embeddings: Tensor<B, 2>) -> Tensor<B, 2> {
     vector_normalize(embeddings, Norm::L2, 1, 1e-12)
 }
 
-#[cfg(all(test, feature = "ndarray"))]
+#[cfg(all(test, feature = "flex"))]
 mod tests {
     use super::*;
-    use burn::backend::NdArray;
+    use burn_flex::Flex;
     use burn::tensor::TensorData;
     use burn::tensor::Tolerance;
 
-    type B = NdArray<f32>;
+    type B = Flex;
 
     #[test]
     fn test_mean_pooling() {

@@ -5,17 +5,17 @@
 //! uv run --with transformers --with torch --with sentencepiece --with protobuf scripts/generate_reference.py
 //! ```
 //!
-//! Run with: `cargo test --features "pretrained,ndarray" -- --ignored`
+//! Run with: `cargo test --features "pretrained,flex" -- --ignored`
 
-#![cfg(feature = "ndarray")]
+#![cfg(feature = "flex")]
 
-use burn::backend::ndarray::NdArray;
 use burn::prelude::ElementConversion;
 use burn::tensor::Tensor;
+use burn_flex::Flex;
 
 use albert_burn::{AlbertMaskedLM, tokenize_batch};
 
-type B = NdArray<f32>;
+type B = Flex;
 
 /// Relative tolerance for comparing logit values.
 ///

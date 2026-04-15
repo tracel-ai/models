@@ -50,14 +50,14 @@ mod tch_cpu {
     }
 }
 
-#[cfg(feature = "ndarray")]
-mod ndarray_backend {
+#[cfg(feature = "flex")]
+mod flex_backend {
     use super::*;
-    use burn::backend::{ndarray::NdArrayDevice, NdArray};
+    use burn_flex::{Flex, FlexDevice};
 
     pub fn run() {
-        let device = NdArrayDevice::Cpu;
-        test::<NdArray>(device);
+        let device = FlexDevice;
+        test::<Flex>(device);
     }
 }
 
@@ -65,12 +65,12 @@ pub fn main() {
     #[cfg(feature = "tch-cpu")]
     tch_cpu::run();
 
-    #[cfg(feature = "ndarray")]
-    ndarray_backend::run();
+    #[cfg(feature = "flex")]
+    flex_backend::run();
 
-    #[cfg(not(any(feature = "tch-cpu", feature = "ndarray")))]
+    #[cfg(not(any(feature = "tch-cpu", feature = "flex")))]
     {
-        eprintln!("Please enable either 'tch-cpu' or 'ndarray' feature to run this test");
+        eprintln!("Please enable either 'tch-cpu' or 'flex' feature to run this test");
         std::process::exit(1);
     }
 }

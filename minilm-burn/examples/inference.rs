@@ -1,9 +1,9 @@
-use burn::backend::ndarray::NdArray;
+use burn_flex::Flex;
 use burn::tensor::Tensor;
 use burn::tensor::linalg::cosine_similarity;
 use minilm_burn::{MiniLmModel, mean_pooling, normalize_l2, tokenize_batch};
 
-type B = NdArray<f32>;
+type B = Flex;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let device = Default::default();

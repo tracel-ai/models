@@ -14,7 +14,7 @@ use std::cell::RefCell;
 static ALLOC: AllocProfiler = AllocProfiler::system();
 
 // Backend type aliases
-type NdArrayBackend = burn::backend::ndarray::NdArray<f32>;
+type FlexBackend = burn_flex::Flex;
 
 #[cfg(feature = "wgpu")]
 type WgpuBackend = burn::backend::wgpu::Wgpu;
@@ -27,7 +27,7 @@ type TchBackend = burn::backend::libtorch::LibTorch<f32>;
 
 // Shared model + inputs, initialized once in main()
 thread_local! {
-    static NDARRAY_STATE: RefCell<Option<BenchState<NdArrayBackend>>> = const { RefCell::new(None) };
+    static FLEX_STATE: RefCell<Option<BenchState<FlexBackend>>> = const { RefCell::new(None) };
 
     #[cfg(feature = "wgpu")]
     static WGPU_STATE: RefCell<Option<BenchState<WgpuBackend>>> = const { RefCell::new(None) };
@@ -73,7 +73,7 @@ fn main() {
     println!("Loading ALBERT BaseV2 for benchmarking...");
 
     // Initialize all enabled backends
-    NDARRAY_STATE.with(|s| *s.borrow_mut() = Some(init_state(&Default::default())));
+    FLEX_STATE.with(|s| *s.borrow_mut() = Some(init_state(&Default::default())));
 
     #[cfg(feature = "wgpu")]
     WGPU_STATE.with(|s| {
@@ -123,7 +123,7 @@ macro_rules! bench_backend {
     };
 }
 
-bench_backend!(NdArrayBackend, NDARRAY_STATE, ndarray_backend, "NdArray (CPU)");
+bench_backend!(FlexBackend, FLEX_STATE, flex_backend, "Flex (CPU)");
 
 #[cfg(feature = "wgpu")]
 bench_backend!(WgpuBackend, WGPU_STATE, wgpu_backend, "WGPU (GPU)");

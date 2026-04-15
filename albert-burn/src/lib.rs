@@ -8,9 +8,9 @@
 //!
 //! ```ignore
 //! use albert_burn::{AlbertMaskedLM, tokenize_batch};
-//! use burn::backend::ndarray::NdArray;
+//! use burn_flex::Flex;
 //!
-//! type B = NdArray<f32>;
+//! type B = Flex;
 //!
 //! let device = Default::default();
 //! let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(&device, Default::default(), None)?;

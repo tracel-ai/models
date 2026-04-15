@@ -1,7 +1,7 @@
 //! Benchmarks for MiniLM inference across backends.
 //!
 //! Run for each backend:
-//!   cargo bench --features ndarray
+//!   cargo bench --features flex
 //!   cargo bench --features wgpu
 //!   cargo bench --features tch-cpu
 //!
@@ -13,22 +13,22 @@ use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2, tokeni
 
 // Ensure exactly one backend is selected
 #[cfg(any(
-    all(feature = "ndarray", feature = "wgpu"),
-    all(feature = "ndarray", feature = "tch-cpu"),
-    all(feature = "ndarray", feature = "cuda"),
+    all(feature = "flex", feature = "wgpu"),
+    all(feature = "flex", feature = "tch-cpu"),
+    all(feature = "flex", feature = "cuda"),
     all(feature = "wgpu", feature = "tch-cpu"),
     all(feature = "wgpu", feature = "cuda"),
     all(feature = "tch-cpu", feature = "cuda"),
 ))]
 compile_error!(
-    "Only one backend feature may be enabled for benchmarks (ndarray, wgpu, tch-cpu, cuda)."
+    "Only one backend feature may be enabled for benchmarks (flex, wgpu, tch-cpu, cuda)."
 );
 
 // Backend selection via features
-#[cfg(feature = "ndarray")]
+#[cfg(feature = "flex")]
 mod backend {
-    pub type B = burn::backend::ndarray::NdArray<f32>;
-    pub const NAME: &str = "ndarray";
+    pub type B = burn_flex::Flex;
+    pub const NAME: &str = "flex";
 }
 
 #[cfg(feature = "wgpu")]

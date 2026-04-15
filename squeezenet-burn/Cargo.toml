@@ -35,7 +35,8 @@ serde = { version = "1", default-features = false, features = [
 
 [dev-dependencies]
 # Used by the classify example
-burn = { version = "0.21.0-pre.3", features = ["ndarray"] }
+burn = { version = "0.21.0-pre.3" }
+burn-flex = { version = "0.21.0-pre.3" }
 image = { version = "0.25", features = ["png", "jpeg"] }
 
 [build-dependencies]

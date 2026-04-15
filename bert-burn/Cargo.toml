@@ -8,7 +8,7 @@ edition = "2021"
 [features]
 default = []
 f16 = []
-ndarray = ["burn/ndarray"]
+flex = ["dep:burn-flex"]
 tch-cpu = ["burn/tch"]
 tch-gpu = ["burn/tch"]
 wgpu = ["burn/wgpu"]
@@ -24,6 +24,7 @@ burn = { version = "0.21.0-pre.3", default-features = false, features = [
   "dataset",
   "std",
 ] }
+burn-flex = { version = "0.21.0-pre.3", optional = true }
 candle-core = { version = "0.9" }
 # Tokenizer
 tokenizers = { version = "0.22", default-features = false, features = [

@@ -81,14 +81,14 @@ pub fn launch<B: Backend>(device: B::Device) {
     }
 }
 
-#[cfg(feature = "ndarray")]
-mod ndarray {
-    use burn::backend::ndarray::{NdArray, NdArrayDevice};
+#[cfg(feature = "flex")]
+mod flex {
+    use burn_flex::{Flex, FlexDevice};
 
-    use crate::{launch, ElemType};
+    use crate::launch;
 
     pub fn run() {
-        launch::<NdArray<ElemType>>(NdArrayDevice::Cpu);
+        launch::<Flex>(FlexDevice);
     }
 }
 
@@ -128,8 +128,8 @@ mod wgpu {
 }
 
 fn main() {
-    #[cfg(feature = "ndarray")]
-    ndarray::run();
+    #[cfg(feature = "flex")]
+    flex::run();
     #[cfg(feature = "tch-gpu")]
     tch_gpu::run();
     #[cfg(feature = "tch-cpu")]

@@ -21,7 +21,7 @@ serde = { version = "1", default-features = false, features = [
 ] } # alloc is for no_std, derive is needed
 
 [dev-dependencies]
-burn = { version = "0.21.0-pre.3", features = ["ndarray"] }
+burn-flex = { version = "0.21.0-pre.3" }
 image = { version = "0.25", features = ["png", "jpeg"] }
 
 [[example]]

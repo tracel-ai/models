@@ -11,7 +11,7 @@ default = ["pretrained"]
 pretrained = ["burn/network", "dep:dirs", "dep:hf-hub"]
 
 # Backend selection
-ndarray = ["burn/ndarray"]
+flex = ["dep:burn-flex"]
 tch-cpu = ["burn/tch"]
 tch-gpu = ["burn/tch"]
 wgpu = ["burn/wgpu"]
@@ -20,6 +20,7 @@ cuda = ["burn/cuda"]
 [dependencies]
 burn = { version = "0.21.0-pre.3", default-features = false, features = ["std"] }
 burn-store = { version = "0.21.0-pre.3", features = ["std", "safetensors"] }
+burn-flex = { version = "0.21.0-pre.3", optional = true }
 
 # Tokenizer
 tokenizers = { version = "0.22", default-features = false, features = ["onig"] }
@@ -39,8 +40,8 @@ divan = "0.1"
 [[bench]]
 name = "inference"
 harness = false
-required-features = ["pretrained", "ndarray"]
+required-features = ["pretrained", "flex"]
 
 [[example]]
 name = "inference"
-required-features = ["pretrained", "ndarray"]
+required-features = ["pretrained", "flex"]
