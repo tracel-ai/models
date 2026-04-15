@@ -86,7 +86,7 @@ fn encode_test_sentences() -> (Tensor<B, 2>, usize) {
 }
 
 #[test]
-#[ignore] // Requires model download; run with: cargo test --features flex -- --ignored
+#[ignore] // Requires model download; run with: cargo test -p minilm-burn -- --ignored
 fn test_embeddings_match_python() {
     let (embeddings, hidden_size) = encode_test_sentences();
 
@@ -125,7 +125,7 @@ fn test_embeddings_match_python() {
 }
 
 #[test]
-#[ignore] // Requires model download; run with: cargo test --features flex -- --ignored
+#[ignore] // Requires model download; run with: cargo test -p minilm-burn -- --ignored
 fn test_cosine_similarities_match_python() {
     let (embeddings, hidden_size) = encode_test_sentences();
 
@@ -160,7 +160,7 @@ fn test_cosine_similarities_match_python() {
 }
 
 #[test]
-#[ignore] // Requires model download; run with: cargo test --features flex -- --ignored
+#[ignore] // Requires model download; run with: cargo test -p minilm-burn -- --ignored
 fn test_l6_variant_loads_and_runs() {
     let device = Default::default();
 
