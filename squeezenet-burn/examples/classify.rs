@@ -1,10 +1,10 @@
 use squeezenet_burn::model::{label::LABELS, normalizer::Normalizer, squeezenet1::Model};
 
 #[cfg(feature = "weights_embedded")]
-use burn::backend::ndarray::NdArrayDevice;
+use burn_flex::FlexDevice;
 
-use burn::backend::NdArray;
 use burn::tensor::Tensor;
+use burn_flex::Flex;
 
 use image::{self, GenericImageView, Pixel};
 
@@ -14,7 +14,7 @@ const WIDTH: usize = 224;
 #[cfg(feature = "weights_file")]
 const RECORD_FILE: &str = "squeezenet1";
 
-type Backend = NdArray<f32>;
+type Backend = Flex;
 
 fn main() {
     // Path to the image from the main args
@@ -34,6 +34,7 @@ fn main() {
     let mut img_array = [[[0.0; WIDTH]; HEIGHT]; 3];
 
     // Iterate over the pixels and populate the array
+    #[allow(clippy::needless_range_loop)] // parallel index into three channel arrays
     for y in 0..224usize {
         for x in 0..224usize {
             let pixel = resized_img.get_pixel(x as u32, y as u32);
@@ -68,7 +69,7 @@ fn main() {
 
     #[cfg(feature = "weights_embedded")]
     // Load model from embedded weights
-    let model = Model::<Backend>::from_embedded(&NdArrayDevice::Cpu);
+    let model = Model::<Backend>::from_embedded(&FlexDevice);
 
     // Run the model
     let output = model.forward(normalized_image);

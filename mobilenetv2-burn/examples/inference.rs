@@ -1,9 +1,7 @@
 use mobilenetv2_burn::model::{imagenet, mobilenetv2::MobileNetV2, weights};
 
-use burn::{
-    backend::NdArray,
-    tensor::{backend::Backend, Device, Element, Tensor, TensorData},
-};
+use burn::tensor::{backend::Backend, Device, Element, Tensor, TensorData};
+use burn_flex::Flex;
 
 const HEIGHT: usize = 224;
 const WIDTH: usize = 224;
@@ -28,7 +26,7 @@ pub fn main() {
 
     // Create MobileNetV2
     let device = Default::default();
-    let model: MobileNetV2<NdArray> =
+    let model: MobileNetV2<Flex> =
         MobileNetV2::pretrained(weights::MobileNetV2::ImageNet1kV2, &device)
             .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
             .unwrap();

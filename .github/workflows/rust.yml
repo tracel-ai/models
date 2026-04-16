@@ -15,33 +15,28 @@ jobs:
 
     strategy:
       matrix:
-        rust: [stable, 1.89.0]
+        rust: [stable, 1.92.0]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: install rust
+      - name: Install rust
         uses: dtolnay/rust-toolchain@master
         with:
           components: rustfmt, clippy
           toolchain: ${{ matrix.rust }}
 
-      - name: Check Formatting
-        run: |
-          cd squeezenet-burn
-          cargo fmt --all -- --check
+      - name: Cache cargo registry and target
+        uses: Swatinem/rust-cache@v2
 
-      - name: Run Clippy
-        run: |
-          cd squeezenet-burn
-          cargo clippy -- -D warnings
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Build
-        run: |
-          cd squeezenet-burn
-          cargo build --verbose
+        run: cargo build --workspace --all-targets --locked --verbose
 
-      - name: Run tests
-        run: |
-          cd squeezenet-burn
-          cargo test --verbose
+      - name: Test
+        run: cargo test --workspace --locked --verbose

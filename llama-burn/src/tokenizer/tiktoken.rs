@@ -30,20 +30,19 @@ const SPECIAL_TOKENS: [&str; 11] = [
 ];
 const PATTERN: &str = r#"(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"#;
 
-#[derive(Debug, Clone)]
 pub struct Tiktoken {
     bpe: CoreBPE,
-    bos_token_id: usize,
-    eos_token_id: usize,
-    eot_token_id: usize,
-    eom_token_id: usize,
+    bos_token_id: u32,
+    eos_token_id: u32,
+    eot_token_id: u32,
+    eom_token_id: u32,
 }
 
 impl Tokenizer for Tiktoken {
     /// Load the [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
     fn new(tiktoken_bpe_file: &str) -> Result<Self, String> {
         let file = File::open(tiktoken_bpe_file).map_err(|e| e.to_string())?;
-        let mut mergeable_ranks: HashMap<Vec<u8>, usize> = HashMap::default();
+        let mut mergeable_ranks: HashMap<Vec<u8>, u32> = HashMap::default();
 
         for line in BufReader::new(file).lines().map_while(Result::ok) {
             let mut parts = line.split(' ');
@@ -53,12 +52,12 @@ impl Tokenizer for Tiktoken {
             let rank = parts
                 .next()
                 .ok_or("Missing rank")?
-                .parse::<usize>()
+                .parse::<u32>()
                 .map_err(|e| e.to_string())?;
 
             mergeable_ranks.insert(token, rank);
         }
-        let num_base_tokens = mergeable_ranks.len();
+        let num_base_tokens = mergeable_ranks.len() as u32;
 
         let special_tokens = [
             SPECIAL_TOKENS
@@ -73,8 +72,8 @@ impl Tokenizer for Tiktoken {
         let special_tokens = special_tokens
             .into_iter()
             .enumerate()
-            .map(|(i, s)| (s, i + num_base_tokens))
-            .collect::<HashMap<String, usize>>();
+            .map(|(i, s)| (s, i as u32 + num_base_tokens))
+            .collect::<HashMap<String, u32>>();
 
         let bos_token_id = special_tokens[BOS_TOKEN];
         let eos_token_id = special_tokens[EOS_TOKEN];
@@ -100,30 +99,23 @@ impl Tokenizer for Tiktoken {
 
         [bos_token, tokens, eos_token]
             .into_iter()
-            .flat_map(|t| t.into_iter())
-            .map(|t| t as u32)
+            .flatten()
             .collect()
     }
 
     fn decode(&self, tokens: Vec<u32>) -> String {
-        self.bpe
-            .decode(tokens.into_iter().map(|t| t as usize).collect())
-            .expect("Should decode tokens")
+        self.bpe.decode(&tokens).expect("Should decode tokens")
     }
 
     fn bos_id(&self) -> u32 {
-        self.bos_token_id as u32
+        self.bos_token_id
     }
 
     fn eos_id(&self) -> u32 {
-        self.eos_token_id as u32
+        self.eos_token_id
     }
 
     fn stop_ids(&self) -> Vec<u32> {
-        vec![
-            self.eos_id(),
-            self.eom_token_id as u32,
-            self.eot_token_id as u32,
-        ]
+        vec![self.eos_id(), self.eom_token_id, self.eot_token_id]
     }
 }

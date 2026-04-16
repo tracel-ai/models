@@ -21,6 +21,7 @@ pub struct AlbertEncoder<B: Backend> {
 
 impl<B: Backend> AlbertEncoder<B> {
     /// Create a new ALBERT encoder.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         hidden_size: usize,
         intermediate_size: usize,

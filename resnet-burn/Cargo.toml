@@ -1,26 +1,19 @@
-[workspace]
-# Try
-# require version 2 to avoid "feature" additiveness for dev-dependencies
-# https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
-resolver = "2"
-
-members = ["resnet", "examples/*"]
-
-[workspace.package]
-edition = "2021"
+[package]
+authors = ["guillaumelagrange <lagrange.guillaume.1@gmail.com>"]
+name = "resnet-burn"
 version = "0.2.0"
+edition = "2021"
+license.workspace = true
 readme = "README.md"
-license = "MIT OR Apache-2.0"
 
-[workspace.dependencies]
-# Note: default-features = false is needed to disable std
-burn = { version = "0.20.0", default-features = false }
-burn-store = { version = "0.20.0", features = [
-    "std",
-    "pytorch",
-] }
-dirs = "5.0.1"
-serde = { version = "1.0.192", default-features = false, features = [
-    "derive",
-    "alloc",
-] } # alloc is for no_std, derive is needed
+[features]
+default = []
+std = []
+pretrained = ["burn/network", "std", "dep:dirs", "dep:burn-store"]
+train = ["burn/train"]
+
+[dependencies]
+burn       = { workspace = true }
+burn-store = { workspace = true, features = ["std", "pytorch"], optional = true }
+dirs       = { workspace = true, optional = true }
+serde      = { workspace = true, features = ["derive", "alloc"] }

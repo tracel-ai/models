@@ -2,13 +2,13 @@
 authors = ["guillaumelagrange <lagrange.guillaume.1@gmail.com>"]
 name = "inference"
 license.workspace = true
-version.workspace = true
-edition.workspace = true
+version = "0.2.0"
+edition = "2021"
 publish = false
 
 [dependencies]
-resnet-burn = { path = "../../resnet", features = ["pretrained"] }
-burn = { workspace = true, features = ["ndarray"] }
-burn-store = { workspace = true, features = ["burnpack"] }
-image = { version = "0.24.9", features = ["png", "jpeg"] }
-
+resnet-burn = { path = "../..", features = ["pretrained"] }
+burn        = { workspace = true }
+burn-flex   = { workspace = true }
+burn-store  = { workspace = true, features = ["burnpack"] }
+image       = { workspace = true, features = ["png", "jpeg"] }

@@ -1,55 +1,15 @@
-//! Benchmarks for MiniLM inference across backends.
+//! Benchmarks for MiniLM inference.
 //!
-//! Run for each backend:
-//!   cargo bench --features ndarray
-//!   cargo bench --features wgpu
-//!   cargo bench --features tch-cpu
-//!
+//! Run with: `cargo bench -p minilm-burn`
 //! Results are saved to target/criterion/ for comparison.
 
 use burn::tensor::Tensor;
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2, tokenize_batch};
+use std::hint::black_box;
 
-// Ensure exactly one backend is selected
-#[cfg(any(
-    all(feature = "ndarray", feature = "wgpu"),
-    all(feature = "ndarray", feature = "tch-cpu"),
-    all(feature = "ndarray", feature = "cuda"),
-    all(feature = "wgpu", feature = "tch-cpu"),
-    all(feature = "wgpu", feature = "cuda"),
-    all(feature = "tch-cpu", feature = "cuda"),
-))]
-compile_error!(
-    "Only one backend feature may be enabled for benchmarks (ndarray, wgpu, tch-cpu, cuda)."
-);
-
-// Backend selection via features
-#[cfg(feature = "ndarray")]
-mod backend {
-    pub type B = burn::backend::ndarray::NdArray<f32>;
-    pub const NAME: &str = "ndarray";
-}
-
-#[cfg(feature = "wgpu")]
-mod backend {
-    pub type B = burn::backend::wgpu::Wgpu;
-    pub const NAME: &str = "wgpu";
-}
-
-#[cfg(feature = "tch-cpu")]
-mod backend {
-    pub type B = burn::backend::libtorch::LibTorch;
-    pub const NAME: &str = "tch-cpu";
-}
-
-#[cfg(feature = "cuda")]
-mod backend {
-    pub type B = burn::backend::cuda::Cuda;
-    pub const NAME: &str = "cuda";
-}
-
-use backend::{B, NAME};
+type B = burn_flex::Flex;
+const NAME: &str = "flex";
 
 fn bench_forward(c: &mut Criterion) {
     let device = Default::default();

@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 
-use burn_import::onnx::ModelGen;
+use burn_onnx::{LoadStrategy, ModelGen};
 
 const LABEL_SOURCE_FILE: &str = "src/model/label.txt";
 const LABEL_DEST_FILE: &str = "model/label.rs";
@@ -26,14 +26,18 @@ fn main() {
         panic!("One of the features weights_file and weights_embedded must be enabled");
     }
 
-    // Check if the weights are embedded.
-    let embed_states = cfg!(feature = "weights_embedded");
+    // Select weight-loading strategy based on feature flags.
+    let load_strategy = if cfg!(feature = "weights_embedded") {
+        LoadStrategy::Embedded
+    } else {
+        LoadStrategy::File
+    };
 
     // Generate the model code from the ONNX file.
     ModelGen::new()
         .input(INPUT_ONNX_FILE)
         .out_dir(OUT_DIR)
-        .embed_states(embed_states)
+        .load_strategy(load_strategy)
         .run_from_script();
 
     // Copy the weights next to the executable.
@@ -77,11 +81,13 @@ fn copy_weights_next_to_executable() {
     let profile = env::var("PROFILE").expect("PROFILE not defined");
     let target_dir = format!("target/{profile}");
 
-    // Specify the destination path.
-    let destination_path = Path::new(&target_dir)
-        .join("examples")
-        .join(GENERATED_MODEL_WEIGHTS_FILE);
+    let destination_dir = Path::new(&target_dir).join("examples");
+    // The examples directory is created by cargo the first time an example is
+    // built. On a fresh clone, `cargo check` / `cargo clippy` may run this
+    // build script before any example has ever been built, so we create it
+    // ourselves.
+    fs::create_dir_all(&destination_dir).expect("Failed to create examples directory");
+    let destination_path = destination_dir.join(GENERATED_MODEL_WEIGHTS_FILE);
 
-    // Copy the file.
     fs::copy(source_path, destination_path).expect("Failed to copy generated file");
 }

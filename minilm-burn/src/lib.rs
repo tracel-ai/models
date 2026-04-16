@@ -11,9 +11,9 @@
 //!
 //! ```ignore
 //! use minilm_burn::{MiniLmConfig, MiniLmModel};
-//! use burn::backend::NdArray;
+//! use burn_flex::Flex;
 //!
-//! type B = NdArray<f32>;
+//! type B = Flex;
 //!
 //! let device = Default::default();
 //! let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)?;

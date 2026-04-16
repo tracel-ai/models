@@ -108,7 +108,7 @@ impl BaseConvConfig {
 
         let conv = Conv2dConfig::new([in_channels, out_channels], [kernel_size, kernel_size])
             .with_stride([stride, stride])
-            .with_padding(PaddingConfig2d::Explicit(pad, pad))
+            .with_padding(PaddingConfig2d::Explicit(pad, pad, pad, pad))
             .with_groups(groups)
             .with_bias(false);
         let bn = BatchNormConfig::new(out_channels)

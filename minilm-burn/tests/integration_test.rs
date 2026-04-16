@@ -5,16 +5,18 @@
 //! uv run --with sentence-transformers scripts/generate_reference.py
 //! ```
 //!
-//! Run with: `cargo test --features ndarray -- --ignored`
+//! Run with: `cargo test -- --ignored`
 
-#![cfg(feature = "ndarray")]
+// Reference constants are copied verbatim from the Python script so they can
+// be diffed against future regenerations.
+#![allow(clippy::excessive_precision, clippy::needless_range_loop)]
 
-use burn::backend::ndarray::NdArray;
 use burn::tensor::Tensor;
 use burn::tensor::linalg::cosine_similarity;
+use burn_flex::Flex;
 use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2, tokenize_batch};
 
-type B = NdArray<f32>;
+type B = Flex;
 
 // Test sentences (must match Python script)
 const SENTENCES: [&str; 3] = [
@@ -84,7 +86,7 @@ fn encode_test_sentences() -> (Tensor<B, 2>, usize) {
 }
 
 #[test]
-#[ignore] // Requires model download; run with: cargo test --features ndarray -- --ignored
+#[ignore] // Requires model download; run with: cargo test -p minilm-burn -- --ignored
 fn test_embeddings_match_python() {
     let (embeddings, hidden_size) = encode_test_sentences();
 
@@ -123,7 +125,7 @@ fn test_embeddings_match_python() {
 }
 
 #[test]
-#[ignore] // Requires model download; run with: cargo test --features ndarray -- --ignored
+#[ignore] // Requires model download; run with: cargo test -p minilm-burn -- --ignored
 fn test_cosine_similarities_match_python() {
     let (embeddings, hidden_size) = encode_test_sentences();
 
@@ -158,7 +160,7 @@ fn test_cosine_similarities_match_python() {
 }
 
 #[test]
-#[ignore] // Requires model download; run with: cargo test --features ndarray -- --ignored
+#[ignore] // Requires model download; run with: cargo test -p minilm-burn -- --ignored
 fn test_l6_variant_loads_and_runs() {
     let device = Default::default();
 

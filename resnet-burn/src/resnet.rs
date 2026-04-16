@@ -299,14 +299,14 @@ impl ResNetConfig {
         // 7x7 conv, 64, /2
         let conv1 = Conv2dConfig::new([3, 64], [7, 7])
             .with_stride([2, 2])
-            .with_padding(PaddingConfig2d::Explicit(3, 3))
+            .with_padding(PaddingConfig2d::Explicit(3, 3, 3, 3))
             .with_bias(false);
         let bn1 = BatchNormConfig::new(64);
 
         // 3x3 maxpool, /2
         let maxpool = MaxPool2dConfig::new([3, 3])
             .with_strides([2, 2])
-            .with_padding(PaddingConfig2d::Explicit(1, 1));
+            .with_padding(PaddingConfig2d::Explicit(1, 1, 1, 1));
 
         // Residual blocks
         let bottleneck = expansion > 1;

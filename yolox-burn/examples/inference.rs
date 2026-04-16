@@ -3,10 +3,8 @@ use std::path::Path;
 use image::{DynamicImage, ImageBuffer};
 use yolox_burn::model::{boxes::nms, weights, yolox::Yolox, BoundingBox};
 
-use burn::{
-    backend::NdArray,
-    tensor::{backend::Backend, Device, Element, Tensor, TensorData},
-};
+use burn::tensor::{backend::Backend, Device, Element, Tensor, TensorData};
+use burn_flex::Flex;
 
 const HEIGHT: usize = 640;
 const WIDTH: usize = 640;
@@ -99,7 +97,7 @@ pub fn main() {
 
     // Create YOLOX-Tiny
     let device = Default::default();
-    let model: Yolox<NdArray> = Yolox::yolox_tiny_pretrained(weights::YoloxTiny::Coco, &device)
+    let model: Yolox<Flex> = Yolox::yolox_tiny_pretrained(weights::YoloxTiny::Coco, &device)
         .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
         .unwrap();
 

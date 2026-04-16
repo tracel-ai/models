@@ -1,43 +1,26 @@
 [package]
 authors = ["Aasheesh Singh aasheeshdtu@gmail.com"]
-license = "MIT OR Apache-2.0"
 name = "bert-burn"
 version = "0.2.0"
 edition = "2021"
+license.workspace = true
 
 [features]
 default = []
-f16 = []
-ndarray = ["burn/ndarray"]
-tch-cpu = ["burn/tch"]
-tch-gpu = ["burn/tch"]
-wgpu = ["burn/wgpu"]
-cuda = ["burn/cuda"]
-fusion = ["burn/fusion"]
-# To be replaced by burn-safetensors once supported: https://github.com/tracel-ai/burn/issues/626
 safetensors = ["candle-core/default"]
 
-
 [dependencies]
-# Burn
-burn = { version = "0.20.0", default-features = false, features = [
-  "dataset",
-  "std",
-] }
-cubecl-runtime = { version = "0.3.0", features = [
-  "channel-mpsc",
-] } # missing feature flag when burn default-features are off
-candle-core = { version = "0.8.4" }
-# Tokenizer
-tokenizers = { version = "0.15.0", default-features = false, features = [
-  "onig",
-  "http",
-] }
-derive-new = "0.7.0"
-hf-hub = { version = "0.3.2", features = ["tokio"] }
+burn        = { workspace = true, features = ["dataset", "std"] }
+candle-core = { workspace = true }
 
-# Utils
-serde = { version = "1.0.196", features = ["std", "derive"] }
-libm = "0.2.8"
-serde_json = "1.0.113"
-tokio = "1.35.1"
+tokenizers = { workspace = true, features = ["onig", "http"] }
+derive-new = { workspace = true }
+hf-hub     = { workspace = true, features = ["tokio"] }
+
+serde      = { workspace = true, features = ["std", "derive"] }
+serde_json = { workspace = true }
+libm       = { workspace = true }
+tokio      = { workspace = true }
+
+[dev-dependencies]
+burn-flex = { workspace = true }

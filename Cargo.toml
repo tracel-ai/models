@@ -1,0 +1,47 @@
+[workspace]
+resolver = "3"
+members = [
+    "albert-burn",
+    "bert-burn",
+    "llama-burn",
+    "minilm-burn",
+    "mobilenetv2-burn",
+    "resnet-burn",
+    "resnet-burn/examples/inference",
+    "resnet-burn/examples/finetune",
+    "squeezenet-burn",
+    "yolox-burn",
+]
+
+[workspace.package]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# burn ecosystem
+burn        = { version = "0.21.0-pre.3", default-features = false }
+burn-store  = { version = "0.21.0-pre.3", default-features = false }
+burn-flex   = { version = "0.21.0-pre.3" }
+burn-onnx   = { version = "0.21.0-pre.3" }
+
+# shared third-party
+serde       = { version = "1", default-features = false }
+serde_json  = "1"
+tokio       = "1"
+libm        = "0.2"
+itertools   = { version = "0.14", default-features = false }
+dirs        = "6"
+hf-hub      = "0.5"
+image       = { version = "0.25", default-features = false }
+clap        = { version = "4", features = ["derive"] }
+tokenizers  = { version = "0.22", default-features = false }
+rand        = { version = "0.9", default-features = false }
+tar         = "0.4"
+csv         = "1"
+flate2      = "1"
+base64      = "0.22"
+rustc-hash  = "1.1"
+tiktoken-rs = "0.11"
+candle-core = "0.9"
+derive-new  = "0.7"
+criterion   = "0.8"
+divan       = "0.1"

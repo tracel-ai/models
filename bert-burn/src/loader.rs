@@ -5,7 +5,8 @@ use crate::embedding::BertEmbeddingsRecord;
 use crate::model::BertModelConfig;
 use crate::pooler::PoolerRecord;
 use burn::config::Config;
-use burn::module::{ConstantRecord, Param};
+use burn::module::{EmptyRecord, Module, Param};
+use burn::nn::activation::ActivationConfig;
 use burn::nn::attention::MultiHeadAttentionRecord;
 use burn::nn::transformer::{
     PositionWiseFeedForwardRecord, TransformerEncoderLayerRecord, TransformerEncoderRecord,
@@ -57,7 +58,7 @@ pub(crate) fn load_layer_norm_safetensor<B: Backend>(
     LayerNormRecord {
         beta: Some(Param::from_tensor(beta)),
         gamma: Param::from_tensor(gamma),
-        epsilon: ConstantRecord::new(),
+        epsilon: EmptyRecord::new(),
     }
 }
 
@@ -90,8 +91,8 @@ pub(crate) fn load_intermediate_layer_safetensor<B: Backend>(
     PositionWiseFeedForwardRecord {
         linear_inner,
         linear_outer,
-        dropout: ConstantRecord::new(),
-        gelu: ConstantRecord::new(),
+        dropout: EmptyRecord::new(),
+        activation: ActivationConfig::Gelu.init(device).into_record(),
     }
 }
 
@@ -128,13 +129,13 @@ fn load_attention_layer_safetensor<B: Backend>(
         key,
         value,
         output,
-        d_model: ConstantRecord::new(),
-        dropout: ConstantRecord::new(),
-        activation: ConstantRecord::new(),
-        n_heads: ConstantRecord::new(),
-        d_k: ConstantRecord::new(),
-        min_float: ConstantRecord::new(),
-        quiet_softmax: ConstantRecord::new(),
+        d_model: EmptyRecord::new(),
+        dropout: EmptyRecord::new(),
+        activation: EmptyRecord::new(),
+        n_heads: EmptyRecord::new(),
+        d_k: EmptyRecord::new(),
+        min_float: EmptyRecord::new(),
+        quiet_softmax: EmptyRecord::new(),
     }
 }
 
@@ -210,8 +211,8 @@ pub fn load_encoder_from_safetensors<B: Backend>(
             pwff,
             norm_1,
             norm_2,
-            dropout: ConstantRecord::new(),
-            norm_first: ConstantRecord::new(),
+            dropout: EmptyRecord::new(),
+            norm_first: EmptyRecord::new(),
         };
 
         bert_encoder_layers.push(layer_record);
@@ -219,13 +220,13 @@ pub fn load_encoder_from_safetensors<B: Backend>(
 
     TransformerEncoderRecord {
         layers: bert_encoder_layers,
-        d_model: ConstantRecord::new(),
-        d_ff: ConstantRecord::new(),
-        n_heads: ConstantRecord::new(),
-        n_layers: ConstantRecord::new(),
-        dropout: ConstantRecord::new(),
-        norm_first: ConstantRecord::new(),
-        quiet_softmax: ConstantRecord::new(),
+        d_model: EmptyRecord::new(),
+        d_ff: EmptyRecord::new(),
+        n_heads: EmptyRecord::new(),
+        n_layers: EmptyRecord::new(),
+        dropout: EmptyRecord::new(),
+        norm_first: EmptyRecord::new(),
+        quiet_softmax: EmptyRecord::new(),
     }
 }
 
@@ -293,9 +294,9 @@ pub fn load_embeddings_from_safetensors<B: Backend>(
         position_embeddings,
         token_type_embeddings,
         layer_norm,
-        dropout: ConstantRecord::new(),
-        max_position_embeddings: ConstantRecord::new(),
-        pad_token_idx: ConstantRecord::new(),
+        dropout: EmptyRecord::new(),
+        max_position_embeddings: EmptyRecord::new(),
+        pad_token_idx: EmptyRecord::new(),
     }
 }
 

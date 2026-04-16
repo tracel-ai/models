@@ -5,17 +5,24 @@
 //! uv run --with transformers --with torch --with sentencepiece --with protobuf scripts/generate_reference.py
 //! ```
 //!
-//! Run with: `cargo test --features "pretrained,ndarray" -- --ignored`
+//! Run with: `cargo test --features pretrained -- --ignored`
 
-#![cfg(feature = "ndarray")]
+// Reference constants are copied verbatim from the Python script so they can
+// be diffed against future regenerations; loops index into aligned rust/python
+// arrays where a range-based iterator would obscure the pairing.
+#![allow(
+    clippy::excessive_precision,
+    clippy::needless_range_loop,
+    clippy::single_range_in_vec_init
+)]
 
-use burn::backend::ndarray::NdArray;
 use burn::prelude::ElementConversion;
 use burn::tensor::Tensor;
+use burn_flex::Flex;
 
 use albert_burn::{AlbertMaskedLM, tokenize_batch};
 
-type B = NdArray<f32>;
+type B = Flex;
 
 /// Relative tolerance for comparing logit values.
 ///
@@ -44,7 +51,8 @@ fn assert_close(actual: f32, expected: f32, label: &str) {
 
 fn load_model() -> (AlbertMaskedLM<B>, tokenizers::Tokenizer) {
     let device = Default::default();
-    AlbertMaskedLM::<B>::pretrained(&device, Default::default(), None).expect("Failed to load model")
+    AlbertMaskedLM::<B>::pretrained(&device, Default::default(), None)
+        .expect("Failed to load model")
 }
 
 fn predict_at_mask(

@@ -1,5 +1,3 @@
-#![recursion_limit = "256"] // wgpu
-
 use bert_burn::data::{BertInputBatcher, BertTokenizer};
 use bert_burn::loader::{download_hf_model, load_model_config};
 use bert_burn::model::{BertModel, BertModelRecord};
@@ -7,24 +5,16 @@ use burn::data::dataloader::batcher::Batcher;
 use burn::module::Module;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
+use burn_flex::{Flex, FlexDevice};
 use std::env;
 use std::sync::Arc;
-
-#[cfg(not(feature = "f16"))]
-#[allow(dead_code)]
-type ElemType = f32;
-#[cfg(feature = "f16")]
-type ElemType = burn::tensor::f16;
 
 pub fn launch<B: Backend>(device: B::Device) {
     let args: Vec<String> = env::args().collect();
     let default_model = "roberta-base".to_string();
     let model_variant = if args.len() > 1 {
-        // Use the argument provided by the user
-        // Possible values: "bert-base-uncased", "roberta-large" etc.
         &args[1]
     } else {
-        // Use the default value if no argument is provided
         &default_model
     };
 
@@ -59,23 +49,18 @@ pub fn launch<B: Backend>(device: B::Device) {
         model_config.pad_token_id,
     ));
 
-    // Batch the input samples to max sequence length with padding
     let batcher = Arc::new(BertInputBatcher::new(
         tokenizer.clone(),
         model_config.max_seq_len.unwrap(),
     ));
 
-    // Batch input samples using the batcher Shape: [Batch size, Seq_len]
     let input = batcher.batch(text_samples.clone(), &device);
     let [batch_size, _seq_len] = input.tokens.dims();
     println!("Input: {}", input.tokens);
 
     let output = model.forward(input);
 
-    // get sentence embedding from the first [CLS] token
     let cls_token_idx = 0;
-
-    // Embedding size
     let d_model = model_config.hidden_size;
     let sentence_embedding = output.hidden_states.clone().slice([
         0..batch_size,
@@ -87,71 +72,6 @@ pub fn launch<B: Backend>(device: B::Device) {
     println!("Roberta Sentence embedding: {}", sentence_embedding);
 }
 
-#[cfg(feature = "ndarray")]
-mod ndarray {
-    use burn::backend::ndarray::{NdArray, NdArrayDevice};
-
-    use crate::{launch, ElemType};
-
-    pub fn run() {
-        launch::<NdArray<ElemType>>(NdArrayDevice::Cpu);
-    }
-}
-
-#[cfg(feature = "tch-gpu")]
-mod tch_gpu {
-    use crate::{launch, ElemType};
-    use burn::backend::libtorch::{LibTorch, LibTorchDevice};
-
-    pub fn run() {
-        #[cfg(not(target_os = "macos"))]
-        let device = LibTorchDevice::Cuda(0);
-        #[cfg(target_os = "macos")]
-        let device = LibTorchDevice::Mps;
-
-        launch::<LibTorch<ElemType>>(device);
-    }
-}
-
-#[cfg(feature = "tch-cpu")]
-mod tch_cpu {
-    use crate::{launch, ElemType};
-    use burn::backend::libtorch::{LibTorch, LibTorchDevice};
-
-    pub fn run() {
-        launch::<LibTorch<ElemType>>(LibTorchDevice::Cpu);
-    }
-}
-
-#[cfg(feature = "wgpu")]
-mod wgpu {
-    use crate::launch;
-    use burn::backend::wgpu::{Wgpu, WgpuDevice};
-
-    pub fn run() {
-        launch::<Wgpu>(WgpuDevice::default());
-    }
-}
-
-#[cfg(feature = "cuda")]
-mod cuda {
-    use crate::launch;
-    use burn::backend::{cuda::CudaDevice, Cuda};
-
-    pub fn run() {
-        launch::<Cuda>(CudaDevice::default());
-    }
-}
-
 fn main() {
-    #[cfg(feature = "ndarray")]
-    ndarray::run();
-    #[cfg(feature = "tch-gpu")]
-    tch_gpu::run();
-    #[cfg(feature = "tch-cpu")]
-    tch_cpu::run();
-    #[cfg(feature = "wgpu")]
-    wgpu::run();
-    #[cfg(feature = "cuda")]
-    cuda::run();
+    launch::<Flex>(FlexDevice);
 }

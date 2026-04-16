@@ -1,9 +1,9 @@
 use albert_burn::{AlbertMaskedLM, AlbertVariant, tokenize_batch};
-use burn::backend::ndarray::NdArray;
 use burn::tensor::Tensor;
+use burn_flex::Flex;
 use clap::Parser;
 
-type B = NdArray<f32>;
+type B = Flex;
 
 #[derive(Parser)]
 #[command(about = "ALBERT fill-mask inference")]

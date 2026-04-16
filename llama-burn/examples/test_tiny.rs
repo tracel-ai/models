@@ -1,4 +1,5 @@
 use burn::tensor::{backend::Backend, Device};
+use burn_flex::{Flex, FlexDevice};
 use llama_burn::{llama::LlamaConfig, sampling::Sampler};
 
 fn model_path() -> String {
@@ -27,7 +28,6 @@ pub fn test<B: Backend>(device: Device<B>) {
 
     println!("Model loaded successfully!");
 
-    // Test generation
     let prompt = "<|system|>\nYou are a friendly assistant.</s>\n<|user|>\nWhat is 2+2?</s>\n<|assistant|>\n";
 
     let mut sampler = Sampler::Argmax;
@@ -39,38 +39,6 @@ pub fn test<B: Backend>(device: Device<B>) {
     println!("Tokens: {}, Time: {:.2}s", output.tokens, output.time);
 }
 
-#[cfg(feature = "tch-cpu")]
-mod tch_cpu {
-    use super::*;
-    use burn::backend::{libtorch::LibTorchDevice, LibTorch};
-
-    pub fn run() {
-        let device = LibTorchDevice::Cpu;
-        test::<LibTorch>(device);
-    }
-}
-
-#[cfg(feature = "ndarray")]
-mod ndarray_backend {
-    use super::*;
-    use burn::backend::{ndarray::NdArrayDevice, NdArray};
-
-    pub fn run() {
-        let device = NdArrayDevice::Cpu;
-        test::<NdArray>(device);
-    }
-}
-
 pub fn main() {
-    #[cfg(feature = "tch-cpu")]
-    tch_cpu::run();
-
-    #[cfg(feature = "ndarray")]
-    ndarray_backend::run();
-
-    #[cfg(not(any(feature = "tch-cpu", feature = "ndarray")))]
-    {
-        eprintln!("Please enable either 'tch-cpu' or 'ndarray' feature to run this test");
-        std::process::exit(1);
-    }
+    test::<Flex>(FlexDevice);
 }
