@@ -79,8 +79,7 @@ pub fn load_pretrained<B: Backend>(
     let checkpoint_path: PathBuf = checkpoint_path.as_ref().to_path_buf();
     let mut store = SafetensorsStore::from_file(checkpoint_path)
         .with_from_adapter(PyTorchToBurnAdapter)
-        .remap(remapper)
-        .allow_partial(true);
+        .remap(remapper);
 
     model
         .load_from(&mut store)
@@ -106,6 +105,8 @@ pub fn load_pretrained_masked_lm<B: Backend>(
 
     let remapper = build_remapper(mappings)?;
     let checkpoint_path: PathBuf = checkpoint_path.as_ref().to_path_buf();
+    // `allow_partial(true)`: the MLM decoder weight is tied to `word_embeddings.weight` in HF
+    // checkpoints and is typically not stored separately. We supply it manually below.
     let mut store = SafetensorsStore::from_file(checkpoint_path)
         .with_from_adapter(PyTorchToBurnAdapter)
         .remap(remapper)
@@ -123,31 +124,33 @@ pub fn load_pretrained_masked_lm<B: Backend>(
 }
 
 /// Load the BERT model config from the JSON format available on Hugging Face Hub.
-pub fn load_model_config(path: PathBuf) -> BertModelConfig {
-    let mut model_config = BertModelConfig::load(path).expect("Config file present");
+pub fn load_model_config(path: impl AsRef<Path>) -> Result<BertModelConfig, LoadError> {
+    let mut model_config =
+        BertModelConfig::load(path).map_err(|e| LoadError::Config(e.to_string()))?;
     model_config.max_seq_len = Some(512);
-    model_config
+    Ok(model_config)
 }
 
 /// Download model config and weights from Hugging Face Hub.
 /// Cached files are reused.
-pub fn download_hf_model(model_name: &str) -> (PathBuf, PathBuf) {
-    let api = hf_hub::api::sync::Api::new().expect("Failed to create HF API client");
+pub fn download_hf_model(model_name: &str) -> Result<(PathBuf, PathBuf), LoadError> {
+    let api = hf_hub::api::sync::Api::new()
+        .map_err(|e| LoadError::Download(format!("Failed to create HF API client: {}", e)))?;
     let repo = api.model(model_name.to_string());
 
-    let model_filepath = repo.get("model.safetensors").unwrap_or_else(|_| {
-        panic!(
-            "Failed to download: {} weights with name: model.safetensors from HuggingFace Hub",
-            model_name
-        )
-    });
+    let model_filepath = repo.get("model.safetensors").map_err(|e| {
+        LoadError::Download(format!(
+            "Failed to download `model.safetensors` for {}: {}",
+            model_name, e
+        ))
+    })?;
 
-    let config_filepath = repo.get("config.json").unwrap_or_else(|_| {
-        panic!(
-            "Failed to download: {} config with name: config.json from HuggingFace Hub",
-            model_name
-        )
-    });
+    let config_filepath = repo.get("config.json").map_err(|e| {
+        LoadError::Download(format!(
+            "Failed to download `config.json` for {}: {}",
+            model_name, e
+        ))
+    })?;
 
-    (config_filepath, model_filepath)
+    Ok((config_filepath, model_filepath))
 }

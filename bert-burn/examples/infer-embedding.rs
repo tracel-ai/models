@@ -34,8 +34,9 @@ pub fn launch<B: Backend>(device: B::Device) {
             .to_string(),
     ];
 
-    let (config_file, model_file) = download_hf_model(model_variant);
-    let model_config = load_model_config(config_file);
+    let (config_file, model_file) =
+        download_hf_model(model_variant).expect("Failed to download BERT model from HF Hub");
+    let model_config = load_model_config(config_file).expect("Failed to load BERT config");
 
     let mut model = model_config.init::<B>(&device);
     load_pretrained(&mut model, &model_file).expect("Failed to load pretrained BERT weights");
