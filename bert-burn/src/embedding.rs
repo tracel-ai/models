@@ -54,6 +54,13 @@ impl BertEmbeddingsConfig {
 }
 
 impl<B: Backend> BertEmbeddings<B> {
+    /// Returns the word embeddings weight matrix `[vocab_size, hidden_size]`.
+    ///
+    /// Used to tie the MLM decoder weight to the word embeddings.
+    pub fn word_embeddings_weight(&self) -> Tensor<B, 2, Float> {
+        self.word_embeddings.weight.val()
+    }
+
     pub fn forward(&self, item: BertInferenceBatch<B>) -> Tensor<B, 3, Float> {
         // Items batch contains the tokenized input and padding mask, each of dim: [batch_size, max_seq_length]
         let input_shape = item.tokens.shape();

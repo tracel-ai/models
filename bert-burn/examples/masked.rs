@@ -1,9 +1,7 @@
 use bert_burn::data::{BertInputBatcher, BertTokenizer};
 use bert_burn::fill_mask::fill_mask;
-use bert_burn::loader::{download_hf_model, load_model_config};
-use bert_burn::model::{BertMaskedLM, BertMaskedLMRecord};
+use bert_burn::loader::{download_hf_model, load_model_config, load_pretrained_masked_lm};
 use burn::data::dataloader::batcher::Batcher;
-use burn::module::Module;
 use burn::tensor::backend::Backend;
 use burn_flex::{Flex, FlexDevice};
 use std::env;
@@ -28,12 +26,9 @@ pub fn launch<B: Backend>(device: B::Device) {
     let (config_file, model_file) = download_hf_model(model_variant);
     let model_config = load_model_config(config_file);
 
-    let model_record: BertMaskedLMRecord<B> =
-        BertMaskedLM::from_safetensors(model_file, &device, model_config.clone());
-
-    let model = model_config
-        .init_with_lm_head(&device)
-        .load_record(model_record);
+    let mut model = model_config.init_with_lm_head::<B>(&device);
+    load_pretrained_masked_lm(&mut model, &model_file)
+        .expect("Failed to load pretrained BERT masked LM weights");
 
     let tokenizer = Arc::new(BertTokenizer::new(
         model_variant.to_string(),
