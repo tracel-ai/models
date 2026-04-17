@@ -16,24 +16,23 @@ bert-burn = { git = "https://github.com/tracel-ai/models", package = "bert-burn"
 
 ## Example Usage
 
-Example usage for getting sentence embedding from given input text. The model supports multiple backends from burn
-(e.g. `ndarray`, `wgpu`, `tch-gpu`, `tch-cpu`, `cuda`) which can be selected using the `--features` flag. An example with `wgpu`
-backend is shown below. The `fusion` flag is used to enable kernel fusion for the `wgpu` or `cuda` backends. It is not required
-with other backends. The `safetensors` flag is used to support loading weights in `safetensors` format via `candle-core`
-crate.
+Example usage for getting sentence embedding from given input text. The backend is selected through
+[`burn-flex`](https://crates.io/crates/burn-flex), which accepts a backend name via the `BURN_BACKEND`
+environment variable (`ndarray`, `wgpu`, `cuda`, `tch`, etc.). Safetensors weights are loaded through
+[`burn-store`](https://crates.io/crates/burn-store).
 
-### WGPU backend
+### Sentence embeddings
 
 ```bash
 cd bert-burn/
-# Get sentence embeddings from the RobBERTa encoder (default)
-cargo run --example infer-embedding --release --features wgpu,fusion,safetensors
+# Get sentence embeddings from the RoBERTa encoder (default)
+cargo run --example infer-embedding --release
 
 # Using bert-base-uncased model
-cargo run --example infer-embedding --release --features wgpu,fusion,safetensors bert-base-uncased 
+cargo run --example infer-embedding --release -- bert-base-uncased
 
-# Using roberta-large model
-cargo run --example infer-embedding --release --features wgpu,fusion,safetensors roberta-large
+# Using roberta-large model on the wgpu backend
+BURN_BACKEND=wgpu cargo run --example infer-embedding --release -- roberta-large
 ```
 
 

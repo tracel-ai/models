@@ -7,20 +7,18 @@ license.workspace = true
 
 [features]
 default = []
-safetensors = ["candle-core/default"]
 
 [dependencies]
-burn        = { workspace = true, features = ["dataset", "std"] }
-candle-core = { workspace = true }
+burn       = { workspace = true, features = ["dataset", "std"] }
+burn-store = { workspace = true, features = ["std", "safetensors"] }
 
 tokenizers = { workspace = true, features = ["onig", "http"] }
 derive-new = { workspace = true }
-hf-hub     = { workspace = true, features = ["tokio"] }
+hf-hub     = { workspace = true }
 
 serde      = { workspace = true, features = ["std", "derive"] }
 serde_json = { workspace = true }
 libm       = { workspace = true }
-tokio      = { workspace = true }
 
 [dev-dependencies]
 burn-flex = { workspace = true }

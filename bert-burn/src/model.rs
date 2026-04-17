@@ -1,9 +1,5 @@
 use crate::data::BertInferenceBatch;
 use crate::embedding::{BertEmbeddings, BertEmbeddingsConfig};
-use crate::loader::{
-    load_decoder_from_safetensors, load_embeddings_from_safetensors, load_encoder_from_safetensors,
-    load_layer_norm_safetensor, load_linear_safetensor, load_pooler_from_safetensors,
-};
 use crate::pooler::{Pooler, PoolerConfig};
 use burn::config::Config;
 use burn::module::Module;
@@ -16,9 +12,6 @@ use burn::nn::{LayerNorm, LayerNormConfig, Linear, LinearConfig};
 use burn::tensor::activation::gelu;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
-use candle_core::{safetensors, Device, Tensor as CandleTensor};
-use std::collections::HashMap;
-use std::path::PathBuf;
 
 // Define the Bert model configuration
 #[derive(Config, Debug)]
@@ -154,59 +147,6 @@ impl<B: Backend> BertModel<B> {
             pooled_output,
         }
     }
-
-    pub fn from_safetensors(
-        file_path: PathBuf,
-        device: &B::Device,
-        config: BertModelConfig,
-    ) -> BertModelRecord<B> {
-        let model_name = config.model_type.as_str();
-        let weight_result = safetensors::load::<PathBuf>(file_path, &Device::Cpu);
-
-        // Match on the result of loading the weights
-        let weights = match weight_result {
-            Ok(weights) => weights,
-            Err(e) => panic!("Error loading weights: {:?}", e),
-        };
-
-        // Weights are stored in a HashMap<String, Tensor>
-        // For each layer, it will either be prefixed with "encoder.layer." or "embeddings."
-        // We need to extract both.
-        let mut encoder_layers: HashMap<String, CandleTensor> = HashMap::new();
-        let mut embeddings_layers: HashMap<String, CandleTensor> = HashMap::new();
-        let mut pooler_layers: HashMap<String, CandleTensor> = HashMap::new();
-
-        for (key, value) in weights.iter() {
-            // If model name prefix present in keys, remove it to load keys consistently
-            // across variants (bert-base, roberta-base etc.)
-
-            let prefix = String::from(model_name) + ".";
-            let key_without_prefix = key.replace(&prefix, "");
-
-            if key_without_prefix.starts_with("encoder.layer.") {
-                encoder_layers.insert(key_without_prefix, value.clone());
-            } else if key_without_prefix.starts_with("embeddings.") {
-                embeddings_layers.insert(key_without_prefix, value.clone());
-            } else if key_without_prefix.starts_with("pooler.") {
-                pooler_layers.insert(key_without_prefix, value.clone());
-            }
-        }
-
-        let embeddings_record = load_embeddings_from_safetensors::<B>(embeddings_layers, device);
-        let encoder_record = load_encoder_from_safetensors::<B>(encoder_layers, device);
-
-        let pooler_record = if config.with_pooling_layer.unwrap_or(false) {
-            Some(load_pooler_from_safetensors::<B>(pooler_layers, device))
-        } else {
-            None
-        };
-
-        BertModelRecord {
-            embeddings: embeddings_record,
-            encoder: encoder_record,
-            pooler: pooler_record,
-        }
-    }
 }
 
 #[derive(Module, Debug)]
@@ -231,17 +171,6 @@ impl<B: Backend> BertMaskedLM<B> {
 
         self.lm_head.forward(output.hidden_states)
     }
-
-    pub fn from_safetensors(
-        file_path: PathBuf,
-        device: &B::Device,
-        config: BertModelConfig,
-    ) -> BertMaskedLMRecord<B> {
-        let bert = BertModel::from_safetensors(file_path.clone(), device, config.clone());
-        let lm_head = BertLMHead::from_safetensors(file_path, device, config);
-
-        BertMaskedLMRecord { bert, lm_head }
-    }
 }
 
 impl<B: Backend> BertLMHead<B> {
@@ -251,45 +180,5 @@ impl<B: Backend> BertLMHead<B> {
         let output = self.layer_norm.forward(output);
 
         self.decoder.forward(output)
-    }
-
-    pub fn from_safetensors(
-        file_path: PathBuf,
-        device: &B::Device,
-        _config: BertModelConfig,
-    ) -> BertLMHeadRecord<B> {
-        let weight_result = safetensors::load::<PathBuf>(file_path, &Device::Cpu);
-
-        // Match on the result of loading the weights
-        let weights = match weight_result {
-            Ok(weights) => weights,
-            Err(e) => panic!("Error loading weights: {:?}", e),
-        };
-
-        let dense = load_linear_safetensor::<B>(
-            &weights["lm_head.dense.bias"],
-            &weights["lm_head.dense.weight"],
-            device,
-        );
-        let layer_norm = load_layer_norm_safetensor::<B>(
-            &weights["lm_head.layer_norm.bias"],
-            &weights["lm_head.layer_norm.weight"],
-            device,
-        );
-        let decoder = load_decoder_from_safetensors::<B>(
-            &weights["lm_head.bias"],
-            weights
-                .iter()
-                .find(|(k, _)| k.contains("word_embeddings.weight"))
-                .unwrap()
-                .1,
-            device,
-        );
-
-        BertLMHeadRecord {
-            dense,
-            layer_norm,
-            decoder,
-        }
     }
 }

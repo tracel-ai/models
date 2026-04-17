@@ -1,346 +1,156 @@
-// This file contains logic to load the BERT Model from the safetensor format available on Hugging Face Hub.
-// Some utility functions are referenced from: https://github.com/tvergho/sentence-transformers-burn/tree/main
+// Safetensors loading for the BERT family (BERT / RoBERTa) via `burn-store`.
+//
+// Key mappings translate HuggingFace tensor names to the Burn module structure:
+//   encoder.layer.{i}.attention.self.{query,key,value} -> encoder.layers.{i}.mha.{query,key,value}
+//   encoder.layer.{i}.attention.output.dense           -> encoder.layers.{i}.mha.output
+//   encoder.layer.{i}.attention.output.LayerNorm       -> encoder.layers.{i}.norm_1
+//   encoder.layer.{i}.intermediate.dense               -> encoder.layers.{i}.pwff.linear_inner
+//   encoder.layer.{i}.output.dense                     -> encoder.layers.{i}.pwff.linear_outer
+//   encoder.layer.{i}.output.LayerNorm                 -> encoder.layers.{i}.norm_2
+//   embeddings.LayerNorm                               -> embeddings.layer_norm
+//   pooler.dense                                       -> pooler.output
+//
+// `PyTorchToBurnAdapter` handles LayerNorm weight/bias -> gamma/beta and Linear weight transpose.
 
-use crate::embedding::BertEmbeddingsRecord;
-use crate::model::BertModelConfig;
-use crate::pooler::PoolerRecord;
+use crate::model::{BertMaskedLM, BertModel, BertModelConfig};
 use burn::config::Config;
-use burn::module::{EmptyRecord, Module, Param};
-use burn::nn::activation::ActivationConfig;
-use burn::nn::attention::MultiHeadAttentionRecord;
-use burn::nn::transformer::{
-    PositionWiseFeedForwardRecord, TransformerEncoderLayerRecord, TransformerEncoderRecord,
-};
-use burn::nn::{EmbeddingRecord, LayerNormRecord, LinearRecord};
+use burn::module::Param;
 use burn::tensor::backend::Backend;
-use burn::tensor::{Shape, Tensor, TensorData};
-use candle_core::Tensor as CandleTensor;
-use std::collections::HashMap;
-use std::path::PathBuf;
+use burn_store::{KeyRemapper, ModuleSnapshot, PyTorchToBurnAdapter, SafetensorsStore};
+use std::path::{Path, PathBuf};
 
-pub(crate) fn load_1d_tensor_from_candle<B: Backend>(
-    tensor: &CandleTensor,
-    device: &B::Device,
-) -> Tensor<B, 1> {
-    let dims = tensor.dims();
-    let data = tensor.to_vec1::<f32>().unwrap();
-    let array: [usize; 1] = dims.try_into().expect("Unexpected size");
-    let data = TensorData::new(data, Shape::new(array));
-
-    Tensor::<B, 1>::from_floats(data, &device.clone())
+/// Error type for model loading operations.
+#[derive(Debug)]
+pub enum LoadError {
+    Store(String),
+    Download(String),
+    Config(String),
 }
 
-pub(crate) fn load_2d_tensor_from_candle<B: Backend>(
-    tensor: &CandleTensor,
-    device: &B::Device,
-) -> Tensor<B, 2> {
-    let dims = tensor.dims();
-    let data = tensor
-        .to_vec2::<f32>()
-        .unwrap()
-        .into_iter()
-        .flatten()
-        .collect::<Vec<f32>>();
-    let array: [usize; 2] = dims.try_into().expect("Unexpected size");
-    let data = TensorData::new(data, Shape::new(array));
-
-    Tensor::<B, 2>::from_floats(data, &device.clone())
-}
-
-pub(crate) fn load_layer_norm_safetensor<B: Backend>(
-    bias: &CandleTensor,
-    weight: &CandleTensor,
-    device: &B::Device,
-) -> LayerNormRecord<B> {
-    let beta = load_1d_tensor_from_candle::<B>(bias, device);
-    let gamma = load_1d_tensor_from_candle::<B>(weight, device);
-
-    LayerNormRecord {
-        beta: Some(Param::from_tensor(beta)),
-        gamma: Param::from_tensor(gamma),
-        epsilon: EmptyRecord::new(),
+impl std::fmt::Display for LoadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LoadError::Store(msg) => write!(f, "Store error: {}", msg),
+            LoadError::Download(msg) => write!(f, "Download error: {}", msg),
+            LoadError::Config(msg) => write!(f, "Config error: {}", msg),
+        }
     }
 }
 
-pub(crate) fn load_linear_safetensor<B: Backend>(
-    bias: &CandleTensor,
-    weight: &CandleTensor,
-    device: &B::Device,
-) -> LinearRecord<B> {
-    let bias = load_1d_tensor_from_candle::<B>(bias, device);
-    let weight = load_2d_tensor_from_candle::<B>(weight, device);
+impl std::error::Error for LoadError {}
 
-    let weight = weight.transpose();
-
-    LinearRecord {
-        weight: Param::from_tensor(weight),
-        bias: Some(Param::from_tensor(bias)),
-    }
+fn bert_structure_mappings() -> Vec<(&'static str, &'static str)> {
+    vec![
+        // encoder.layer.X -> encoder.layers.X
+        (r"encoder\.layer\.([0-9]+)", "encoder.layers.$1"),
+        // Self-attention
+        (r"attention\.self\.query", "mha.query"),
+        (r"attention\.self\.key", "mha.key"),
+        (r"attention\.self\.value", "mha.value"),
+        (r"attention\.output\.dense", "mha.output"),
+        (r"attention\.output\.LayerNorm", "norm_1"),
+        // Feed-forward. More specific patterns first (ffn output lives at layers.X.output.*,
+        // but we must not match attention.output which was already rewritten above).
+        (r"intermediate\.dense", "pwff.linear_inner"),
+        (r"(layers\.[0-9]+)\.output\.dense", "$1.pwff.linear_outer"),
+        (r"(layers\.[0-9]+)\.output\.LayerNorm", "$1.norm_2"),
+        // Embedding LayerNorm
+        (r"embeddings\.LayerNorm", "embeddings.layer_norm"),
+        // Pooler dense -> output (field name in the Burn Pooler module)
+        (r"pooler\.dense", "pooler.output"),
+    ]
 }
 
-pub(crate) fn load_intermediate_layer_safetensor<B: Backend>(
-    linear_inner_weight: &CandleTensor,
-    linear_inner_bias: &CandleTensor,
-    linear_outer_weight: &CandleTensor,
-    linear_outer_bias: &CandleTensor,
-    device: &B::Device,
-) -> PositionWiseFeedForwardRecord<B> {
-    let linear_inner = load_linear_safetensor::<B>(linear_inner_bias, linear_inner_weight, device);
-    let linear_outer = load_linear_safetensor::<B>(linear_outer_bias, linear_outer_weight, device);
-
-    PositionWiseFeedForwardRecord {
-        linear_inner,
-        linear_outer,
-        dropout: EmptyRecord::new(),
-        activation: ActivationConfig::Gelu.init(device).into_record(),
-    }
+fn build_remapper(mappings: Vec<(&str, &str)>) -> Result<KeyRemapper, LoadError> {
+    KeyRemapper::from_patterns(mappings).map_err(|e| LoadError::Store(e.to_string()))
 }
 
-fn load_attention_layer_safetensor<B: Backend>(
-    attention_tensors: HashMap<String, CandleTensor>,
-    device: &B::Device,
-) -> MultiHeadAttentionRecord<B> {
-    let query = load_linear_safetensor::<B>(
-        &attention_tensors["attention.self.query.bias"],
-        &attention_tensors["attention.self.query.weight"],
-        device,
-    );
+/// Load pre-trained weights from a safetensors file into a `BertModel`.
+///
+/// Supports both BERT (`bert.*`) and RoBERTa (`roberta.*`) checkpoints; the prefix is stripped.
+pub fn load_pretrained<B: Backend>(
+    model: &mut BertModel<B>,
+    checkpoint_path: impl AsRef<Path>,
+) -> Result<(), LoadError> {
+    let mut mappings = vec![(r"^(?:bert|roberta)\.(.+)", "$1")];
+    mappings.extend(bert_structure_mappings());
 
-    let key = load_linear_safetensor::<B>(
-        &attention_tensors["attention.self.key.bias"],
-        &attention_tensors["attention.self.key.weight"],
-        device,
-    );
+    let remapper = build_remapper(mappings)?;
+    let checkpoint_path: PathBuf = checkpoint_path.as_ref().to_path_buf();
+    let mut store = SafetensorsStore::from_file(checkpoint_path)
+        .with_from_adapter(PyTorchToBurnAdapter)
+        .remap(remapper);
 
-    let value = load_linear_safetensor::<B>(
-        &attention_tensors["attention.self.value.bias"],
-        &attention_tensors["attention.self.value.weight"],
-        device,
-    );
+    model
+        .load_from(&mut store)
+        .map_err(|e| LoadError::Store(e.to_string()))?;
 
-    let output = load_linear_safetensor::<B>(
-        &attention_tensors["attention.output.dense.bias"],
-        &attention_tensors["attention.output.dense.weight"],
-        device,
-    );
-
-    MultiHeadAttentionRecord {
-        query,
-        key,
-        value,
-        output,
-        d_model: EmptyRecord::new(),
-        dropout: EmptyRecord::new(),
-        activation: EmptyRecord::new(),
-        n_heads: EmptyRecord::new(),
-        d_k: EmptyRecord::new(),
-        min_float: EmptyRecord::new(),
-        quiet_softmax: EmptyRecord::new(),
-    }
+    Ok(())
 }
 
-/// Load the BERT encoder from the safetensor format available on Hugging Face Hub
-pub fn load_encoder_from_safetensors<B: Backend>(
-    encoder_tensors: HashMap<String, CandleTensor>,
-    device: &B::Device,
-) -> TransformerEncoderRecord<B> {
-    // Each layer in encoder_tensors has a key like encoder.layer.0, encoder.layer.1, etc.
-    // We need to extract the layers in order by iterating over the tensors and extracting the layer number
-    let mut layers: HashMap<usize, HashMap<String, CandleTensor>> = HashMap::new();
+/// Load pre-trained weights from a safetensors file into a `BertMaskedLM`.
+///
+/// The HF prefix (`bert.` or `roberta.`) is rewritten to `bert.` so it matches the Burn field.
+/// The MLM decoder weight is tied to `word_embeddings.weight` after loading, mirroring HF's
+/// runtime behavior (RoBERTa checkpoints store the decoder bias as `lm_head.bias`, and the
+/// decoder weight is tied rather than stored).
+pub fn load_pretrained_masked_lm<B: Backend>(
+    model: &mut BertMaskedLM<B>,
+    checkpoint_path: impl AsRef<Path>,
+) -> Result<(), LoadError> {
+    let mut mappings = vec![(r"^(?:bert|roberta)\.(.+)", "bert.$1")];
+    mappings.extend(bert_structure_mappings());
+    // RoBERTa MLM stores the decoder bias as `lm_head.bias`.
+    mappings.push((r"^lm_head\.bias$", "lm_head.decoder.bias"));
 
-    for (key, value) in encoder_tensors.iter() {
-        let layer_number = key.split('.').collect::<Vec<&str>>()[2]
-            .parse::<usize>()
-            .unwrap();
+    let remapper = build_remapper(mappings)?;
+    let checkpoint_path: PathBuf = checkpoint_path.as_ref().to_path_buf();
+    // `allow_partial(true)`: the MLM decoder weight is tied to `word_embeddings.weight` in HF
+    // checkpoints and is typically not stored separately. We supply it manually below.
+    let mut store = SafetensorsStore::from_file(checkpoint_path)
+        .with_from_adapter(PyTorchToBurnAdapter)
+        .remap(remapper)
+        .allow_partial(true);
 
-        layers
-            .entry(layer_number)
-            .or_default()
-            .insert(key.to_string(), value.clone());
-    }
+    model
+        .load_from(&mut store)
+        .map_err(|e| LoadError::Store(e.to_string()))?;
 
-    // Sort layers.iter() by key
-    let mut layers = layers
-        .into_iter()
-        .collect::<Vec<(usize, HashMap<String, CandleTensor>)>>();
-    layers.sort_by(|a, b| a.0.cmp(&b.0));
+    // Tie: decoder.weight = word_embeddings.weight.T  (HF convention)
+    let tied_weight = model.bert.embeddings.word_embeddings_weight().transpose();
+    model.lm_head.decoder.weight = Param::from_tensor(tied_weight);
 
-    // Now, we can iterate over the layers and load each layer
-    let mut bert_encoder_layers: Vec<TransformerEncoderLayerRecord<B>> = Vec::new();
-    for (key, value) in layers.iter() {
-        let layer_key = format!("encoder.layer.{}", key);
-        let attention_tensors = value.clone();
-        // Remove the layer number from the key
-        let attention_tensors = attention_tensors
-            .iter()
-            .map(|(k, v)| (k.replace(&format!("{}.", layer_key), ""), v.clone()))
-            .collect::<HashMap<String, CandleTensor>>();
-
-        let attention_layer =
-            load_attention_layer_safetensor::<B>(attention_tensors.clone(), device);
-
-        let (bias_suffix, weight_suffix) =
-            if attention_tensors.contains_key("attention.output.LayerNorm.bias") {
-                ("bias", "weight")
-            } else {
-                ("beta", "gamma")
-            };
-
-        let norm_1 = load_layer_norm_safetensor(
-            &attention_tensors[&format!("attention.output.LayerNorm.{}", bias_suffix)],
-            &attention_tensors[&format!("attention.output.LayerNorm.{}", weight_suffix)],
-            device,
-        );
-
-        let pwff = load_intermediate_layer_safetensor::<B>(
-            &value[&format!("{}.intermediate.dense.weight", layer_key)],
-            &value[&format!("{}.intermediate.dense.bias", layer_key)],
-            &value[&format!("{}.output.dense.weight", layer_key)],
-            &value[&format!("{}.output.dense.bias", layer_key)],
-            device,
-        );
-
-        let norm_2 = load_layer_norm_safetensor::<B>(
-            &value[&format!("{}.output.LayerNorm.{}", layer_key, bias_suffix)],
-            &value[&format!("{}.output.LayerNorm.{}", layer_key, weight_suffix)],
-            device,
-        );
-
-        let layer_record = TransformerEncoderLayerRecord {
-            mha: attention_layer,
-            pwff,
-            norm_1,
-            norm_2,
-            dropout: EmptyRecord::new(),
-            norm_first: EmptyRecord::new(),
-        };
-
-        bert_encoder_layers.push(layer_record);
-    }
-
-    TransformerEncoderRecord {
-        layers: bert_encoder_layers,
-        d_model: EmptyRecord::new(),
-        d_ff: EmptyRecord::new(),
-        n_heads: EmptyRecord::new(),
-        n_layers: EmptyRecord::new(),
-        dropout: EmptyRecord::new(),
-        norm_first: EmptyRecord::new(),
-        quiet_softmax: EmptyRecord::new(),
-    }
+    Ok(())
 }
 
-pub fn load_decoder_from_safetensors<B: Backend>(
-    bias: &CandleTensor,
-    word_embedding_weights: &CandleTensor,
-    device: &B::Device,
-) -> LinearRecord<B> {
-    let bias = load_1d_tensor_from_candle::<B>(bias, device);
-    let weight = load_2d_tensor_from_candle::<B>(word_embedding_weights, device);
-    let weight = weight.transpose();
-
-    LinearRecord {
-        weight: Param::from_tensor(weight),
-        bias: Some(Param::from_tensor(bias)),
-    }
-}
-
-fn load_embedding_safetensor<B: Backend>(
-    weight: &CandleTensor,
-    device: &B::Device,
-) -> EmbeddingRecord<B> {
-    let weight = load_2d_tensor_from_candle(weight, device);
-
-    EmbeddingRecord {
-        weight: Param::from_tensor(weight),
-    }
-}
-
-/// Load the BERT embeddings from the safetensor format available on Hugging Face Hub
-pub fn load_embeddings_from_safetensors<B: Backend>(
-    embedding_tensors: HashMap<String, CandleTensor>,
-    device: &B::Device,
-) -> BertEmbeddingsRecord<B> {
-    let word_embeddings = load_embedding_safetensor(
-        &embedding_tensors["embeddings.word_embeddings.weight"],
-        device,
-    );
-
-    let position_embeddings = load_embedding_safetensor(
-        &embedding_tensors["embeddings.position_embeddings.weight"],
-        device,
-    );
-
-    let token_type_embeddings = load_embedding_safetensor(
-        &embedding_tensors["embeddings.token_type_embeddings.weight"],
-        device,
-    );
-
-    // BERT-base/large contains beta, gamma keys for layerNorm whereas roberta-base/large contains weight, bias keys
-    let (bias_key, weight_key) = if embedding_tensors.contains_key("embeddings.LayerNorm.bias") {
-        ("embeddings.LayerNorm.bias", "embeddings.LayerNorm.weight")
-    } else {
-        ("embeddings.LayerNorm.beta", "embeddings.LayerNorm.gamma")
-    };
-
-    let layer_norm = load_layer_norm_safetensor::<B>(
-        &embedding_tensors[bias_key],
-        &embedding_tensors[weight_key],
-        device,
-    );
-
-    BertEmbeddingsRecord {
-        word_embeddings,
-        position_embeddings,
-        token_type_embeddings,
-        layer_norm,
-        dropout: EmptyRecord::new(),
-        max_position_embeddings: EmptyRecord::new(),
-        pad_token_idx: EmptyRecord::new(),
-    }
-}
-
-/// Load the BERT pooler from the safetensor format available on Hugging Face Hub
-pub fn load_pooler_from_safetensors<B: Backend>(
-    pooler_tensors: HashMap<String, CandleTensor>,
-    device: &B::Device,
-) -> PoolerRecord<B> {
-    let output = load_linear_safetensor(
-        &pooler_tensors["pooler.dense.bias"],
-        &pooler_tensors["pooler.dense.weight"],
-        device,
-    );
-
-    PoolerRecord { output }
-}
-
-/// Load the BERT model config from the JSON format available on Hugging Face Hub
-pub fn load_model_config(path: PathBuf) -> BertModelConfig {
-    let mut model_config = BertModelConfig::load(path).expect("Config file present");
+/// Load the BERT model config from the JSON format available on Hugging Face Hub.
+pub fn load_model_config(path: impl AsRef<Path>) -> Result<BertModelConfig, LoadError> {
+    let mut model_config =
+        BertModelConfig::load(path).map_err(|e| LoadError::Config(e.to_string()))?;
     model_config.max_seq_len = Some(512);
-    model_config
+    Ok(model_config)
 }
 
-/// Download model config and weights from Hugging Face Hub
-/// If file exists in cache, it will not be downloaded again
-#[tokio::main]
-pub async fn download_hf_model(model_name: &str) -> (PathBuf, PathBuf) {
-    let api = hf_hub::api::tokio::Api::new().unwrap();
+/// Download model config and weights from Hugging Face Hub.
+/// Cached files are reused.
+pub fn download_hf_model(model_name: &str) -> Result<(PathBuf, PathBuf), LoadError> {
+    let api = hf_hub::api::sync::Api::new()
+        .map_err(|e| LoadError::Download(format!("Failed to create HF API client: {}", e)))?;
     let repo = api.model(model_name.to_string());
 
-    let model_filepath = repo.get("model.safetensors").await.unwrap_or_else(|_| {
-        panic!(
-            "Failed to download: {} weights with name: model.safetensors from HuggingFace Hub",
-            model_name
-        )
-    });
+    let model_filepath = repo.get("model.safetensors").map_err(|e| {
+        LoadError::Download(format!(
+            "Failed to download `model.safetensors` for {}: {}",
+            model_name, e
+        ))
+    })?;
 
-    let config_filepath = repo.get("config.json").await.unwrap_or_else(|_| {
-        panic!(
-            "Failed to download: {} config with name: config.json from HuggingFace Hub",
-            model_name
-        )
-    });
+    let config_filepath = repo.get("config.json").map_err(|e| {
+        LoadError::Download(format!(
+            "Failed to download `config.json` for {}: {}",
+            model_name, e
+        ))
+    })?;
 
-    (config_filepath, model_filepath)
+    Ok((config_filepath, model_filepath))
 }
