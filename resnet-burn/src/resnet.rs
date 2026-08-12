@@ -7,7 +7,7 @@ use burn::{
         pool::{AdaptiveAvgPool2d, AdaptiveAvgPool2dConfig, MaxPool2d, MaxPool2dConfig},
         BatchNorm, BatchNormConfig, Initializer, Linear, LinearConfig, PaddingConfig2d, Relu,
     },
-    tensor::{backend::Backend, Device, Tensor},
+    tensor::{Device, Tensor},
 };
 
 use super::block::{LayerBlock, LayerBlockConfig};
@@ -28,21 +28,21 @@ const RESNET152_BLOCKS: [usize; 4] = [3, 8, 36, 3];
 /// ResNet implementation.
 /// Derived from [torchivision.models.resnet.ResNet](https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py)
 #[derive(Module, Debug)]
-pub struct ResNet<B: Backend> {
-    conv1: Conv2d<B>,
-    bn1: BatchNorm<B>,
+pub struct ResNet {
+    conv1: Conv2d,
+    bn1: BatchNorm,
     relu: Relu,
     maxpool: MaxPool2d,
-    layer1: LayerBlock<B>,
-    layer2: LayerBlock<B>,
-    layer3: LayerBlock<B>,
-    layer4: LayerBlock<B>,
+    layer1: LayerBlock,
+    layer2: LayerBlock,
+    layer3: LayerBlock,
+    layer4: LayerBlock,
     avgpool: AdaptiveAvgPool2d,
-    fc: Linear<B>,
+    fc: Linear,
 }
 
-impl<B: Backend> ResNet<B> {
-    pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 2> {
+impl ResNet {
+    pub fn forward(&self, input: Tensor<4>) -> Tensor<2> {
         // First block
         let out = self.conv1.forward(input);
         let out = self.bn1.forward(out);
@@ -72,7 +72,7 @@ impl<B: Backend> ResNet<B> {
     /// # Returns
     ///
     /// A ResNet-18 module.
-    pub fn resnet18(num_classes: usize, device: &Device<B>) -> Self {
+    pub fn resnet18(num_classes: usize, device: &Device) -> Self {
         ResNetConfig::new(RESNET18_BLOCKS, num_classes, 1).init(device)
     }
 
@@ -90,10 +90,10 @@ impl<B: Backend> ResNet<B> {
     #[cfg(feature = "pretrained")]
     pub fn resnet18_pretrained(
         weights: weights::ResNet18,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let mut model = ResNet::<B>::resnet18(weights.num_classes, device);
+        let mut model = ResNet::resnet18(weights.num_classes, device);
         Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
@@ -108,7 +108,7 @@ impl<B: Backend> ResNet<B> {
     /// # Returns
     ///
     /// A ResNet-34 module.
-    pub fn resnet34(num_classes: usize, device: &Device<B>) -> Self {
+    pub fn resnet34(num_classes: usize, device: &Device) -> Self {
         ResNetConfig::new(RESNET34_BLOCKS, num_classes, 1).init(device)
     }
 
@@ -126,10 +126,10 @@ impl<B: Backend> ResNet<B> {
     #[cfg(feature = "pretrained")]
     pub fn resnet34_pretrained(
         weights: weights::ResNet34,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let mut model = ResNet::<B>::resnet34(weights.num_classes, device);
+        let mut model = ResNet::resnet34(weights.num_classes, device);
         Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
@@ -144,7 +144,7 @@ impl<B: Backend> ResNet<B> {
     /// # Returns
     ///
     /// A ResNet-50 module.
-    pub fn resnet50(num_classes: usize, device: &Device<B>) -> Self {
+    pub fn resnet50(num_classes: usize, device: &Device) -> Self {
         ResNetConfig::new(RESNET50_BLOCKS, num_classes, 4).init(device)
     }
 
@@ -162,10 +162,10 @@ impl<B: Backend> ResNet<B> {
     #[cfg(feature = "pretrained")]
     pub fn resnet50_pretrained(
         weights: weights::ResNet50,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let mut model = ResNet::<B>::resnet50(weights.num_classes, device);
+        let mut model = ResNet::resnet50(weights.num_classes, device);
         Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
@@ -180,7 +180,7 @@ impl<B: Backend> ResNet<B> {
     /// # Returns
     ///
     /// A ResNet-101 module.
-    pub fn resnet101(num_classes: usize, device: &Device<B>) -> Self {
+    pub fn resnet101(num_classes: usize, device: &Device) -> Self {
         ResNetConfig::new(RESNET101_BLOCKS, num_classes, 4).init(device)
     }
 
@@ -198,10 +198,10 @@ impl<B: Backend> ResNet<B> {
     #[cfg(feature = "pretrained")]
     pub fn resnet101_pretrained(
         weights: weights::ResNet101,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let mut model = ResNet::<B>::resnet101(weights.num_classes, device);
+        let mut model = ResNet::resnet101(weights.num_classes, device);
         Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
@@ -216,7 +216,7 @@ impl<B: Backend> ResNet<B> {
     /// # Returns
     ///
     /// A ResNet-152 module.
-    pub fn resnet152(num_classes: usize, device: &Device<B>) -> Self {
+    pub fn resnet152(num_classes: usize, device: &Device) -> Self {
         ResNetConfig::new(RESNET152_BLOCKS, num_classes, 4).init(device)
     }
 
@@ -234,10 +234,10 @@ impl<B: Backend> ResNet<B> {
     #[cfg(feature = "pretrained")]
     pub fn resnet152_pretrained(
         weights: weights::ResNet152,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
-        let mut model = ResNet::<B>::resnet152(weights.num_classes, device);
+        let mut model = ResNet::resnet152(weights.num_classes, device);
         Self::load_weights(&mut model, &weights)?;
         Ok(model)
     }
@@ -251,7 +251,7 @@ impl<B: Backend> ResNet<B> {
 }
 
 #[cfg(feature = "pretrained")]
-impl<B: Backend> ResNet<B> {
+impl ResNet {
     /// Load specified pre-trained PyTorch weights into the model.
     fn load_weights(model: &mut Self, weights: &weights::Weights) -> Result<(), PytorchStoreError> {
         // Download torch weights
@@ -340,7 +340,7 @@ impl ResNetConfig {
 
 impl ResNetConfig {
     /// Initialize a new [ResNet](ResNet) module.
-    fn init<B: Backend>(self, device: &Device<B>) -> ResNet<B> {
+    fn init(self, device: &Device) -> ResNet {
         // Conv initializer
         let initializer = Initializer::KaimingNormal {
             gain: SQRT_2, // recommended value for ReLU

@@ -9,7 +9,7 @@ use burn::{
         pool::{AdaptiveAvgPool2d, AdaptiveAvgPool2dConfig},
         Dropout, DropoutConfig, Linear, LinearConfig,
     },
-    tensor::{backend::Backend, Tensor},
+    tensor::{Device, Tensor},
 };
 
 use super::{
@@ -20,7 +20,6 @@ use super::{
 #[cfg(feature = "pretrained")]
 use {
     super::weights::{self, WeightsMeta},
-    burn::tensor::Device,
     burn_store::{ModuleSnapshot, PytorchStore, PytorchStoreError},
 };
 
@@ -40,14 +39,14 @@ const INVERTED_RESIDUAL_SETTINGS: [[usize; 4]; 7] = [
 const ROUND_NEAREST: usize = 8;
 
 #[derive(Debug, Module)]
-pub struct MobileNetV2<B: Backend> {
-    features: Vec<ConvBlock<B>>,
-    classifier: Classifier<B>,
+pub struct MobileNetV2 {
+    features: Vec<ConvBlock>,
+    classifier: Classifier,
     avg_pool: AdaptiveAvgPool2d,
 }
 
-impl<B: Backend> MobileNetV2<B> {
-    pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 2> {
+impl MobileNetV2 {
+    pub fn forward(&self, input: Tensor<4>) -> Tensor<2> {
         let mut x = input;
         for layer in &self.features {
             match layer {
@@ -140,7 +139,7 @@ impl<B: Backend> MobileNetV2<B> {
     #[cfg(feature = "pretrained")]
     pub fn pretrained(
         weights: weights::MobileNetV2,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
         let mut model = MobileNetV2Config::new()
@@ -153,18 +152,18 @@ impl<B: Backend> MobileNetV2<B> {
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Module, Debug)]
-enum ConvBlock<B: Backend> {
-    InvertedResidual(InvertedResidual<B>),
-    Conv(Conv2dNormActivation<B>),
+enum ConvBlock {
+    InvertedResidual(InvertedResidual),
+    Conv(Conv2dNormActivation),
 }
 
 #[derive(Module, Debug)]
-struct Classifier<B: Backend> {
+struct Classifier {
     dropout: Dropout,
-    linear: Linear<B>,
+    linear: Linear,
 }
-impl<B: Backend> Classifier<B> {
-    fn forward(&self, input: Tensor<B, 2>) -> Tensor<B, 2> {
+impl Classifier {
+    fn forward(&self, input: Tensor<2>) -> Tensor<2> {
         let x = self.dropout.forward(input);
         self.linear.forward(x)
     }
@@ -194,7 +193,7 @@ impl MobileNetV2Config {
     /// # Returns
     ///
     /// A MobileNetV2 module.
-    pub fn init<B: Backend>(&self, device: &B::Device) -> MobileNetV2<B> {
+    pub fn init(&self, device: &Device) -> MobileNetV2 {
         let input_channel = 32;
         let last_channel = 1280;
 

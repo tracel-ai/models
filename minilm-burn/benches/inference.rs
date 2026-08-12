@@ -8,16 +8,15 @@ use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2, tokenize_batch};
 use std::hint::black_box;
 
-type B = burn_flex::Flex;
 const NAME: &str = "flex";
 
 fn bench_forward(c: &mut Criterion) {
     let device = Default::default();
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)
-        .expect("Failed to load model");
+    let (model, tokenizer) =
+        MiniLmModel::pretrained(&device, Default::default(), None).expect("Failed to load model");
 
     let sentences = vec!["The quick brown fox jumps over the lazy dog"];
-    let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &sentences, &device);
+    let (input_ids, attention_mask) = tokenize_batch(&tokenizer, &sentences, &device);
 
     c.bench_function(&format!("{}/forward_single", NAME), |b| {
         b.iter(|| {
@@ -33,8 +32,8 @@ fn bench_forward(c: &mut Criterion) {
 
 fn bench_forward_batch(c: &mut Criterion) {
     let device = Default::default();
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)
-        .expect("Failed to load model");
+    let (model, tokenizer) =
+        MiniLmModel::pretrained(&device, Default::default(), None).expect("Failed to load model");
 
     let mut group = c.benchmark_group(format!("{}/forward_batch", NAME));
     group.sample_size(20);
@@ -43,7 +42,7 @@ fn bench_forward_batch(c: &mut Criterion) {
         let sentences: Vec<&str> = (0..*batch_size)
             .map(|_| "The quick brown fox jumps over the lazy dog")
             .collect();
-        let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &sentences, &device);
+        let (input_ids, attention_mask) = tokenize_batch(&tokenizer, &sentences, &device);
 
         group.bench_with_input(
             BenchmarkId::from_parameter(batch_size),
@@ -65,15 +64,15 @@ fn bench_forward_batch(c: &mut Criterion) {
 
 fn bench_full_pipeline(c: &mut Criterion) {
     let device = Default::default();
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)
-        .expect("Failed to load model");
+    let (model, tokenizer) =
+        MiniLmModel::pretrained(&device, Default::default(), None).expect("Failed to load model");
 
     let sentences = vec!["The quick brown fox jumps over the lazy dog"];
 
     c.bench_function(&format!("{}/full_pipeline", NAME), |b| {
         b.iter(|| {
             let (input_ids, attention_mask) =
-                tokenize_batch::<B>(&tokenizer, black_box(&sentences), &device);
+                tokenize_batch(&tokenizer, black_box(&sentences), &device);
             let output = model.forward(input_ids, attention_mask.clone(), None);
             let embeddings = mean_pooling(output.hidden_states, attention_mask);
             let embeddings = normalize_l2(embeddings);
@@ -85,8 +84,8 @@ fn bench_full_pipeline(c: &mut Criterion) {
 fn bench_pooling(c: &mut Criterion) {
     let device = Default::default();
 
-    let hidden_states: Tensor<B, 3> = Tensor::zeros([1, 128, 384], &device);
-    let attention_mask: Tensor<B, 2> = Tensor::ones([1, 128], &device);
+    let hidden_states: Tensor<3> = Tensor::zeros([1, 128, 384], &device);
+    let attention_mask: Tensor<2> = Tensor::ones([1, 128], &device);
 
     c.bench_function(&format!("{}/mean_pooling", NAME), |b| {
         b.iter(|| {
@@ -99,7 +98,7 @@ fn bench_pooling(c: &mut Criterion) {
     });
 
     c.bench_function(&format!("{}/normalize_l2", NAME), |b| {
-        let embeddings: Tensor<B, 2> = Tensor::zeros([1, 384], &device);
+        let embeddings: Tensor<2> = Tensor::zeros([1, 384], &device);
         b.iter(|| {
             let normalized = normalize_l2(black_box(embeddings.clone()));
             black_box(normalized)
@@ -111,12 +110,12 @@ fn bench_variants(c: &mut Criterion) {
     let device = Default::default();
 
     let (model_l6, tokenizer) =
-        MiniLmModel::<B>::pretrained(&device, MiniLmVariant::L6, None).expect("Failed to load L6");
-    let (model_l12, _) = MiniLmModel::<B>::pretrained(&device, MiniLmVariant::L12, None)
-        .expect("Failed to load L12");
+        MiniLmModel::pretrained(&device, MiniLmVariant::L6, None).expect("Failed to load L6");
+    let (model_l12, _) =
+        MiniLmModel::pretrained(&device, MiniLmVariant::L12, None).expect("Failed to load L12");
 
     let sentences = vec!["The quick brown fox jumps over the lazy dog"];
-    let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &sentences, &device);
+    let (input_ids, attention_mask) = tokenize_batch(&tokenizer, &sentences, &device);
 
     let mut group = c.benchmark_group(format!("{}/variants", NAME));
 

@@ -1,15 +1,12 @@
 use std::time::Instant;
 
 use burn::module::Module;
-use burn::record::{FileRecorder, RecorderError};
+use burn::store::RecordError;
 use burn::tensor::cast::ToElement;
 use burn::{
     config::Config,
     nn::{RotaryEncoding, RotaryEncodingConfig},
-    tensor::{
-        activation::softmax, backend::Backend, Device, ElementConversion, Int, Shape, Tensor,
-        TensorData,
-    },
+    tensor::{activation::softmax, Device, ElementConversion, Int, Shape, Tensor, TensorData},
 };
 #[cfg(feature = "import")]
 use burn_store::{
@@ -141,21 +138,17 @@ impl LlamaConfig {
     /// Load pre-trained Llama-3.2-3B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
     #[cfg(feature = "llama3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "llama3")))]
-    pub fn load_llama3_2_3b<B: Backend>(
+    pub fn load_llama3_2_3b(
         checkpoint: &str,
         tokenizer_path: &str,
         max_seq_len: usize,
-        device: &Device<B>,
-    ) -> Result<Llama<B, Tiktoken>, String> {
-        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
-
+        device: &Device,
+    ) -> Result<Llama<Tiktoken>, String> {
         let mut llama = Self::llama3_2_3b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
-            .init::<B, Tiktoken>(device)?;
-
-        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+            .init::<Tiktoken>(device)?;
         llama = llama
-            .load(checkpoint, &recorder)
+            .load(checkpoint)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
 
         Ok(llama)
@@ -168,10 +161,10 @@ impl LlamaConfig {
     /// - `device` - The device to load the model on.
     #[cfg(all(feature = "llama3", feature = "pretrained"))]
     #[cfg_attr(docsrs, doc(cfg(all(feature = "llama3", feature = "pretrained"))))]
-    pub fn llama3_2_3b_pretrained<B: Backend>(
+    pub fn llama3_2_3b_pretrained(
         max_seq_len: usize,
-        device: &Device<B>,
-    ) -> Result<Llama<B, Tiktoken>, String> {
+        device: &Device,
+    ) -> Result<Llama<Tiktoken>, String> {
         // Llama-3.2 models support context length up to 128K tokens.
         check_context_length(max_seq_len, 128 * 1024);
 
@@ -195,21 +188,17 @@ impl LlamaConfig {
     /// Load pre-trained Llama-3.2-1B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
     #[cfg(feature = "llama3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "llama3")))]
-    pub fn load_llama3_2_1b<B: Backend>(
+    pub fn load_llama3_2_1b(
         checkpoint: &str,
         tokenizer_path: &str,
         max_seq_len: usize,
-        device: &Device<B>,
-    ) -> Result<Llama<B, Tiktoken>, String> {
-        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
-
+        device: &Device,
+    ) -> Result<Llama<Tiktoken>, String> {
         let mut llama = Self::llama3_2_1b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
-            .init::<B, Tiktoken>(device)?;
-
-        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+            .init::<Tiktoken>(device)?;
         llama = llama
-            .load(checkpoint, &recorder)
+            .load(checkpoint)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
 
         Ok(llama)
@@ -222,10 +211,10 @@ impl LlamaConfig {
     /// - `device` - The device to load the model on.
     #[cfg(all(feature = "llama3", feature = "pretrained"))]
     #[cfg_attr(docsrs, doc(cfg(all(feature = "llama3", feature = "pretrained"))))]
-    pub fn llama3_2_1b_pretrained<B: Backend>(
+    pub fn llama3_2_1b_pretrained(
         max_seq_len: usize,
-        device: &Device<B>,
-    ) -> Result<Llama<B, Tiktoken>, String> {
+        device: &Device,
+    ) -> Result<Llama<Tiktoken>, String> {
         // Llama-3.2 models support context length up to 128K tokens.
         check_context_length(max_seq_len, 128 * 1024);
 
@@ -249,21 +238,17 @@ impl LlamaConfig {
     /// Load pre-trained Llama-3.1-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
     #[cfg(feature = "llama3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "llama3")))]
-    pub fn load_llama3_1_8b<B: Backend>(
+    pub fn load_llama3_1_8b(
         checkpoint: &str,
         tokenizer_path: &str,
         max_seq_len: usize,
-        device: &Device<B>,
-    ) -> Result<Llama<B, Tiktoken>, String> {
-        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
-
+        device: &Device,
+    ) -> Result<Llama<Tiktoken>, String> {
         let mut llama = Self::llama3_1_8b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
-            .init::<B, Tiktoken>(device)?;
-
-        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+            .init::<Tiktoken>(device)?;
         llama = llama
-            .load(checkpoint, &recorder)
+            .load(checkpoint)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
 
         Ok(llama)
@@ -276,10 +261,10 @@ impl LlamaConfig {
     /// - `device` - The device to load the model on.
     #[cfg(all(feature = "llama3", feature = "pretrained"))]
     #[cfg_attr(docsrs, doc(cfg(all(feature = "llama3", feature = "pretrained"))))]
-    pub fn llama3_1_8b_pretrained<B: Backend>(
+    pub fn llama3_1_8b_pretrained(
         max_seq_len: usize,
-        device: &Device<B>,
-    ) -> Result<Llama<B, Tiktoken>, String> {
+        device: &Device,
+    ) -> Result<Llama<Tiktoken>, String> {
         // Llama-3.1 models support context length up to 128K tokens.
         check_context_length(max_seq_len, 128 * 1024);
 
@@ -303,21 +288,17 @@ impl LlamaConfig {
     /// Load pre-trained Llama-3-8B model with [Tiktoken](https://github.com/openai/tiktoken) tokenizer.
     #[cfg(feature = "llama3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "llama3")))]
-    pub fn load_llama3_8b<B: Backend>(
+    pub fn load_llama3_8b(
         checkpoint: &str,
         tokenizer_path: &str,
         max_seq_len: usize,
-        device: &Device<B>,
-    ) -> Result<Llama<B, Tiktoken>, String> {
-        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
-
+        device: &Device,
+    ) -> Result<Llama<Tiktoken>, String> {
         let mut llama = Self::llama3_8b(tokenizer_path)
             .with_max_seq_len(max_seq_len)
-            .init::<B, Tiktoken>(device)?;
-
-        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+            .init::<Tiktoken>(device)?;
         llama = llama
-            .load(checkpoint, &recorder)
+            .load(checkpoint)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
 
         Ok(llama)
@@ -330,10 +311,10 @@ impl LlamaConfig {
     /// - `device` - The device to load the model on.
     #[cfg(all(feature = "llama3", feature = "pretrained"))]
     #[cfg_attr(docsrs, doc(cfg(all(feature = "llama3", feature = "pretrained"))))]
-    pub fn llama3_8b_pretrained<B: Backend>(
+    pub fn llama3_8b_pretrained(
         max_seq_len: usize,
-        device: &Device<B>,
-    ) -> Result<Llama<B, Tiktoken>, String> {
+        device: &Device,
+    ) -> Result<Llama<Tiktoken>, String> {
         // Llama-3 models support context length up to 8K tokens.
         check_context_length(max_seq_len, 8 * 1024);
 
@@ -357,21 +338,17 @@ impl LlamaConfig {
     /// Load pre-trained TinyLlama-1.1B Chat v1.0 model with [SentenciePiece](https://github.com/google/sentencepiece) tokenizer.
     #[cfg(feature = "tiny")]
     #[cfg_attr(docsrs, doc(cfg(feature = "tiny")))]
-    pub fn load_tiny_llama<B: Backend>(
+    pub fn load_tiny_llama(
         checkpoint: &str,
         tokenizer_path: &str,
         max_seq_len: usize,
-        device: &Device<B>,
-    ) -> Result<Llama<B, SentiencePieceTokenizer>, String> {
-        use burn::record::{HalfPrecisionSettings, NamedMpkFileRecorder};
-
+        device: &Device,
+    ) -> Result<Llama<SentiencePieceTokenizer>, String> {
         let mut llama = Self::tiny_llama(tokenizer_path)
             .with_max_seq_len(max_seq_len)
-            .init::<B, SentiencePieceTokenizer>(device)?;
-
-        let recorder = NamedMpkFileRecorder::<HalfPrecisionSettings>::new();
+            .init::<SentiencePieceTokenizer>(device)?;
         llama = llama
-            .load(checkpoint, &recorder)
+            .load(checkpoint)
             .map_err(|err| format!("Failed to load pre-trained Llama model.\nError: {err}"))?;
 
         Ok(llama)
@@ -380,10 +357,10 @@ impl LlamaConfig {
     /// Load pre-trained TinyLlama-1.1B Chat v1.0 model with [SentenciePiece](https://github.com/google/sentencepiece) tokenizer.
     #[cfg(all(feature = "tiny", feature = "pretrained"))]
     #[cfg_attr(docsrs, doc(cfg(all(feature = "tiny", feature = "pretrained"))))]
-    pub fn tiny_llama_pretrained<B: Backend>(
+    pub fn tiny_llama_pretrained(
         max_seq_len: usize,
-        device: &Device<B>,
-    ) -> Result<Llama<B, SentiencePieceTokenizer>, String> {
+        device: &Device,
+    ) -> Result<Llama<SentiencePieceTokenizer>, String> {
         // TinyLlama models support context length up to 2K tokens.
         check_context_length(max_seq_len, 2 * 1024);
 
@@ -405,10 +382,7 @@ impl LlamaConfig {
     }
 
     /// Initialize a new [Llama] module.
-    pub fn init<B: Backend, T: Tokenizer>(
-        &self,
-        device: &Device<B>,
-    ) -> Result<Llama<B, T>, String> {
+    pub fn init<T: Tokenizer>(&self, device: &Device) -> Result<Llama<T>, String> {
         let tokenizer = T::new(&self.tokenizer)?;
         let num_key_value_heads = self.num_key_value_heads.unwrap_or(self.num_attention_heads);
         let model = TransformerConfig::new(
@@ -461,11 +435,11 @@ impl LlamaConfig {
     ///
     /// Supports both PyTorch (.pt, .pth, .bin) and SafeTensors (.safetensors) formats.
     #[cfg(feature = "import")]
-    pub fn load_pretrained<B: Backend, T: Tokenizer>(
+    pub fn load_pretrained<T: Tokenizer>(
         &self,
         checkpoint: &str,
-        device: &Device<B>,
-    ) -> Result<Llama<B, T>, String> {
+        device: &Device,
+    ) -> Result<Llama<T>, String> {
         let mut llama = self.init(device)?;
 
         println!("Loading record...");
@@ -604,19 +578,19 @@ pub struct GenerationOutput {
 }
 
 /// Meta Llama large language model and tokenizer.
-pub struct Llama<B: Backend, T: Tokenizer> {
+pub struct Llama<T: Tokenizer> {
     /// The tokenizer.
     pub tokenizer: T,
     /// Llama decoder-only transformer.
-    pub model: Transformer<B>,
+    pub model: Transformer,
     /// Key-value cache for each transformer block.
-    pub cache: Vec<KeyValueCache<B>>,
+    pub cache: Vec<KeyValueCache>,
     /// Rotary positional encoding (RoPE).
-    pub rope: RotaryEncoding<B>,
-    pub device: Device<B>,
+    pub rope: RotaryEncoding,
+    pub device: Device,
 }
 
-impl<B: Backend, T: Tokenizer> Llama<B, T> {
+impl<T: Tokenizer> Llama<T> {
     /// Generate text sample based on the provided prompt.
     ///
     /// # Arguments
@@ -638,13 +612,13 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
     ) -> GenerationOutput {
         let input_tokens = self.tokenize(prompt);
         let prompt_len = input_tokens.dims()[0];
-        let mut tokens = Tensor::<B, 1, Int>::empty([prompt_len + sample_len], &self.device);
+        let mut tokens = Tensor::<1, Int>::empty([prompt_len + sample_len], &self.device);
         tokens = tokens.slice_assign([0..prompt_len], input_tokens);
 
         let stop_tokens = Tensor::from_ints(self.tokenizer.stop_ids().as_slice(), &self.device);
 
         let mut num_tokens: usize = 0;
-        let mut input_pos = Tensor::<B, 1, Int>::arange(0..prompt_len as i64, &self.device);
+        let mut input_pos = Tensor::<1, Int>::arange(0..prompt_len as i64, &self.device);
         let now = Instant::now();
         for i in 0..sample_len {
             let x = tokens.clone().select(0, input_pos.clone()).reshape([1, -1]);
@@ -666,7 +640,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
                 .clone()
                 .equal(next_token.clone())
                 .any()
-                .into_scalar()
+                .into_scalar::<bool>()
                 .to_bool()
             {
                 break;
@@ -681,7 +655,7 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
             input_pos = input_pos.slice([t - 1..t]) + 1;
         }
 
-        let tokens = tokens.into_data().as_slice::<B::IntElem>().unwrap()
+        let tokens = tokens.into_data().as_slice::<i64>().unwrap()
             [prompt_len..prompt_len + num_tokens]
             .iter()
             .map(|t| t.elem::<u32>())
@@ -698,38 +672,30 @@ impl<B: Backend, T: Tokenizer> Llama<B, T> {
     }
 
     /// Encode a string into a tensor of tokens.
-    fn tokenize(&self, text: &str) -> Tensor<B, 1, Int> {
+    fn tokenize(&self, text: &str) -> Tensor<1, Int> {
         let bos = !cfg!(feature = "tiny"); // TinyLlama Chat doesn't prepend BOS token with the chat format
         let tokens = self.tokenizer.encode(text, bos, false);
 
         let shape = Shape::new([tokens.len()]);
-        Tensor::<B, 1, Int>::from_data(TensorData::new(tokens, shape), &self.device)
+        Tensor::<1, Int>::from_data(TensorData::new(tokens, shape), &self.device)
     }
 
-    /// Save Llama model to file using the specified recorder.
-    pub fn save<R: FileRecorder<B>>(
-        self,
-        file_path: &str,
-        recorder: &R,
-    ) -> Result<(), RecorderError> {
+    /// Save the Llama model to a Burnpack file.
+    pub fn save(self, file_path: &str) -> Result<(), RecordError> {
         println!("Saving record...");
         let now = Instant::now();
-        self.model.save_file(file_path, recorder)?;
+        self.model.save_file(file_path)?;
         let elapsed = now.elapsed().as_secs();
         println!("Saved in {}s", elapsed);
 
         Ok(())
     }
 
-    /// Load Llama model from file using the specified recorder.
-    pub fn load<R: FileRecorder<B>>(
-        mut self,
-        file_path: &str,
-        recorder: &R,
-    ) -> Result<Self, RecorderError> {
+    /// Load the Llama model from a Burnpack file.
+    pub fn load(mut self, file_path: &str) -> Result<Self, RecordError> {
         println!("Loading record...");
         let now = Instant::now();
-        self.model = self.model.load_file(file_path, recorder, &self.device)?;
+        self.model = self.model.try_load_file(file_path)?;
         let elapsed = now.elapsed().as_secs();
         println!("Loaded in {}s", elapsed);
 
@@ -746,7 +712,7 @@ impl RopeFrequencyScaling {
     /// Applies frequency scaling by parts following Llama 3.1's scheme.
     ///
     /// Adapted from: <https://github.com/meta-llama/llama-models/blob/main/models/llama3/reference_impl/model.py#L45>
-    pub fn freq_scaling_by_parts<B: Backend>(&self, freqs: Tensor<B, 1>) -> Tensor<B, 1> {
+    pub fn freq_scaling_by_parts(&self, freqs: Tensor<1>) -> Tensor<1> {
         let low_freq_wavelen = self.old_context_len / self.low_freq_factor;
         let high_freq_wavelen = self.old_context_len / self.high_freq_factor;
 
@@ -792,10 +758,7 @@ fn check_context_length(max_seq_len: usize, max_context_len: usize) {
     }
 }
 
-pub(crate) fn temperature_scaled_softmax<B: Backend>(
-    logits: Tensor<B, 2>,
-    temperature: f64,
-) -> Tensor<B, 2> {
+pub(crate) fn temperature_scaled_softmax(logits: Tensor<2>, temperature: f64) -> Tensor<2> {
     softmax(logits / temperature, 1)
 }
 
@@ -805,12 +768,12 @@ pub(crate) fn temperature_scaled_softmax<B: Backend>(
 /// the standard LLaMA format. This function permutes the query and key projection weights
 /// to handle the different conventions.
 #[cfg(all(feature = "tiny", feature = "import"))]
-fn permute_rotary_weights<B: Backend>(
-    model: &mut Transformer<B>,
+fn permute_rotary_weights(
+    model: &mut Transformer,
     n_heads: usize,
     n_kv_heads: usize,
     d_model: usize,
-    device: &Device<B>,
+    device: &Device,
 ) {
     use burn_store::TensorSnapshot;
 
@@ -822,10 +785,10 @@ fn permute_rotary_weights<B: Backend>(
             let path = snapshot.full_path();
 
             if path.contains(".wq.weight") {
-                permute_attention_weight::<B>(&snapshot, n_heads, device)
+                permute_attention_weight(&snapshot, n_heads, device)
             } else if path.contains(".wk.weight") {
                 let kv_dim = d_model * n_kv_heads / n_heads;
-                permute_attention_weight_with_dim::<B>(&snapshot, n_kv_heads, kv_dim, device)
+                permute_attention_weight_with_dim(&snapshot, n_kv_heads, kv_dim, device)
             } else {
                 snapshot
             }
@@ -837,10 +800,10 @@ fn permute_rotary_weights<B: Backend>(
 
 /// Helper to permute a single attention weight tensor.
 #[cfg(all(feature = "tiny", feature = "import"))]
-fn permute_attention_weight<B: Backend>(
+fn permute_attention_weight(
     snapshot: &burn_store::TensorSnapshot,
     n_heads: usize,
-    device: &Device<B>,
+    device: &Device,
 ) -> burn_store::TensorSnapshot {
     use burn::module::ParamId;
     use burn_store::TensorSnapshot;
@@ -848,7 +811,7 @@ fn permute_attention_weight<B: Backend>(
     let data = snapshot.to_data().expect("Failed to get tensor data");
     let [dim1, dim2] = [data.shape[0], data.shape[1]];
 
-    let tensor: Tensor<B, 2> = Tensor::from_data(data, device);
+    let tensor: Tensor<2> = Tensor::from_data(data, device);
     let permuted = tensor
         .reshape([dim1, n_heads, 2, dim2 / n_heads / 2])
         .swap_dims(2, 3)
@@ -864,11 +827,11 @@ fn permute_attention_weight<B: Backend>(
 
 /// Helper to permute attention weight with explicit output dimension.
 #[cfg(all(feature = "tiny", feature = "import"))]
-fn permute_attention_weight_with_dim<B: Backend>(
+fn permute_attention_weight_with_dim(
     snapshot: &burn_store::TensorSnapshot,
     n_heads: usize,
     out_dim: usize,
-    device: &Device<B>,
+    device: &Device,
 ) -> burn_store::TensorSnapshot {
     use burn::module::ParamId;
     use burn_store::TensorSnapshot;
@@ -876,7 +839,7 @@ fn permute_attention_weight_with_dim<B: Backend>(
     let data = snapshot.to_data().expect("Failed to get tensor data");
     let dim1 = data.shape[0];
 
-    let tensor: Tensor<B, 2> = Tensor::from_data(data, device);
+    let tensor: Tensor<2> = Tensor::from_data(data, device);
     let permuted = tensor
         .reshape([dim1, n_heads, 2, out_dim / n_heads / 2])
         .swap_dims(2, 3)

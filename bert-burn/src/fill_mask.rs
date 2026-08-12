@@ -4,7 +4,7 @@ use crate::{
     model::BertMaskedLM,
     model::BertModelConfig,
 };
-use burn::tensor::{activation::softmax, backend::Backend, Element, Tensor};
+use burn::tensor::{activation::softmax, Element, Tensor};
 
 type TokenType = usize;
 const MASK_TOKEN_ID: TokenType = 50264;
@@ -15,11 +15,11 @@ pub struct FillMaskResult {
     pub top_k: Vec<(f32, String)>,
 }
 
-pub fn fill_mask<B: Backend>(
-    model: &BertMaskedLM<B>,
+pub fn fill_mask(
+    model: &BertMaskedLM,
     model_config: &BertModelConfig,
     tokenizer: &BertTokenizer,
-    input: BertInferenceBatch<B>,
+    input: BertInferenceBatch,
 ) -> Vec<Vec<FillMaskResult>> {
     let [batch_size, seq_len] = input.tokens.dims();
     let output = model.forward(input.clone());
@@ -37,10 +37,7 @@ pub fn fill_mask<B: Backend>(
             .squeeze_dim::<1>(0)
             .into_data();
         // Find the mask tokens in the input, as a list of indices
-        let masks = find_masks(
-            input_tokens.as_slice::<B::IntElem>().unwrap(),
-            MASK_TOKEN_ID,
-        );
+        let masks = find_masks(input_tokens.as_slice::<i64>().unwrap(), MASK_TOKEN_ID);
         for mask in masks {
             let logits = output
                 .clone()
@@ -81,16 +78,16 @@ fn data_to_vec_usize<T: Element>(data: &[T]) -> Vec<usize> {
     data.iter().map(|x| x.to_usize()).collect()
 }
 
-fn top_k<B: Backend>(k: usize, logits: Tensor<B, 1>) -> Vec<(usize, f32)> {
+fn top_k(k: usize, logits: Tensor<1>) -> Vec<(usize, f32)> {
     let (pre_soft_probs, indices) = logits.sort_with_indices(0);
     let (probabilities, indices) = (
         data_to_vec_f32(
             softmax(pre_soft_probs, 0)
                 .into_data()
-                .as_slice::<B::FloatElem>()
+                .as_slice::<f32>()
                 .unwrap(),
         ),
-        data_to_vec_usize(indices.into_data().as_slice::<B::IntElem>().unwrap()),
+        data_to_vec_usize(indices.into_data().as_slice::<i64>().unwrap()),
     );
     probabilities
         .iter()

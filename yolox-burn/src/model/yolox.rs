@@ -1,6 +1,6 @@
 use burn::{
     module::Module,
-    tensor::{backend::Backend, Device, Tensor},
+    tensor::{Device, Tensor},
 };
 
 use super::{
@@ -16,13 +16,13 @@ use {
 
 /// [YOLOX](https://paperswithcode.com/method/yolox) object detection architecture.
 #[derive(Module, Debug)]
-pub struct Yolox<B: Backend> {
-    backbone: Pafpn<B>,
-    head: Head<B>,
+pub struct Yolox {
+    backbone: Pafpn,
+    head: Head,
 }
 
-impl<B: Backend> Yolox<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 3> {
+impl Yolox {
+    pub fn forward(&self, x: Tensor<4>) -> Tensor<3> {
         let features = self.backbone.forward(x);
         self.head.forward(features)
     }
@@ -37,7 +37,7 @@ impl<B: Backend> Yolox<B> {
     /// # Returns
     ///
     /// A YOLOX-Nano module.
-    pub fn yolox_nano(num_classes: usize, device: &Device<B>) -> Self {
+    pub fn yolox_nano(num_classes: usize, device: &Device) -> Self {
         YoloxConfig::new(0.33, 0.25, num_classes, true).init(device)
     }
 
@@ -55,7 +55,7 @@ impl<B: Backend> Yolox<B> {
     #[cfg(feature = "pretrained")]
     pub fn yolox_nano_pretrained(
         weights: weights::YoloxNano,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
         let mut model = Self::yolox_nano(weights.num_classes, device);
@@ -73,7 +73,7 @@ impl<B: Backend> Yolox<B> {
     /// # Returns
     ///
     /// A YOLOX-Tiny module.
-    pub fn yolox_tiny(num_classes: usize, device: &Device<B>) -> Self {
+    pub fn yolox_tiny(num_classes: usize, device: &Device) -> Self {
         YoloxConfig::new(0.33, 0.375, num_classes, false).init(device)
     }
 
@@ -91,7 +91,7 @@ impl<B: Backend> Yolox<B> {
     #[cfg(feature = "pretrained")]
     pub fn yolox_tiny_pretrained(
         weights: weights::YoloxTiny,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
         let mut model = Self::yolox_tiny(weights.num_classes, device);
@@ -109,7 +109,7 @@ impl<B: Backend> Yolox<B> {
     /// # Returns
     ///
     /// A YOLOX-S module.
-    pub fn yolox_s(num_classes: usize, device: &Device<B>) -> Self {
+    pub fn yolox_s(num_classes: usize, device: &Device) -> Self {
         YoloxConfig::new(0.33, 0.50, num_classes, false).init(device)
     }
 
@@ -127,7 +127,7 @@ impl<B: Backend> Yolox<B> {
     #[cfg(feature = "pretrained")]
     pub fn yolox_s_pretrained(
         weights: weights::YoloxS,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
         let mut model = Self::yolox_s(weights.num_classes, device);
@@ -145,7 +145,7 @@ impl<B: Backend> Yolox<B> {
     /// # Returns
     ///
     /// A YOLOX-M module.
-    pub fn yolox_m(num_classes: usize, device: &Device<B>) -> Self {
+    pub fn yolox_m(num_classes: usize, device: &Device) -> Self {
         YoloxConfig::new(0.67, 0.75, num_classes, false).init(device)
     }
 
@@ -163,7 +163,7 @@ impl<B: Backend> Yolox<B> {
     #[cfg(feature = "pretrained")]
     pub fn yolox_m_pretrained(
         weights: weights::YoloxM,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
         let mut model = Self::yolox_m(weights.num_classes, device);
@@ -181,7 +181,7 @@ impl<B: Backend> Yolox<B> {
     /// # Returns
     ///
     /// A YOLOX-L module.
-    pub fn yolox_l(num_classes: usize, device: &Device<B>) -> Self {
+    pub fn yolox_l(num_classes: usize, device: &Device) -> Self {
         YoloxConfig::new(1., 1., num_classes, false).init(device)
     }
 
@@ -199,7 +199,7 @@ impl<B: Backend> Yolox<B> {
     #[cfg(feature = "pretrained")]
     pub fn yolox_l_pretrained(
         weights: weights::YoloxL,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
         let mut model = Self::yolox_l(weights.num_classes, device);
@@ -217,7 +217,7 @@ impl<B: Backend> Yolox<B> {
     /// # Returns
     ///
     /// A YOLOX-X module.
-    pub fn yolox_x(num_classes: usize, device: &Device<B>) -> Self {
+    pub fn yolox_x(num_classes: usize, device: &Device) -> Self {
         YoloxConfig::new(1.33, 1.25, num_classes, false).init(device)
     }
 
@@ -235,7 +235,7 @@ impl<B: Backend> Yolox<B> {
     #[cfg(feature = "pretrained")]
     pub fn yolox_x_pretrained(
         weights: weights::YoloxX,
-        device: &Device<B>,
+        device: &Device,
     ) -> Result<Self, PytorchStoreError> {
         let weights = weights.weights();
         let mut model = Self::yolox_x(weights.num_classes, device);
@@ -293,7 +293,7 @@ impl YoloxConfig {
     }
 
     /// Initialize a new [YOLOX detector](Yolox) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> Yolox<B> {
+    pub fn init(&self, device: &Device) -> Yolox {
         Yolox {
             backbone: self.backbone.init(device),
             head: self.head.init(device),

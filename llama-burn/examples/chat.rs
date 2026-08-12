@@ -1,7 +1,6 @@
 use std::time::Instant;
 
-use burn::tensor::{backend::Backend, Device};
-use burn_flex::{Flex, FlexDevice};
+use burn::tensor::Device;
 use clap::Parser;
 use llama_burn::{
     llama::{Llama, LlamaConfig},
@@ -65,8 +64,8 @@ enum Llama3 {
     V323bInstruct,
 }
 
-pub fn generate<B: Backend, T: Tokenizer>(
-    llama: &mut Llama<B, T>,
+pub fn generate<T: Tokenizer>(
+    llama: &mut Llama<T>,
     prompt: &str,
     sample_len: usize,
     temperature: f64,
@@ -91,7 +90,7 @@ pub fn generate<B: Backend, T: Tokenizer>(
 }
 
 #[allow(unused_variables, unused_mut)]
-pub fn chat<B: Backend>(args: Config, device: Device<B>) {
+pub fn chat(args: Config, device: Device) {
     let mut prompt = args.prompt;
 
     let mut sampler = if args.temperature > 0.0 {
@@ -102,7 +101,7 @@ pub fn chat<B: Backend>(args: Config, device: Device<B>) {
 
     #[cfg(feature = "tiny")]
     {
-        let mut llama = LlamaConfig::tiny_llama_pretrained::<B>(args.max_seq_len, &device).unwrap();
+        let mut llama = LlamaConfig::tiny_llama_pretrained(args.max_seq_len, &device).unwrap();
         println!("Processing prompt: {}", prompt);
 
         prompt = format!(
@@ -122,16 +121,16 @@ pub fn chat<B: Backend>(args: Config, device: Device<B>) {
     {
         let mut llama = match args.model_version {
             Llama3::V3Instruct => {
-                LlamaConfig::llama3_8b_pretrained::<B>(args.max_seq_len, &device).unwrap()
+                LlamaConfig::llama3_8b_pretrained(args.max_seq_len, &device).unwrap()
             }
             Llama3::V31Instruct => {
-                LlamaConfig::llama3_1_8b_pretrained::<B>(args.max_seq_len, &device).unwrap()
+                LlamaConfig::llama3_1_8b_pretrained(args.max_seq_len, &device).unwrap()
             }
             Llama3::V321bInstruct => {
-                LlamaConfig::llama3_2_1b_pretrained::<B>(args.max_seq_len, &device).unwrap()
+                LlamaConfig::llama3_2_1b_pretrained(args.max_seq_len, &device).unwrap()
             }
             Llama3::V323bInstruct => {
-                LlamaConfig::llama3_2_3b_pretrained::<B>(args.max_seq_len, &device).unwrap()
+                LlamaConfig::llama3_2_3b_pretrained(args.max_seq_len, &device).unwrap()
             }
         };
         println!("Processing prompt: {}", prompt);
@@ -152,5 +151,5 @@ pub fn chat<B: Backend>(args: Config, device: Device<B>) {
 
 pub fn main() {
     let args = Config::parse();
-    chat::<Flex>(args, FlexDevice);
+    chat(args, Device::flex());
 }

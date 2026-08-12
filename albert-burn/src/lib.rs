@@ -8,12 +8,10 @@
 //!
 //! ```ignore
 //! use albert_burn::{AlbertMaskedLM, tokenize_batch};
-//! use burn_flex::Flex;
+//! use burn::tensor::Device;
 //!
-//! type B = Flex;
-//!
-//! let device = Default::default();
-//! let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(&device, Default::default(), None)?;
+//! let device = Device::flex();
+//! let (model, tokenizer) = AlbertMaskedLM::pretrained(&device, Default::default(), None)?;
 //! ```
 
 mod embedding;

@@ -1,9 +1,6 @@
 use albert_burn::{AlbertMaskedLM, AlbertVariant, tokenize_batch};
 use burn::tensor::Tensor;
-use burn_flex::Flex;
 use clap::Parser;
-
-type B = Flex;
 
 #[derive(Parser)]
 #[command(about = "ALBERT fill-mask inference")]
@@ -32,12 +29,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let device = Default::default();
 
     println!("Loading ALBERT {:?}...", variant);
-    let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(&device, variant, None)?;
+    let (model, tokenizer) = AlbertMaskedLM::pretrained(&device, variant, None)?;
 
     let sentence = "The capital of France is [MASK].";
     println!("\nInput: \"{}\"", sentence);
 
-    let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &[sentence], &device);
+    let (input_ids, attention_mask) = tokenize_batch(&tokenizer, &[sentence], &device);
 
     let input_ids_data = input_ids.to_data();
     let ids: &[i64] = input_ids_data.as_slice().unwrap();
@@ -52,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let logits = model.forward(input_ids, attention_mask, None);
 
     let [_, _, vocab_size] = logits.dims();
-    let mask_logits: Tensor<B, 1> = logits
+    let mask_logits: Tensor<1> = logits
         .slice([0..1, mask_pos..mask_pos + 1, 0..vocab_size])
         .reshape([vocab_size]);
 

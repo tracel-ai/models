@@ -1,13 +1,12 @@
 use bert_burn::data::{BertInputBatcher, BertTokenizer};
 use bert_burn::loader::{download_hf_model, load_model_config, load_pretrained};
 use burn::data::dataloader::batcher::Batcher;
-use burn::tensor::backend::Backend;
+use burn::tensor::Device;
 use burn::tensor::Tensor;
-use burn_flex::{Flex, FlexDevice};
 use std::env;
 use std::sync::Arc;
 
-pub fn launch<B: Backend>(device: B::Device) {
+pub fn launch(device: Device) {
     let args: Vec<String> = env::args().collect();
     let default_model = "roberta-base".to_string();
     let model_variant = if args.len() > 1 {
@@ -38,7 +37,7 @@ pub fn launch<B: Backend>(device: B::Device) {
         download_hf_model(model_variant).expect("Failed to download BERT model from HF Hub");
     let model_config = load_model_config(config_file).expect("Failed to load BERT config");
 
-    let mut model = model_config.init::<B>(&device);
+    let mut model = model_config.init(&device);
     load_pretrained(&mut model, &model_file).expect("Failed to load pretrained BERT weights");
 
     let tokenizer = Arc::new(BertTokenizer::new(
@@ -65,10 +64,10 @@ pub fn launch<B: Backend>(device: B::Device) {
         0..d_model,
     ]);
 
-    let sentence_embedding: Tensor<B, 2> = sentence_embedding.squeeze_dim(1);
+    let sentence_embedding: Tensor<2> = sentence_embedding.squeeze_dim(1);
     println!("Roberta Sentence embedding: {}", sentence_embedding);
 }
 
 fn main() {
-    launch::<Flex>(FlexDevice);
+    launch(Device::flex());
 }

@@ -1,7 +1,7 @@
 use burn::config::Config;
 use burn::module::Module;
 use burn::nn::{Dropout, DropoutConfig, Embedding, EmbeddingConfig, LayerNorm, LayerNormConfig};
-use burn::tensor::backend::Backend;
+use burn::tensor::Device;
 use burn::tensor::{Int, Tensor};
 
 /// Configuration for MiniLM embeddings.
@@ -26,17 +26,17 @@ pub(crate) struct MiniLmEmbeddingsConfig {
 /// Combines word, position, and token type embeddings, followed by
 /// layer normalization and dropout.
 #[derive(Module, Debug)]
-pub struct MiniLmEmbeddings<B: Backend> {
-    word_embeddings: Embedding<B>,
-    position_embeddings: Embedding<B>,
-    token_type_embeddings: Embedding<B>,
-    layer_norm: LayerNorm<B>,
+pub struct MiniLmEmbeddings {
+    word_embeddings: Embedding,
+    position_embeddings: Embedding,
+    token_type_embeddings: Embedding,
+    layer_norm: LayerNorm,
     dropout: Dropout,
 }
 
 impl MiniLmEmbeddingsConfig {
     /// Initialize embeddings with default weights.
-    pub fn init<B: Backend>(&self, device: &B::Device) -> MiniLmEmbeddings<B> {
+    pub fn init(&self, device: &Device) -> MiniLmEmbeddings {
         let word_embeddings = EmbeddingConfig::new(self.vocab_size, self.hidden_size).init(device);
         let position_embeddings =
             EmbeddingConfig::new(self.max_position_embeddings, self.hidden_size).init(device);
@@ -57,7 +57,7 @@ impl MiniLmEmbeddingsConfig {
     }
 }
 
-impl<B: Backend> MiniLmEmbeddings<B> {
+impl MiniLmEmbeddings {
     /// Forward pass through the embeddings layer.
     ///
     /// # Arguments
@@ -68,9 +68,9 @@ impl<B: Backend> MiniLmEmbeddings<B> {
     /// Embedded representation [batch_size, seq_len, hidden_size]
     pub fn forward(
         &self,
-        input_ids: Tensor<B, 2, Int>,
-        token_type_ids: Option<Tensor<B, 2, Int>>,
-    ) -> Tensor<B, 3> {
+        input_ids: Tensor<2, Int>,
+        token_type_ids: Option<Tensor<2, Int>>,
+    ) -> Tensor<3> {
         let [batch_size, seq_len] = input_ids.dims();
         let device = &input_ids.device();
 

@@ -11,12 +11,10 @@
 //!
 //! ```ignore
 //! use minilm_burn::{MiniLmConfig, MiniLmModel};
-//! use burn_flex::Flex;
+//! use burn::tensor::Device;
 //!
-//! type B = Flex;
-//!
-//! let device = Default::default();
-//! let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)?;
+//! let device = Device::flex();
+//! let (model, tokenizer) = MiniLmModel::pretrained(&device, Default::default(), None)?;
 //! ```
 
 mod embedding;

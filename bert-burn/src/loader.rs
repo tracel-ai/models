@@ -15,7 +15,6 @@
 use crate::model::{BertMaskedLM, BertModel, BertModelConfig};
 use burn::config::Config;
 use burn::module::Param;
-use burn::tensor::backend::Backend;
 use burn_store::{KeyRemapper, ModuleSnapshot, PyTorchToBurnAdapter, SafetensorsStore};
 use std::path::{Path, PathBuf};
 
@@ -68,8 +67,8 @@ fn build_remapper(mappings: Vec<(&str, &str)>) -> Result<KeyRemapper, LoadError>
 /// Load pre-trained weights from a safetensors file into a `BertModel`.
 ///
 /// Supports both BERT (`bert.*`) and RoBERTa (`roberta.*`) checkpoints; the prefix is stripped.
-pub fn load_pretrained<B: Backend>(
-    model: &mut BertModel<B>,
+pub fn load_pretrained(
+    model: &mut BertModel,
     checkpoint_path: impl AsRef<Path>,
 ) -> Result<(), LoadError> {
     let mut mappings = vec![(r"^(?:bert|roberta)\.(.+)", "$1")];
@@ -94,8 +93,8 @@ pub fn load_pretrained<B: Backend>(
 /// The MLM decoder weight is tied to `word_embeddings.weight` after loading, mirroring HF's
 /// runtime behavior (RoBERTa checkpoints store the decoder bias as `lm_head.bias`, and the
 /// decoder weight is tied rather than stored).
-pub fn load_pretrained_masked_lm<B: Backend>(
-    model: &mut BertMaskedLM<B>,
+pub fn load_pretrained_masked_lm(
+    model: &mut BertMaskedLM,
     checkpoint_path: impl AsRef<Path>,
 ) -> Result<(), LoadError> {
     let mut mappings = vec![(r"^(?:bert|roberta)\.(.+)", "bert.$1")];

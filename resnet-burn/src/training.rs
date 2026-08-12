@@ -1,18 +1,17 @@
 use burn::{
     nn::loss::BinaryCrossEntropyLossConfig,
     prelude::*,
-    tensor::backend::AutodiffBackend,
     train::{InferenceStep, MultiLabelClassificationOutput, TrainOutput, TrainStep},
 };
 
 use crate::ResNet;
 
-impl<B: Backend> ResNet<B> {
+impl ResNet {
     fn forward_classification(
         &self,
-        images: Tensor<B, 4>,
-        targets: Tensor<B, 2, Int>,
-    ) -> MultiLabelClassificationOutput<B> {
+        images: Tensor<4>,
+        targets: Tensor<2, Int>,
+    ) -> MultiLabelClassificationOutput {
         let output = self.forward(images);
         let loss = BinaryCrossEntropyLossConfig::new()
             .with_logits(true)
@@ -24,30 +23,27 @@ impl<B: Backend> ResNet<B> {
 }
 
 #[derive(Clone, Debug)]
-pub struct ClassificationBatch<B: Backend> {
-    pub images: Tensor<B, 4>,
-    pub targets: Tensor<B, 2, Int>,
+pub struct ClassificationBatch {
+    pub images: Tensor<4>,
+    pub targets: Tensor<2, Int>,
 }
 
-impl<B: AutodiffBackend> TrainStep for ResNet<B> {
-    type Input = ClassificationBatch<B>;
-    type Output = MultiLabelClassificationOutput<B>;
+impl TrainStep for ResNet {
+    type Input = ClassificationBatch;
+    type Output = MultiLabelClassificationOutput;
 
-    fn step(
-        &self,
-        batch: ClassificationBatch<B>,
-    ) -> TrainOutput<MultiLabelClassificationOutput<B>> {
+    fn step(&self, batch: ClassificationBatch) -> TrainOutput<MultiLabelClassificationOutput> {
         let item = self.forward_classification(batch.images, batch.targets);
 
         TrainOutput::new(self, item.loss.backward(), item)
     }
 }
 
-impl<B: Backend> InferenceStep for ResNet<B> {
-    type Input = ClassificationBatch<B>;
-    type Output = MultiLabelClassificationOutput<B>;
+impl InferenceStep for ResNet {
+    type Input = ClassificationBatch;
+    type Output = MultiLabelClassificationOutput;
 
-    fn step(&self, batch: ClassificationBatch<B>) -> MultiLabelClassificationOutput<B> {
+    fn step(&self, batch: ClassificationBatch) -> MultiLabelClassificationOutput {
         self.forward_classification(batch.images, batch.targets)
     }
 }

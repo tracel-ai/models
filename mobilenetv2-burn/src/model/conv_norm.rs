@@ -1,3 +1,4 @@
+use burn::tensor::Device;
 use burn::{
     config::Config,
     module::Module,
@@ -5,23 +6,23 @@ use burn::{
         conv::{Conv2d, Conv2dConfig},
         BatchNorm, BatchNormConfig, PaddingConfig2d,
     },
-    tensor::{self, backend::Backend, Tensor},
+    tensor::{self, Tensor},
 };
 
 /// A rectified linear unit where the activation is limited to a maximum of 6.
-#[derive(Module, Debug, Clone, Default)]
+#[derive(Module, Debug, Default)]
 pub struct ReLU6 {}
 impl ReLU6 {
-    pub fn forward<B: Backend, const D: usize>(&self, input: Tensor<B, D>) -> Tensor<B, D> {
+    pub fn forward<const D: usize>(&self, input: Tensor<D>) -> Tensor<D> {
         tensor::activation::relu(input).clamp_max(6)
     }
 }
 
 /// A Conv2d -> BatchNorm -> activation block.
 #[derive(Module, Debug)]
-pub struct Conv2dNormActivation<B: Backend> {
-    conv: Conv2d<B>,
-    norm: BatchNorm<B>,
+pub struct Conv2dNormActivation {
+    conv: Conv2d,
+    norm: BatchNorm,
     activation: ReLU6,
 }
 
@@ -51,7 +52,7 @@ pub struct Conv2dNormActivationConfig {
 }
 
 impl Conv2dNormActivationConfig {
-    pub fn init<B: Backend>(&self, device: &B::Device) -> Conv2dNormActivation<B> {
+    pub fn init(&self, device: &Device) -> Conv2dNormActivation {
         let padding = if let Some(padding) = self.padding {
             padding
         } else {
@@ -76,8 +77,8 @@ impl Conv2dNormActivationConfig {
         }
     }
 }
-impl<B: Backend> Conv2dNormActivation<B> {
-    pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
+impl Conv2dNormActivation {
+    pub fn forward(&self, input: Tensor<4>) -> Tensor<4> {
         let x = self.conv.forward(input);
         let x = self.norm.forward(x);
         self.activation.forward(x)

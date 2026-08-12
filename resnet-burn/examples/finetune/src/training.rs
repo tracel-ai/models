@@ -1,3 +1,4 @@
+use burn::tensor::Device;
 use std::time::Instant;
 
 use crate::{
@@ -8,8 +9,6 @@ use burn::{
     data::{dataloader::DataLoaderBuilder, dataset::vision::ImageFolderDataset},
     optim::{decay::WeightDecayConfig, AdamConfig},
     prelude::*,
-    record::CompactRecorder,
-    tensor::backend::AutodiffBackend,
     train::{
         metric::{HammingScore, LossMetric},
         Learner, SupervisedTraining,
@@ -51,7 +50,7 @@ fn create_artifact_dir(artifact_dir: &str) {
     std::fs::create_dir_all(artifact_dir).ok();
 }
 
-pub fn train<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
+pub fn train(artifact_dir: &str, device: Device) {
     create_artifact_dir(artifact_dir);
 
     // Config
@@ -64,11 +63,12 @@ pub fn train<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
         .save(format!("{artifact_dir}/config.json"))
         .expect("Config should be saved successfully");
 
-    B::seed(&device, config.seed);
+    device.seed(config.seed);
+    let autodiff_device = device.clone().autodiff();
 
     // Dataloaders
-    let batcher_train = ClassificationBatcher::<B>::new(device.clone());
-    let batcher_valid = ClassificationBatcher::<B::InnerBackend>::new(device.clone());
+    let batcher_train = ClassificationBatcher::new(autodiff_device.clone());
+    let batcher_valid = ClassificationBatcher::new(device.clone());
 
     let (train, valid) =
         ImageFolderDataset::planet_train_val_split(config.train_percentage, config.seed).unwrap();
@@ -85,14 +85,17 @@ pub fn train<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
         .build(valid);
 
     // Pre-trained ResNet-18 adapted for num_classes in this task
-    let model = ResNet::resnet18_pretrained(weights::ResNet18::ImageNet1kV1, &device)
+    let model = ResNet::resnet18_pretrained(weights::ResNet18::ImageNet1kV1, &autodiff_device)
         .unwrap()
         .with_classes(NUM_CLASSES);
 
     // Training config
     let training = SupervisedTraining::new(artifact_dir, dataloader_train, dataloader_test)
-        .metrics((HammingScore::new(), LossMetric::new()))
-        .with_file_checkpointer(CompactRecorder::new())
+        .metric_train_numeric(HammingScore::new())
+        .metric_valid_numeric(HammingScore::new())
+        .metric_train_numeric(LossMetric::new())
+        .metric_valid_numeric(LossMetric::new())
+        .with_default_checkpointers()
         .num_epochs(config.num_epochs)
         .summary();
 
@@ -104,6 +107,6 @@ pub fn train<B: AutodiffBackend>(artifact_dir: &str, device: B::Device) {
 
     training_result
         .model
-        .save_file(format!("{artifact_dir}/model"), &CompactRecorder::new())
+        .save_file(format!("{artifact_dir}/model"))
         .expect("Trained model should be saved successfully");
 }

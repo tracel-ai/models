@@ -1,5 +1,4 @@
 use burn::tensor::Tensor;
-use burn::tensor::backend::Backend;
 
 // TODO: Consider proposing MeanPooler for Burn's nn module
 
@@ -15,10 +14,7 @@ use burn::tensor::backend::Backend;
 ///
 /// # Returns
 /// Pooled sentence embeddings [batch_size, hidden_size]
-pub fn mean_pooling<B: Backend>(
-    hidden_states: Tensor<B, 3>,
-    attention_mask: Tensor<B, 2>,
-) -> Tensor<B, 2> {
+pub fn mean_pooling(hidden_states: Tensor<3>, attention_mask: Tensor<2>) -> Tensor<2> {
     let [batch_size, seq_len, hidden_size] = hidden_states.dims();
 
     // Expand mask to match hidden states: [batch, seq_len] -> [batch, seq_len, hidden]
@@ -29,10 +25,10 @@ pub fn mean_pooling<B: Backend>(
 
     // Apply mask and sum
     let masked_hidden = hidden_states * mask_expanded;
-    let sum_hidden: Tensor<B, 2> = masked_hidden.sum_dim(1).reshape([batch_size, hidden_size]);
+    let sum_hidden: Tensor<2> = masked_hidden.sum_dim(1).reshape([batch_size, hidden_size]);
 
     // Count non-padding tokens per batch
-    let token_counts: Tensor<B, 2> = attention_mask
+    let token_counts: Tensor<2> = attention_mask
         .sum_dim(1)
         .reshape([batch_size, 1])
         .expand([batch_size, hidden_size])
@@ -45,7 +41,7 @@ pub fn mean_pooling<B: Backend>(
 /// L2 normalize embeddings (each row to unit length).
 ///
 /// This matches the default behavior of sentence-transformers.
-pub fn normalize_l2<B: Backend>(embeddings: Tensor<B, 2>) -> Tensor<B, 2> {
+pub fn normalize_l2(embeddings: Tensor<2>) -> Tensor<2> {
     use burn::tensor::linalg::{Norm, vector_normalize};
     vector_normalize(embeddings, Norm::L2, 1, 1e-12)
 }
@@ -55,16 +51,13 @@ mod tests {
     use super::*;
     use burn::tensor::TensorData;
     use burn::tensor::Tolerance;
-    use burn_flex::Flex;
-
-    type B = Flex;
 
     #[test]
     fn test_mean_pooling() {
         let device = Default::default();
 
         // Hidden states: [2, 3, 4] (batch=2, seq=3, hidden=4)
-        let hidden = Tensor::<B, 3>::from_floats(
+        let hidden = Tensor::<3>::from_floats(
             [
                 [
                     [1.0, 2.0, 3.0, 4.0],
@@ -81,7 +74,7 @@ mod tests {
         );
 
         // Attention mask: [2, 3]
-        let mask = Tensor::<B, 2>::from_floats([[1.0, 1.0, 0.0], [1.0, 1.0, 1.0]], &device);
+        let mask = Tensor::<2>::from_floats([[1.0, 1.0, 0.0], [1.0, 1.0, 1.0]], &device);
 
         let pooled = mean_pooling(hidden, mask);
 

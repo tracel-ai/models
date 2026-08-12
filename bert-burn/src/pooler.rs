@@ -1,21 +1,22 @@
+use burn::tensor::Device;
 use burn::{
     config::Config,
     module::Module,
     nn::{Linear, LinearConfig},
-    tensor::{backend::Backend, Tensor},
+    tensor::Tensor,
 };
 use derive_new::new;
 
 /// Pooler
 #[derive(Module, Debug, new)]
-pub struct Pooler<B: Backend> {
+pub struct Pooler {
     /// Linear output
-    output: Linear<B>,
+    output: Linear,
 }
 
-impl<B: Backend> Pooler<B> {
+impl Pooler {
     /// Forward pass
-    pub fn forward(&self, encoder_output: Tensor<B, 3>) -> Tensor<B, 3> {
+    pub fn forward(&self, encoder_output: Tensor<3>) -> Tensor<3> {
         let [batch_size, _, _] = encoder_output.dims();
 
         self.output
@@ -33,7 +34,7 @@ pub struct PoolerConfig {
 
 impl PoolerConfig {
     /// Initialize a new Pooler module.
-    pub fn init<B: Backend>(&self, device: &B::Device) -> Pooler<B> {
+    pub fn init(&self, device: &Device) -> Pooler {
         let output = LinearConfig::new(self.hidden_size, self.hidden_size).init(device);
 
         Pooler::new(output)

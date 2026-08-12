@@ -4,7 +4,7 @@ use crate::loader::LoadError;
 use burn::config::Config;
 use burn::module::{Module, Param};
 use burn::nn::{Gelu, LayerNorm, LayerNormConfig, Linear, LinearConfig};
-use burn::tensor::backend::Backend;
+use burn::tensor::Device;
 use burn::tensor::{Bool, Int, Tensor};
 use std::path::Path;
 
@@ -30,9 +30,9 @@ pub struct AlbertConfig {
 
 /// ALBERT base encoder model.
 #[derive(Module, Debug)]
-pub struct AlbertModel<B: Backend> {
-    pub embeddings: AlbertEmbeddings<B>,
-    pub encoder: AlbertEncoder<B>,
+pub struct AlbertModel {
+    pub embeddings: AlbertEmbeddings,
+    pub encoder: AlbertEncoder,
 }
 
 /// ALBERT for masked language modeling.
@@ -40,22 +40,22 @@ pub struct AlbertModel<B: Backend> {
 /// The decoder weight is tied to word embeddings (not a separate parameter).
 /// Only the decoder bias is stored separately.
 #[derive(Module, Debug)]
-pub struct AlbertMaskedLM<B: Backend> {
-    pub albert: AlbertModel<B>,
-    pub mlm_dense: Linear<B>,
-    pub mlm_layer_norm: LayerNorm<B>,
-    pub mlm_decoder_bias: Param<Tensor<B, 1>>,
+pub struct AlbertMaskedLM {
+    pub albert: AlbertModel,
+    pub mlm_dense: Linear,
+    pub mlm_layer_norm: LayerNorm,
+    pub mlm_decoder_bias: Param<Tensor<1>>,
     gelu: Gelu,
 }
 
 /// Output from the ALBERT model.
 #[derive(Debug, Clone)]
-pub struct AlbertOutput<B: Backend> {
-    pub hidden_states: Tensor<B, 3>,
+pub struct AlbertOutput {
+    pub hidden_states: Tensor<3>,
 }
 
 impl AlbertConfig {
-    pub fn init<B: Backend>(&self, device: &B::Device) -> AlbertModel<B> {
+    pub fn init(&self, device: &Device) -> AlbertModel {
         let embeddings = self.embeddings_config().init(device);
         let encoder = AlbertEncoder::new(
             self.hidden_size,
@@ -74,16 +74,16 @@ impl AlbertConfig {
         }
     }
 
-    pub fn init_masked_lm<B: Backend>(&self, device: &B::Device) -> AlbertMaskedLM<B> {
+    pub fn init_masked_lm(&self, device: &Device) -> AlbertMaskedLM {
         let albert = self.init(device);
         let mlm_dense = LinearConfig::new(self.hidden_size, self.embedding_size).init(device);
         let mlm_layer_norm = LayerNormConfig::new(self.embedding_size)
             .with_epsilon(self.layer_norm_eps)
             .init(device);
         let vocab_size = self.vocab_size;
-        let mlm_decoder_bias: Param<Tensor<B, 1>> = Param::uninitialized(
+        let mlm_decoder_bias: Param<Tensor<1>> = Param::uninitialized(
             burn::module::ParamId::new(),
-            move |device, _require_grad| Tensor::<B, 1>::zeros([vocab_size], device),
+            move |device, _require_grad| Tensor::<1>::zeros([vocab_size], device),
             device.clone(),
             false,
             [vocab_size].into(),
@@ -116,18 +116,18 @@ impl AlbertConfig {
     }
 }
 
-impl<B: Backend> AlbertModel<B> {
+impl AlbertModel {
     pub fn forward(
         &self,
-        input_ids: Tensor<B, 2, Int>,
-        attention_mask: Tensor<B, 2>,
-        token_type_ids: Option<Tensor<B, 2, Int>>,
-    ) -> AlbertOutput<B> {
+        input_ids: Tensor<2, Int>,
+        attention_mask: Tensor<2>,
+        token_type_ids: Option<Tensor<2, Int>>,
+    ) -> AlbertOutput {
         let embeddings = self.embeddings.forward(input_ids, token_type_ids);
 
         let device = attention_mask.device();
-        let zeros = Tensor::<B, 2>::zeros(attention_mask.shape(), &device);
-        let mask_pad: Tensor<B, 2, Bool> = attention_mask.equal(zeros);
+        let zeros = Tensor::<2>::zeros(attention_mask.shape(), &device);
+        let mask_pad: Tensor<2, Bool> = attention_mask.equal(zeros);
 
         let hidden_states = self.encoder.forward(embeddings, Some(mask_pad));
 
@@ -135,7 +135,7 @@ impl<B: Backend> AlbertModel<B> {
     }
 }
 
-impl<B: Backend> AlbertMaskedLM<B> {
+impl AlbertMaskedLM {
     /// Forward pass returning logits over the vocabulary.
     ///
     /// Uses weight tying: the decoder matrix is the word embeddings weight.
@@ -144,10 +144,10 @@ impl<B: Backend> AlbertMaskedLM<B> {
     /// Logits tensor `[batch_size, seq_len, vocab_size]`.
     pub fn forward(
         &self,
-        input_ids: Tensor<B, 2, Int>,
-        attention_mask: Tensor<B, 2>,
-        token_type_ids: Option<Tensor<B, 2, Int>>,
-    ) -> Tensor<B, 3> {
+        input_ids: Tensor<2, Int>,
+        attention_mask: Tensor<2>,
+        token_type_ids: Option<Tensor<2, Int>>,
+    ) -> Tensor<3> {
         let output = self
             .albert
             .forward(input_ids, attention_mask, token_type_ids);
@@ -162,7 +162,7 @@ impl<B: Backend> AlbertMaskedLM<B> {
         // hidden: [batch, seq, embedding_size]
         // word_embeddings.weight: [vocab_size, embedding_size]
         // logits: [batch, seq, vocab_size]
-        let word_weight: Tensor<B, 3> = self
+        let word_weight: Tensor<3> = self
             .albert
             .embeddings
             .word_embeddings_weight()

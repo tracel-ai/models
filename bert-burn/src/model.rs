@@ -10,7 +10,7 @@ use burn::nn::transformer::{
 use burn::nn::Initializer::KaimingUniform;
 use burn::nn::{LayerNorm, LayerNormConfig, Linear, LinearConfig};
 use burn::tensor::activation::gelu;
-use burn::tensor::backend::Backend;
+use burn::tensor::Device;
 use burn::tensor::Tensor;
 
 // Define the Bert model configuration
@@ -46,21 +46,21 @@ pub struct BertModelConfig {
 
 // Define the Bert model structure
 #[derive(Module, Debug)]
-pub struct BertModel<B: Backend> {
-    pub embeddings: BertEmbeddings<B>,
-    pub encoder: TransformerEncoder<B>,
-    pub pooler: Option<Pooler<B>>,
+pub struct BertModel {
+    pub embeddings: BertEmbeddings,
+    pub encoder: TransformerEncoder,
+    pub pooler: Option<Pooler>,
 }
 
 #[derive(Debug, Clone)]
-pub struct BertModelOutput<B: Backend> {
-    pub hidden_states: Tensor<B, 3>,
-    pub pooled_output: Option<Tensor<B, 3>>,
+pub struct BertModelOutput {
+    pub hidden_states: Tensor<3>,
+    pub pooled_output: Option<Tensor<3>>,
 }
 
 impl BertModelConfig {
     /// Initializes a Bert model with default weights
-    pub fn init<B: Backend>(&self, device: &B::Device) -> BertModel<B> {
+    pub fn init(&self, device: &Device) -> BertModel {
         let embeddings = self.get_embeddings_config().init(device);
         let encoder = self.get_encoder_config().init(device);
 
@@ -82,7 +82,7 @@ impl BertModelConfig {
         }
     }
 
-    pub fn init_with_lm_head<B: Backend>(&self, device: &B::Device) -> BertMaskedLM<B> {
+    pub fn init_with_lm_head(&self, device: &Device) -> BertMaskedLM {
         let bert = self.init(device);
         let lm_head = BertLMHead {
             dense: LinearConfig::new(self.hidden_size, self.hidden_size).init(device),
@@ -126,9 +126,9 @@ impl BertModelConfig {
     }
 }
 
-impl<B: Backend> BertModel<B> {
+impl BertModel {
     /// Defines forward pass
-    pub fn forward(&self, input: BertInferenceBatch<B>) -> BertModelOutput<B> {
+    pub fn forward(&self, input: BertInferenceBatch) -> BertModelOutput {
         let embedding = self.embeddings.forward(input.clone());
         let device = &self.embeddings.devices()[0];
 
@@ -150,20 +150,20 @@ impl<B: Backend> BertModel<B> {
 }
 
 #[derive(Module, Debug)]
-pub struct BertMaskedLM<B: Backend> {
-    pub bert: BertModel<B>,
-    pub lm_head: BertLMHead<B>,
+pub struct BertMaskedLM {
+    pub bert: BertModel,
+    pub lm_head: BertLMHead,
 }
 
 #[derive(Module, Debug)]
-pub struct BertLMHead<B: Backend> {
-    pub dense: Linear<B>,
-    pub layer_norm: LayerNorm<B>,
-    pub decoder: Linear<B>,
+pub struct BertLMHead {
+    pub dense: Linear,
+    pub layer_norm: LayerNorm,
+    pub decoder: Linear,
 }
 
-impl<B: Backend> BertMaskedLM<B> {
-    pub fn forward(&self, input: BertInferenceBatch<B>) -> Tensor<B, 3> {
+impl BertMaskedLM {
+    pub fn forward(&self, input: BertInferenceBatch) -> Tensor<3> {
         let output = self.bert.forward(BertInferenceBatch {
             tokens: input.tokens.clone(),
             mask_pad: input.mask_pad.clone(),
@@ -173,8 +173,8 @@ impl<B: Backend> BertMaskedLM<B> {
     }
 }
 
-impl<B: Backend> BertLMHead<B> {
-    pub fn forward(&self, features: Tensor<B, 3>) -> Tensor<B, 3> {
+impl BertLMHead {
+    pub fn forward(&self, features: Tensor<3>) -> Tensor<3> {
         let output = self.dense.forward(features);
         let output = gelu(output);
         let output = self.layer_norm.forward(output);

@@ -1,20 +1,15 @@
 use inference::imagenet;
 use resnet_burn::{weights, ResNet};
 
-use burn::tensor::{backend::Backend, Device, Element, Tensor, TensorData};
-use burn_flex::Flex;
+use burn::tensor::{Device, Element, Tensor, TensorData};
 use burn_store::{BurnpackStore, ModuleSnapshot};
 
 const MODEL_PATH: &str = "resnet18-ImageNet1k";
 const HEIGHT: usize = 224;
 const WIDTH: usize = 224;
 
-fn to_tensor<B: Backend, T: Element>(
-    data: Vec<T>,
-    shape: [usize; 3],
-    device: &Device<B>,
-) -> Tensor<B, 3> {
-    Tensor::<B, 3>::from_data(TensorData::new(data, shape).convert::<B::FloatElem>(), device)
+fn to_tensor<T: Element>(data: Vec<T>, shape: [usize; 3], device: &Device) -> Tensor<3> {
+    Tensor::<3>::from_data(TensorData::new(data, shape).convert::<f32>(), device)
         .permute([2, 0, 1]) // [C, H, W]
         / 255 // normalize between [0, 1]
 }
@@ -25,12 +20,12 @@ pub fn main() {
 
     // Create ResNet-18
     let device = Default::default();
-    let model: ResNet<Flex> = ResNet::resnet18_pretrained(weights::ResNet18::ImageNet1kV1, &device)
+    let model: ResNet = ResNet::resnet18_pretrained(weights::ResNet18::ImageNet1kV1, &device)
         .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
         .unwrap();
 
     // Save the model to burnpack format and load it back
-    let mut store = BurnpackStore::from_file(MODEL_PATH);
+    let mut store = BurnpackStore::from_file(MODEL_PATH).overwrite(true);
     model
         .save_into(&mut store)
         .map_err(|err| format!("Failed to save weights to file {MODEL_PATH}.\nError: {err}"))
@@ -72,12 +67,12 @@ pub fn main() {
 
     // Output class index w/ score (raw)
     let (score, idx) = out.max_dim_with_indices(1);
-    let idx = idx.into_scalar() as usize;
+    let idx = idx.into_scalar::<i64>() as usize;
 
     println!(
         "Predicted: {}\nCategory Id: {}\nScore: {:.4}",
         imagenet::CLASSES[idx],
         idx,
-        score.into_scalar()
+        score.into_scalar::<f32>()
     );
 }

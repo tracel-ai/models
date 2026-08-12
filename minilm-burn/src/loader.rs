@@ -1,6 +1,6 @@
 use crate::model::{MiniLmConfig, MiniLmModel};
 use burn::config::Config;
-use burn::tensor::backend::Backend;
+use burn::tensor::Device;
 use burn_store::{KeyRemapper, ModuleSnapshot, PyTorchToBurnAdapter, SafetensorsStore};
 use std::path::{Path, PathBuf};
 
@@ -41,8 +41,8 @@ impl std::error::Error for LoadError {}
 /// - `intermediate.dense` → `pwff.linear_inner`
 /// - `output.dense` → `pwff.linear_outer`
 /// - `LayerNorm.weight/bias` → `gamma/beta`
-pub fn load_pretrained<B: Backend>(
-    model: &mut MiniLmModel<B>,
+pub fn load_pretrained(
+    model: &mut MiniLmModel,
     checkpoint_path: impl AsRef<Path>,
 ) -> Result<(), LoadError> {
     // Key mappings: HuggingFace BERT -> Burn TransformerEncoder
@@ -165,7 +165,7 @@ impl MiniLmVariant {
 }
 
 #[cfg(feature = "pretrained")]
-impl<B: Backend> MiniLmModel<B> {
+impl MiniLmModel {
     /// Load a pre-trained MiniLM model.
     ///
     /// Downloads from HuggingFace Hub (cached after first download).
@@ -176,7 +176,7 @@ impl<B: Backend> MiniLmModel<B> {
     /// - `variant`: Model variant (L6 or L12). Defaults to L12.
     /// - `cache_dir`: Optional cache directory. Defaults to system cache dir.
     pub fn pretrained(
-        device: &B::Device,
+        device: &Device,
         variant: MiniLmVariant,
         cache_dir: Option<PathBuf>,
     ) -> Result<(Self, tokenizers::Tokenizer), LoadError> {
