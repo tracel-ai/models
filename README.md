@@ -8,7 +8,7 @@ examples constructed using the [Burn] deep learning framework.
 | Model         | Description                   | Repository                            |
 | ------------- | ----------------------------- | ------------------------------------- |
 | [ALBERT]      | Masked language model         | [albert-burn](albert-burn/)           |
-| [Llama]       | Large language models         | [llama-burn](llama-burn/)             |
+| [Llama]       | Large language models         | [Burn LM](https://github.com/tracel-ai/burn-lm) |
 | [MiniLM]      | Sentence embeddings           | [minilm-burn](minilm-burn/)           |
 | [MobileNetV2] | Mobile image classification   | [mobilenetv2-burn](mobilenetv2-burn/) |
 | [SqueezeNet]  | Compact image classification  | [squeezenet-burn](squeezenet-burn/)   |
