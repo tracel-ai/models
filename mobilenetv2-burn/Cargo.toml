@@ -1,5 +1,5 @@
 [package]
-authors = ["Arjun31415", "guillaumelagrange <lagrange.guillaume.1@gmail.com>"]
+authors = ["Arjun31415", "laggui <lagrange.guillaume.1@gmail.com>"]
 name = "mobilenetv2-burn"
 version = "0.1.0"
 edition = "2021"

@@ -1,5 +1,5 @@
 [package]
-authors = ["guillaumelagrange <lagrange.guillaume.1@gmail.com>"]
+authors = ["laggui <lagrange.guillaume.1@gmail.com>"]
 name = "finetune"
 license.workspace = true
 version = "0.2.0"
