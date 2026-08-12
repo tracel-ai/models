@@ -1,5 +1,5 @@
 [package]
-authors = ["guillaumelagrange <lagrange.guillaume.1@gmail.com>"]
+authors = ["laggui <lagrange.guillaume.1@gmail.com>"]
 name = "resnet-burn"
 version = "0.2.0"
 edition = "2021"

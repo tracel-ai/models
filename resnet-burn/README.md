@@ -35,10 +35,10 @@ ImageNet
 [pre-trained weights](https://pytorch.org/vision/stable/models/generated/torchvision.models.resnet18.html#torchvision.models.ResNet18_Weights)
 with the `NdArray` backend and performs inference on the provided input image.
 
-You can run the example with the following command:
+From the workspace root, run the example with the following command:
 
 ```sh
-cargo run --release --example inference samples/dog.jpg
+cargo run --release -p inference --example inference -- resnet-burn/samples/dog.jpg
 ```
 
 #### Fine-tuning
@@ -60,21 +60,8 @@ pre-trained model for a different downstream task.
 Without any bells and whistle, our model achieves over 90% multi-label accuracy (i.e., hamming
 score) on the validation set after just 5 epochs.
 
-Run the example with the Torch GPU backend:
+From the workspace root, run the example with the following command:
 
 ```sh
-export TORCH_CUDA_VERSION=cu128
-cargo run --release --example finetune --features tch-gpu
-```
-
-Run it with our WGPU backend:
-
-```sh
-cargo run --release --example finetune --features wgpu
-```
-
-Run it with our CUDA backend:
-
-```sh
-cargo run --release --example finetune --features cuda
+cargo run --release -p finetune --example finetune
 ```
