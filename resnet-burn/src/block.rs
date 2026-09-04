@@ -9,7 +9,7 @@ use burn::{
         conv::{Conv2d, Conv2dConfig},
         BatchNorm, BatchNormConfig, Initializer, PaddingConfig2d, Relu,
     },
-    tensor::{Device, Tensor},
+    tensor::{debug_assert_shape, Device, Tensor},
 };
 
 #[derive(Module, Debug)]
@@ -77,13 +77,16 @@ impl BasicBlock {
         let out = self.conv2.forward(out);
         let out = self.bn2.forward(out);
 
-        // Skip connection
-        let out = {
-            match &self.downsample {
-                Some(downsample) => out + downsample.forward(identity),
-                None => out + identity,
-            }
+        // Skip connection: the residual must match the conv output exactly, whether or not
+        // it went through a downsample. A stride or channel count that disagrees shows up
+        // here rather than as a broadcast further on.
+        let [batch_size, channels, height, width] = out.dims();
+        let residual = match &self.downsample {
+            Some(downsample) => downsample.forward(identity),
+            None => identity,
         };
+        debug_assert_shape!(residual, [batch_size, channels, height, width]);
+        let out = out + residual;
 
         // Activation
         self.relu.forward(out)
@@ -123,13 +126,16 @@ impl Bottleneck {
         let out = self.conv3.forward(out);
         let out = self.bn3.forward(out);
 
-        // Skip connection
-        let out = {
-            match &self.downsample {
-                Some(downsample) => out + downsample.forward(identity),
-                None => out + identity,
-            }
+        // Skip connection: the residual must match the conv output exactly, whether or not
+        // it went through a downsample. A stride or channel count that disagrees shows up
+        // here rather than as a broadcast further on.
+        let [batch_size, channels, height, width] = out.dims();
+        let residual = match &self.downsample {
+            Some(downsample) => downsample.forward(identity),
+            None => identity,
         };
+        debug_assert_shape!(residual, [batch_size, channels, height, width]);
+        let out = out + residual;
 
         // Activation
         self.relu.forward(out)
