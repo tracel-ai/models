@@ -4,7 +4,7 @@ use crate::{
     model::BertMaskedLM,
     model::BertModelConfig,
 };
-use burn::tensor::{activation::softmax, Element, Tensor};
+use burn::tensor::{activation::softmax, assert_shape, Element, Tensor};
 
 type TokenType = usize;
 const MASK_TOKEN_ID: TokenType = 50264;
@@ -28,6 +28,7 @@ pub fn fill_mask(
 
     // Embedding size
     let d_model = model_config.vocab_size;
+    assert_shape!(output, [batch_size, seq_len, d_model]);
     for i in 0..batch_size {
         let mut batch_results = vec![];
         let input_tokens = input

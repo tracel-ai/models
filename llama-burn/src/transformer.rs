@@ -234,6 +234,9 @@ impl KeyValueCache {
 
     /// Computes the complete keys and values.
     pub fn forward(&mut self, key: Tensor<4>, value: Tensor<4>) -> (Tensor<4>, Tensor<4>) {
+        let [batch_size, num_heads, seq_len, head_dim] = key.dims();
+        debug_assert_shape!(value, [batch_size, num_heads, seq_len, head_dim]);
+
         let k = self.key.forward(key);
         let v = self.value.forward(value);
         (k, v)

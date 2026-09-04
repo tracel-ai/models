@@ -1,4 +1,4 @@
-use burn::tensor::{Int, Tensor};
+use burn::tensor::{assert_shape, Int, Tensor};
 use rand::{
     distr::{weighted::WeightedIndex, Distribution},
     rngs::StdRng,
@@ -45,11 +45,8 @@ impl TopP {
 
 impl Sampling for TopP {
     fn sample(&mut self, probs: Tensor<2>) -> Tensor<2, Int> {
-        assert_eq!(
-            probs.dims()[0],
-            1,
-            "Naive top-p sampling only supports single-batch tensors"
-        );
+        // Naive top-p sampling only supports single-batch tensors.
+        assert_shape!(probs, [1, _]);
         let (probs_sort, probs_idx) = probs.sort_descending_with_indices(1);
 
         // TODO: cumsum + Distribution::Multinomial support

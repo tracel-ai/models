@@ -5,7 +5,7 @@ use burn::{
         conv::{Conv2d, Conv2dConfig},
         Initializer, PaddingConfig2d,
     },
-    tensor::{activation::sigmoid, Device, Int, Shape, Tensor},
+    tensor::{activation::sigmoid, assert_shape, Device, Int, Shape, Tensor},
 };
 use itertools::{izip, multiunzip};
 
@@ -47,6 +47,11 @@ pub struct Head {
 
 impl Head {
     pub fn forward(&self, x: FpnFeatures) -> Tensor<3> {
+        // The three levels are concatenated per anchor, so their batches must line up.
+        let [batch_size, _, _, _] = x.0.dims();
+        assert_shape!(x.1, [batch_size, _, _, _]);
+        assert_shape!(x.2, [batch_size, _, _, _]);
+
         let features: [Tensor<4>; 3] = [x.0, x.1, x.2];
 
         // Outputs for each feature map

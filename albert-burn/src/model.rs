@@ -171,8 +171,14 @@ impl AlbertMaskedLM {
             .word_embeddings_weight()
             .transpose()
             .unsqueeze();
+        let [_, embedding_size, vocab_size] = word_weight.dims();
+        assert_shape!(hidden, [_, _, embedding_size]);
+
+        let bias = self.mlm_decoder_bias.val();
+        assert_shape!(bias, [vocab_size]);
+
         let logits = hidden.matmul(word_weight);
 
-        logits + self.mlm_decoder_bias.val().unsqueeze()
+        logits + bias.unsqueeze()
     }
 }
