@@ -18,7 +18,7 @@ import = ["burn-store/pytorch", "burn-store/safetensors"]
 
 [dependencies]
 burn       = { workspace = true, features = ["std"] }
-burn-store = { workspace = true, features = ["std", "burnpack"] }
+burn-store = { workspace = true, features = ["std"] }
 
 itertools = { workspace = true, features = ["use_alloc"] }
 dirs      = { workspace = true, optional = true }
@@ -35,7 +35,6 @@ tokenizers = { workspace = true, features = ["onig"], optional = true }
 rand = { workspace = true, features = ["alloc", "std_rng"] }
 
 [dev-dependencies]
-burn-flex = { workspace = true }
 clap      = { workspace = true }
 
 [package.metadata.docs.rs]

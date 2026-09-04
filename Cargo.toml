@@ -18,10 +18,9 @@ license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 # burn ecosystem
-burn        = { version = "0.21.0", default-features = false }
-burn-store  = { version = "0.21.0", default-features = false }
-burn-flex   = { version = "0.21.0" }
-burn-onnx   = { version = "0.21.0" }
+burn        = { git = "https://github.com/tracel-ai/burn", rev = "5bd017038495063afea85aa200fb94d6969028c3", default-features = false }
+burn-store  = { git = "https://github.com/tracel-ai/burn", rev = "5bd017038495063afea85aa200fb94d6969028c3", default-features = false }
+burn-onnx   = { version = "0.22.0-pre.3" }
 
 # shared third-party
 serde       = { version = "1", default-features = false }

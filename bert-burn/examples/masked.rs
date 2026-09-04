@@ -2,12 +2,11 @@ use bert_burn::data::{BertInputBatcher, BertTokenizer};
 use bert_burn::fill_mask::fill_mask;
 use bert_burn::loader::{download_hf_model, load_model_config, load_pretrained_masked_lm};
 use burn::data::dataloader::batcher::Batcher;
-use burn::tensor::backend::Backend;
-use burn_flex::{Flex, FlexDevice};
+use burn::tensor::Device;
 use std::env;
 use std::sync::Arc;
 
-pub fn launch<B: Backend>(device: B::Device) {
+pub fn launch(device: Device) {
     let args: Vec<String> = env::args().collect();
     let default_model = "roberta-base".to_string();
     let model_variant = if args.len() > 1 {
@@ -27,7 +26,7 @@ pub fn launch<B: Backend>(device: B::Device) {
         download_hf_model(model_variant).expect("Failed to download BERT model from HF Hub");
     let model_config = load_model_config(config_file).expect("Failed to load BERT config");
 
-    let mut model = model_config.init_with_lm_head::<B>(&device);
+    let mut model = model_config.init_with_lm_head(&device);
     load_pretrained_masked_lm(&mut model, &model_file)
         .expect("Failed to load pretrained BERT masked LM weights");
 
@@ -68,5 +67,5 @@ pub fn launch<B: Backend>(device: B::Device) {
 }
 
 fn main() {
-    launch::<Flex>(FlexDevice);
+    launch(Default::default());
 }

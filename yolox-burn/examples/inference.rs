@@ -3,23 +3,15 @@ use std::path::Path;
 use image::{DynamicImage, ImageBuffer};
 use yolox_burn::model::{boxes::nms, weights, yolox::Yolox, BoundingBox};
 
-use burn::tensor::{backend::Backend, Device, Element, Tensor, TensorData};
-use burn_flex::Flex;
+use burn::tensor::{Device, Element, Tensor, TensorData};
 
 const HEIGHT: usize = 640;
 const WIDTH: usize = 640;
 
-fn to_tensor<B: Backend, T: Element>(
-    data: Vec<T>,
-    shape: [usize; 3],
-    device: &Device<B>,
-) -> Tensor<B, 3> {
-    Tensor::<B, 3>::from_data(
-        TensorData::new(data, shape).convert::<B::FloatElem>(),
-        device,
-    )
-    // [H, W, C] -> [C, H, W]
-    .permute([2, 0, 1])
+fn to_tensor<T: Element>(data: Vec<T>, shape: [usize; 3], device: &Device) -> Tensor<3> {
+    Tensor::<3>::from_data(TensorData::new(data, shape).convert::<f32>(), device)
+        // [H, W, C] -> [C, H, W]
+        .permute([2, 0, 1])
 }
 
 /// Draws bounding boxes on the given image.
@@ -97,7 +89,7 @@ pub fn main() {
 
     // Create YOLOX-Tiny
     let device = Default::default();
-    let model: Yolox<Flex> = Yolox::yolox_tiny_pretrained(weights::YoloxTiny::Coco, &device)
+    let model = Yolox::yolox_tiny_pretrained(weights::YoloxTiny::Coco, &device)
         .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
         .unwrap();
 

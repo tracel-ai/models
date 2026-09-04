@@ -21,4 +21,3 @@ serde_json = { workspace = true }
 libm       = { workspace = true }
 
 [dev-dependencies]
-burn-flex = { workspace = true }

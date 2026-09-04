@@ -13,10 +13,7 @@
 
 use burn::tensor::Tensor;
 use burn::tensor::linalg::cosine_similarity;
-use burn_flex::Flex;
 use minilm_burn::{MiniLmModel, MiniLmVariant, mean_pooling, normalize_l2, tokenize_batch};
-
-type B = Flex;
 
 // Test sentences (must match Python script)
 const SENTENCES: [&str; 3] = [
@@ -71,12 +68,12 @@ const SIM_0_2: f32 = 0.21687716;
 const SIM_1_2: f32 = 0.14440186;
 
 /// Load default model and encode test sentences, returning normalized embeddings.
-fn encode_test_sentences() -> (Tensor<B, 2>, usize) {
+fn encode_test_sentences() -> (Tensor<2>, usize) {
     let device = Default::default();
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)
-        .expect("Failed to load model");
+    let (model, tokenizer) =
+        MiniLmModel::pretrained(&device, Default::default(), None).expect("Failed to load model");
 
-    let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &SENTENCES, &device);
+    let (input_ids, attention_mask) = tokenize_batch(&tokenizer, &SENTENCES, &device);
     let output = model.forward(input_ids, attention_mask.clone(), None);
     let embeddings = mean_pooling(output.hidden_states, attention_mask);
     let embeddings = normalize_l2(embeddings);
@@ -129,9 +126,9 @@ fn test_embeddings_match_python() {
 fn test_cosine_similarities_match_python() {
     let (embeddings, hidden_size) = encode_test_sentences();
 
-    let emb0: Tensor<B, 1> = embeddings.clone().slice([0..1, 0..hidden_size]).squeeze();
-    let emb1: Tensor<B, 1> = embeddings.clone().slice([1..2, 0..hidden_size]).squeeze();
-    let emb2: Tensor<B, 1> = embeddings.clone().slice([2..3, 0..hidden_size]).squeeze();
+    let emb0: Tensor<1> = embeddings.clone().slice([0..1, 0..hidden_size]).squeeze();
+    let emb1: Tensor<1> = embeddings.clone().slice([1..2, 0..hidden_size]).squeeze();
+    let emb2: Tensor<1> = embeddings.clone().slice([2..3, 0..hidden_size]).squeeze();
 
     let sim_01: f32 = cosine_similarity(emb0.clone(), emb1.clone(), 0, None).into_scalar();
     let sim_02: f32 = cosine_similarity(emb0, emb2.clone(), 0, None).into_scalar();
@@ -164,8 +161,8 @@ fn test_cosine_similarities_match_python() {
 fn test_l6_variant_loads_and_runs() {
     let device = Default::default();
 
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, MiniLmVariant::L6, None)
-        .expect("Failed to load L6 model");
+    let (model, tokenizer) =
+        MiniLmModel::pretrained(&device, MiniLmVariant::L6, None).expect("Failed to load L6 model");
 
     assert_eq!(
         model.encoder.layers.len(),
@@ -173,7 +170,7 @@ fn test_l6_variant_loads_and_runs() {
         "L6 should have 6 encoder layers"
     );
 
-    let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &SENTENCES, &device);
+    let (input_ids, attention_mask) = tokenize_batch(&tokenizer, &SENTENCES, &device);
 
     let output = model.forward(input_ids, attention_mask.clone(), None);
     let embeddings = mean_pooling(output.hidden_states, attention_mask);
@@ -183,7 +180,7 @@ fn test_l6_variant_loads_and_runs() {
     assert_eq!(b, 3, "Batch size should be 3");
     assert_eq!(hidden, 384, "Hidden size should be 384");
 
-    let emb0: Tensor<B, 1> = embeddings.clone().slice([0..1, 0..hidden]).squeeze();
+    let emb0: Tensor<1> = embeddings.clone().slice([0..1, 0..hidden]).squeeze();
     let norm: f32 = emb0.clone().powf_scalar(2.0).sum().sqrt().into_scalar();
     assert!(
         (norm - 1.0).abs() < 1e-5,

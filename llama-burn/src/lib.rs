@@ -10,6 +10,5 @@ mod transformer;
 
 #[cfg(test)]
 mod tests {
-    pub type TestBackend = burn_flex::Flex;
-    pub type TestTensor<const D: usize> = burn::tensor::Tensor<TestBackend, D>;
+    pub type TestTensor<const D: usize> = burn::tensor::Tensor<D>;
 }

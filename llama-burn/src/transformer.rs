@@ -5,7 +5,7 @@ use burn::{
         Embedding, EmbeddingConfig, Linear, LinearConfig, RmsNorm, RmsNormConfig, RotaryEncoding,
         SwiGlu, SwiGluConfig,
     },
-    tensor::{activation::softmax, backend::Backend, Bool, Device, Int, Tensor},
+    tensor::{activation::softmax, debug_assert_shape, Bool, Device, Int, Tensor},
 };
 
 use crate::cache::AutoregressiveCache;
@@ -35,7 +35,7 @@ pub struct TransformerConfig {
 
 impl TransformerConfig {
     /// Initialize a new [decoder-only transformer](Transformer).
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> Transformer<B> {
+    pub fn init(&self, device: &Device) -> Transformer {
         let tok_embeddings = EmbeddingConfig::new(self.vocab_size, self.d_model).init(device);
         let layers = (0..self.n_layers)
             .map(|_| {
@@ -68,21 +68,21 @@ impl TransformerConfig {
 
 /// Llama decoder-only transformer.
 #[derive(Module, Debug)]
-pub struct Transformer<B: Backend> {
-    tok_embeddings: Embedding<B>,
-    layers: Vec<TransformerBlock<B>>,
-    norm: RmsNorm<B>,
+pub struct Transformer {
+    tok_embeddings: Embedding,
+    layers: Vec<TransformerBlock>,
+    norm: RmsNorm,
     // NOTE: Starting with Llama 3.2, the weights of the output layer are tied with the embedding
-    output: Linear<B>,
+    output: Linear,
 }
 
-impl<B: Backend> Transformer<B> {
+impl Transformer {
     pub fn forward(
         &self,
-        input: Tensor<B, 2, Int>,
-        cache: &mut [KeyValueCache<B>],
-        rope: &RotaryEncoding<B>,
-    ) -> Tensor<B, 3> {
+        input: Tensor<2, Int>,
+        cache: &mut [KeyValueCache],
+        rope: &RotaryEncoding,
+    ) -> Tensor<3> {
         let mut h = self.tok_embeddings.forward(input);
 
         for (layer, c) in self.layers.iter().zip(cache.iter_mut()) {
@@ -113,7 +113,7 @@ pub struct TransformerBlockConfig {
 
 impl TransformerBlockConfig {
     /// Initialize a new [decoder-only transformer block](TransformerBlock).
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> TransformerBlock<B> {
+    pub fn init(&self, device: &Device) -> TransformerBlock {
         let attention =
             MultiHeadAttentionConfig::new(self.d_model, self.n_heads, self.n_kv_heads).init(device);
         let feed_forward = FeedForwardConfig::new(self.d_model, self.hidden_size).init(device);
@@ -135,24 +135,24 @@ impl TransformerBlockConfig {
 
 /// Decoder-only transformer block.
 #[derive(Module, Debug)]
-pub struct TransformerBlock<B: Backend> {
+pub struct TransformerBlock {
     /// Self-attention.
-    attention: MultiHeadAttention<B>,
+    attention: MultiHeadAttention,
     /// Feed-forward transformation.
-    feed_forward: FeedForward<B>,
+    feed_forward: FeedForward,
     /// Attention pre-normalization.
-    attention_norm: RmsNorm<B>,
+    attention_norm: RmsNorm,
     /// Feed-forward pre-normalization.
-    ffn_norm: RmsNorm<B>,
+    ffn_norm: RmsNorm,
 }
 
-impl<B: Backend> TransformerBlock<B> {
+impl TransformerBlock {
     pub fn forward(
         &self,
-        input: Tensor<B, 3>,
-        cache: &mut KeyValueCache<B>,
-        rope: &RotaryEncoding<B>,
-    ) -> Tensor<B, 3> {
+        input: Tensor<3>,
+        cache: &mut KeyValueCache,
+        rope: &RotaryEncoding,
+    ) -> Tensor<3> {
         let h = input.clone()
             + self
                 .attention
@@ -172,7 +172,7 @@ pub struct FeedForwardConfig {
 
 impl FeedForwardConfig {
     /// Initialize a new [feed-forward transformation network](FeedForward).
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> FeedForward<B> {
+    pub fn init(&self, device: &Device) -> FeedForward {
         let swiglu = SwiGluConfig::new(self.d_model, self.hidden_size)
             .with_bias(false)
             .init(device);
@@ -186,39 +186,39 @@ impl FeedForwardConfig {
 
 /// Feed-forward transformation network.
 #[derive(Module, Debug)]
-pub struct FeedForward<B: Backend> {
+pub struct FeedForward {
     // Swish gated linear unit with trainable parameters.
-    swiglu: SwiGlu<B>,
+    swiglu: SwiGlu,
     /// Outer linear.
-    w2: Linear<B>,
+    w2: Linear,
 }
 
-impl<B: Backend> FeedForward<B> {
+impl FeedForward {
     /// Applies the forward pass on the input tensor.
     ///
     /// # Shapes
     ///
     /// - input: `[batch_size, seq_length, d_model]`
     /// - output: `[batch_size, seq_length, d_model]`
-    pub fn forward(&self, input: Tensor<B, 3>) -> Tensor<B, 3> {
+    pub fn forward(&self, input: Tensor<3>) -> Tensor<3> {
         self.w2.forward(self.swiglu.forward(input))
     }
 }
 
 /// Key-value cache for autoregressive models.
-pub struct KeyValueCache<B: Backend> {
-    key: AutoregressiveCache<B>,
-    value: AutoregressiveCache<B>,
+pub struct KeyValueCache {
+    key: AutoregressiveCache,
+    value: AutoregressiveCache,
 }
 
-impl<B: Backend> KeyValueCache<B> {
+impl KeyValueCache {
     /// Create a new [key-value cache](KeyValueCache).
     pub fn new(
         max_batch_size: usize,
         num_heads: usize,
         max_seq_len: usize,
         d_model: usize,
-        device: &Device<B>,
+        device: &Device,
     ) -> Self {
         Self {
             key: AutoregressiveCache::new(max_batch_size, num_heads, max_seq_len, d_model, device),
@@ -233,11 +233,7 @@ impl<B: Backend> KeyValueCache<B> {
     }
 
     /// Computes the complete keys and values.
-    pub fn forward(
-        &mut self,
-        key: Tensor<B, 4>,
-        value: Tensor<B, 4>,
-    ) -> (Tensor<B, 4>, Tensor<B, 4>) {
+    pub fn forward(&mut self, key: Tensor<4>, value: Tensor<4>) -> (Tensor<4>, Tensor<4>) {
         let k = self.key.forward(key);
         let v = self.value.forward(value);
         (k, v)
@@ -271,7 +267,7 @@ pub struct MultiHeadAttentionConfig {
 
 impl MultiHeadAttentionConfig {
     /// Initialize a new [multi-head attention](MultiHeadAttention) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> MultiHeadAttention<B> {
+    pub fn init(&self, device: &Device) -> MultiHeadAttention {
         let head_dim = self.d_model / self.n_heads;
 
         let wq = LinearConfig::new(self.d_model, self.n_heads * head_dim)
@@ -300,22 +296,22 @@ impl MultiHeadAttentionConfig {
 }
 
 #[derive(Module, Debug)]
-pub struct MultiHeadAttention<B: Backend> {
+pub struct MultiHeadAttention {
     /// Query projection.
-    wq: Linear<B>,
+    wq: Linear,
     /// Key projection.
-    wk: Linear<B>,
+    wk: Linear,
     /// Value projection.
-    wv: Linear<B>,
+    wv: Linear,
     /// Output projection.
-    wo: Linear<B>,
+    wo: Linear,
 
     n_heads: usize,
     n_kv_heads: usize,
     head_dim: usize,
 }
 
-impl<B: Backend> MultiHeadAttention<B> {
+impl MultiHeadAttention {
     /// Applies the forward pass on the input tensors.
     ///
     /// # Shapes
@@ -326,10 +322,14 @@ impl<B: Backend> MultiHeadAttention<B> {
     /// - output: `[batch_size, seq_length_1, d_model]`
     pub fn forward(
         &self,
-        input: Tensor<B, 3>,
-        cache: &mut KeyValueCache<B>,
-        rope: &RotaryEncoding<B>,
-    ) -> Tensor<B, 3> {
+        input: Tensor<3>,
+        cache: &mut KeyValueCache,
+        rope: &RotaryEncoding,
+    ) -> Tensor<3> {
+        // The output is reshaped back to the input's feature count, so d_model has to be
+        // exactly what the head layout projects to.
+        debug_assert_shape!(input, [_, _, self.n_heads * self.head_dim]);
+
         let device = input.device();
         let [batch_size, seq_len, hidden_size] = input.dims();
 
@@ -372,7 +372,7 @@ impl<B: Backend> MultiHeadAttention<B> {
         // though it is probably not necessary at this time.
         if seq_len > 1 {
             let cache_seq_len = cache.len();
-            let mask = Tensor::<B, 2, Bool>::tril_mask(
+            let mask = Tensor::<2, Bool>::tril_mask(
                 [seq_len, cache_seq_len],
                 (cache_seq_len - seq_len) as i64, // offset
                 &device,
@@ -391,7 +391,7 @@ impl<B: Backend> MultiHeadAttention<B> {
     }
 
     /// Repeats a key or value tensor for grouped query attention.
-    fn repeat_kv(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+    fn repeat_kv(&self, x: Tensor<4>) -> Tensor<4> {
         let n_rep = self.n_heads / self.n_kv_heads;
         if n_rep == 1 {
             x

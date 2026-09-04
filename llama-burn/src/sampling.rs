@@ -1,4 +1,4 @@
-use burn::tensor::{backend::Backend, Int, Tensor};
+use burn::tensor::{Int, Tensor};
 use rand::{
     distr::{weighted::WeightedIndex, Distribution},
     rngs::StdRng,
@@ -15,7 +15,7 @@ impl Sampler {
         Self::TopP(Box::new(TopP::new(p, seed)))
     }
 
-    pub fn sample<B: Backend>(&mut self, logits: Tensor<B, 2>) -> Tensor<B, 2, Int> {
+    pub fn sample(&mut self, logits: Tensor<2>) -> Tensor<2, Int> {
         match self {
             Self::TopP(s) => s.sample(logits),
             Self::Argmax => logits.argmax(1),
@@ -24,7 +24,7 @@ impl Sampler {
 }
 
 pub trait Sampling {
-    fn sample<B: Backend>(&mut self, logits: Tensor<B, 2>) -> Tensor<B, 2, Int>;
+    fn sample(&mut self, logits: Tensor<2>) -> Tensor<2, Int>;
 }
 
 /// Top-p sampling (nucleus sampling) selects the smallest set of tokens whose cumulative
@@ -44,7 +44,7 @@ impl TopP {
 }
 
 impl Sampling for TopP {
-    fn sample<B: Backend>(&mut self, probs: Tensor<B, 2>) -> Tensor<B, 2, Int> {
+    fn sample(&mut self, probs: Tensor<2>) -> Tensor<2, Int> {
         assert_eq!(
             probs.dims()[0],
             1,

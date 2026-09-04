@@ -16,13 +16,9 @@
     clippy::single_range_in_vec_init
 )]
 
-use burn::prelude::ElementConversion;
 use burn::tensor::Tensor;
-use burn_flex::Flex;
 
 use albert_burn::{AlbertMaskedLM, tokenize_batch};
-
-type B = Flex;
 
 /// Relative tolerance for comparing logit values.
 ///
@@ -49,22 +45,20 @@ fn assert_close(actual: f32, expected: f32, label: &str) {
     );
 }
 
-fn load_model() -> (AlbertMaskedLM<B>, tokenizers::Tokenizer) {
+fn load_model() -> (AlbertMaskedLM, tokenizers::Tokenizer) {
     let device = Default::default();
-    AlbertMaskedLM::<B>::pretrained(&device, Default::default(), None)
-        .expect("Failed to load model")
+    AlbertMaskedLM::pretrained(&device, Default::default(), None).expect("Failed to load model")
 }
 
 fn predict_at_mask(
-    model: &AlbertMaskedLM<B>,
+    model: &AlbertMaskedLM,
     tokenizer: &tokenizers::Tokenizer,
     sentence: &str,
-) -> (Tensor<B, 1>, Tensor<B, 2>) {
+) -> (Tensor<1>, Tensor<2>) {
     let device = Default::default();
-    let (input_ids, attention_mask) = tokenize_batch::<B>(tokenizer, &[sentence], &device);
+    let (input_ids, attention_mask) = tokenize_batch(tokenizer, &[sentence], &device);
 
-    let input_ids_data = input_ids.to_data();
-    let ids: &[i64] = input_ids_data.as_slice().unwrap();
+    let ids: Vec<i64> = input_ids.to_data().iter().collect();
     let mask_token_id = tokenizer
         .token_to_id("[MASK]")
         .expect("[MASK] token not found");
@@ -76,13 +70,13 @@ fn predict_at_mask(
     let logits = model.forward(input_ids, attention_mask, None);
 
     let [_, seq_len, vocab_size] = logits.dims();
-    let mask_logits: Tensor<B, 1> = logits
+    let mask_logits: Tensor<1> = logits
         .clone()
         .slice([0..1, mask_pos..mask_pos + 1, 0..vocab_size])
         .reshape([vocab_size]);
 
     // All positions: [seq_len, vocab_size]
-    let all_logits: Tensor<B, 2> = logits.reshape([seq_len, vocab_size]);
+    let all_logits: Tensor<2> = logits.reshape([seq_len, vocab_size]);
 
     (mask_logits, all_logits)
 }
@@ -94,16 +88,14 @@ fn check_first_10(logits: &[f32], expected: &[f32; 10], label: &str) {
 }
 
 fn check_top5(
-    logits: &Tensor<B, 1>,
+    logits: &Tensor<1>,
     expected_ids: &[i64; 5],
     expected_scores: &[f32; 5],
     label: &str,
 ) {
     let top_k = logits.clone().sort_descending_with_indices(0);
-    let indices_data = top_k.1.to_data();
-    let values_data = top_k.0.to_data();
-    let indices: &[i64] = indices_data.as_slice().unwrap();
-    let scores: &[f32] = values_data.as_slice().unwrap();
+    let indices: Vec<i64> = top_k.1.to_data().iter().collect();
+    let scores: Vec<f32> = top_k.0.to_data().iter().collect();
 
     for i in 0..5 {
         assert_eq!(
@@ -138,13 +130,13 @@ fn check_stats(
     assert_close(mean, expected_mean, &format!("{label} mean"));
 }
 
-fn check_seq_norms(all_logits: &Tensor<B, 2>, expected_norms: &[f32], label: &str) {
+fn check_seq_norms(all_logits: &Tensor<2>, expected_norms: &[f32], label: &str) {
     let [seq_len, _vocab] = all_logits.dims();
     assert_eq!(seq_len, expected_norms.len(), "{label} seq_len mismatch");
 
     for pos in 0..seq_len {
         let row = all_logits.clone().slice([pos..pos + 1]);
-        let norm_sq: f32 = row.clone().mul(row).sum().into_scalar().elem();
+        let norm_sq: f32 = row.clone().mul(row).sum().into_scalar();
         let norm = norm_sq.sqrt();
         assert_close(norm, expected_norms[pos], &format!("{label} norm[{pos}]"));
     }

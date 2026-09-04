@@ -18,20 +18,17 @@ Supports all v2 variants from HuggingFace:
 ## Usage
 
 ```rust
-use burn::backend::ndarray::NdArray;
 use albert_burn::{AlbertMaskedLM, AlbertVariant, tokenize_batch};
-
-type B = NdArray<f32>;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let device = Default::default();
 
     // Load pretrained model and tokenizer (downloads from HuggingFace)
-    let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(&device, AlbertVariant::BaseV2, None)?;
+    let (model, tokenizer) = AlbertMaskedLM::pretrained(&device, AlbertVariant::BaseV2, None)?;
 
     // Tokenize input with [MASK] token
     let sentence = "The capital of France is [MASK].";
-    let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &[sentence], &device);
+    let (input_ids, attention_mask) = tokenize_batch(&tokenizer, &[sentence], &device);
 
     // Forward pass returns logits over vocabulary
     let logits = model.forward(input_ids, attention_mask, None);

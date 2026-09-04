@@ -21,7 +21,6 @@ serde      = { workspace = true, features = ["derive", "alloc"] }
 serde_json = { workspace = true }
 
 [dev-dependencies]
-burn-flex = { workspace = true }
 clap      = { workspace = true }
 criterion = { workspace = true }
 

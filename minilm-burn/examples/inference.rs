@@ -1,16 +1,13 @@
 use burn::tensor::Tensor;
 use burn::tensor::linalg::cosine_similarity;
-use burn_flex::Flex;
 use minilm_burn::{MiniLmModel, mean_pooling, normalize_l2, tokenize_batch};
-
-type B = Flex;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let device = Default::default();
 
     // Load pretrained model and tokenizer (downloads from HuggingFace)
     println!("Loading model...");
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)?;
+    let (model, tokenizer) = MiniLmModel::pretrained(&device, Default::default(), None)?;
 
     // Example sentences
     let sentences = vec![
@@ -22,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\nEncoding {} sentences...", sentences.len());
 
     // Tokenize and prepare input tensors
-    let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &sentences, &device);
+    let (input_ids, attention_mask) = tokenize_batch(&tokenizer, &sentences, &device);
 
     println!("Input shape: {:?}", input_ids.dims());
 
@@ -49,9 +46,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Compute cosine similarity between sentences
-    let emb0: Tensor<B, 1> = embeddings.clone().slice([0..1, 0..hidden_size]).squeeze();
-    let emb1: Tensor<B, 1> = embeddings.clone().slice([1..2, 0..hidden_size]).squeeze();
-    let emb2: Tensor<B, 1> = embeddings.clone().slice([2..3, 0..hidden_size]).squeeze();
+    let emb0: Tensor<1> = embeddings.clone().slice([0..1, 0..hidden_size]).squeeze();
+    let emb1: Tensor<1> = embeddings.clone().slice([1..2, 0..hidden_size]).squeeze();
+    let emb2: Tensor<1> = embeddings.clone().slice([2..3, 0..hidden_size]).squeeze();
 
     let sim_01: f32 = cosine_similarity(emb0.clone(), emb1.clone(), 0, None).into_scalar();
     let sim_02: f32 = cosine_similarity(emb0, emb2.clone(), 0, None).into_scalar();

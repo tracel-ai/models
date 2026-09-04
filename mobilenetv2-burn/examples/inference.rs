@@ -1,22 +1,14 @@
 use mobilenetv2_burn::model::{imagenet, mobilenetv2::MobileNetV2, weights};
 
-use burn::tensor::{backend::Backend, Device, Element, Tensor, TensorData};
-use burn_flex::Flex;
+use burn::tensor::{Device, Element, Tensor, TensorData};
 
 const HEIGHT: usize = 224;
 const WIDTH: usize = 224;
 
-fn to_tensor<B: Backend, T: Element>(
-    data: Vec<T>,
-    shape: [usize; 3],
-    device: &Device<B>,
-) -> Tensor<B, 3> {
-    Tensor::<B, 3>::from_data(
-        TensorData::new(data, shape).convert::<B::FloatElem>(),
-        device,
-    )
-    // [H, W, C] -> [C, H, W]
-    .permute([2, 0, 1])
+fn to_tensor<T: Element>(data: Vec<T>, shape: [usize; 3], device: &Device) -> Tensor<3> {
+    Tensor::<3>::from_data(TensorData::new(data, shape).convert::<f32>(), device)
+        // [H, W, C] -> [C, H, W]
+        .permute([2, 0, 1])
         / 255 // normalize between [0, 1]
 }
 
@@ -26,10 +18,9 @@ pub fn main() {
 
     // Create MobileNetV2
     let device = Default::default();
-    let model: MobileNetV2<Flex> =
-        MobileNetV2::pretrained(weights::MobileNetV2::ImageNet1kV2, &device)
-            .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
-            .unwrap();
+    let model = MobileNetV2::pretrained(weights::MobileNetV2::ImageNet1kV2, &device)
+        .map_err(|err| format!("Failed to load pre-trained weights.\nError: {err}"))
+        .unwrap();
 
     // Load image
     let img = image::open(&img_path)

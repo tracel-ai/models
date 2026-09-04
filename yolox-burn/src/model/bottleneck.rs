@@ -2,7 +2,7 @@ use alloc::{vec, vec::Vec};
 use burn::{
     module::Module,
     nn::pool::{MaxPool2d, MaxPool2dConfig},
-    tensor::{backend::Backend, Device, Tensor},
+    tensor::{Device, Tensor},
 };
 
 use super::blocks::{expand, BaseConv, BaseConvConfig, Conv, ConvConfig};
@@ -11,14 +11,14 @@ pub(crate) const SPP_POOLING: [usize; 3] = [5, 9, 13];
 
 /// Standard bottleneck block.
 #[derive(Module, Debug)]
-pub struct Bottleneck<B: Backend> {
-    conv1: BaseConv<B>,
-    conv2: Conv<B>,
+pub struct Bottleneck {
+    conv1: BaseConv,
+    conv2: Conv,
     shortcut: bool,
 }
 
-impl<B: Backend> Bottleneck<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+impl Bottleneck {
+    pub fn forward(&self, x: Tensor<4>) -> Tensor<4> {
         let identity = x.clone();
 
         let x = self.conv1.forward(x);
@@ -56,7 +56,7 @@ impl BottleneckConfig {
     }
 
     /// Initialize a new [bottleneck block](Bottleneck) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> Bottleneck<B> {
+    pub fn init(&self, device: &Device) -> Bottleneck {
         Bottleneck {
             conv1: self.conv1.init(device),
             conv2: self.conv2.init(device),
@@ -67,14 +67,14 @@ impl BottleneckConfig {
 
 /// Spatial pyramid pooling layer used in YOLOv3-SPP.
 #[derive(Module, Debug)]
-pub struct SppBottleneck<B: Backend> {
-    conv1: BaseConv<B>,
-    conv2: BaseConv<B>,
+pub struct SppBottleneck {
+    conv1: BaseConv,
+    conv2: BaseConv,
     m: Vec<MaxPool2d>,
 }
 
-impl<B: Backend> SppBottleneck<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+impl SppBottleneck {
+    pub fn forward(&self, x: Tensor<4>) -> Tensor<4> {
         if self.m.is_empty() {
             panic!("No MaxPool2d modules found");
         }
@@ -120,7 +120,7 @@ impl SppBottleneckConfig {
     }
 
     /// Initialize a new [bottleneck block](SppBottleneck) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> SppBottleneck<B> {
+    pub fn init(&self, device: &Device) -> SppBottleneck {
         SppBottleneck {
             conv1: self.conv1.init(device),
             conv2: self.conv2.init(device),
@@ -132,15 +132,15 @@ impl SppBottleneckConfig {
 /// Simplified Cross Stage Partial bottleneck with 3 convolutional layers.
 /// Equivalent to C3 in YOLOv5.
 #[derive(Module, Debug)]
-pub struct CspBottleneck<B: Backend> {
-    conv1: BaseConv<B>,
-    conv2: BaseConv<B>,
-    conv3: BaseConv<B>,
-    m: Vec<Bottleneck<B>>,
+pub struct CspBottleneck {
+    conv1: BaseConv,
+    conv2: BaseConv,
+    conv3: BaseConv,
+    m: Vec<Bottleneck>,
 }
 
-impl<B: Backend> CspBottleneck<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+impl CspBottleneck {
+    pub fn forward(&self, x: Tensor<4>) -> Tensor<4> {
         let x1 = self.conv1.forward(x.clone());
         let x2 = self.conv2.forward(x);
 
@@ -196,7 +196,7 @@ impl CspBottleneckConfig {
     }
 
     /// Initialize a new [bottleneck block](CspBottleneck) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> CspBottleneck<B> {
+    pub fn init(&self, device: &Device) -> CspBottleneck {
         CspBottleneck {
             conv1: self.conv1.init(device),
             conv2: self.conv2.init(device),

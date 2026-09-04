@@ -9,7 +9,6 @@ publish = false
 [dependencies]
 resnet-burn = { path = "../..", features = ["pretrained", "train"] }
 burn        = { workspace = true, features = ["train", "vision", "network"] }
-burn-flex   = { workspace = true }
 
 csv    = { workspace = true }
 flate2 = { workspace = true }

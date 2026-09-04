@@ -9,17 +9,14 @@ Supports two model variants from HuggingFace:
 ## Usage
 
 ```rust
-use burn::backend::ndarray::NdArray;
 use minilm_burn::{mean_pooling, MiniLmModel};
-
-type B = NdArray<f32>;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let device = Default::default();
 
     // Load pretrained model and tokenizer (downloads from HuggingFace)
     // Use MiniLmVariant::L6 for faster inference, L12 for better quality
-    let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)?;
+    let (model, tokenizer) = MiniLmModel::pretrained(&device, Default::default(), None)?;
 
     // Tokenize and run inference
     let output = model.forward(input_ids, attention_mask.clone(), None);

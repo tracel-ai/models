@@ -6,7 +6,7 @@ use burn::{
         conv::{Conv2d, Conv2dConfig},
         BatchNorm, BatchNormConfig, PaddingConfig2d,
     },
-    tensor::{activation::silu, backend::Backend, Device, Tensor},
+    tensor::{activation::silu, Device, Tensor},
 };
 
 /// Compute the number of channels based on the provided factor.
@@ -19,15 +19,15 @@ pub fn expand(num_channels: usize, factor: f64) -> usize {
 /// architecture.
 #[derive(Module, Debug)]
 #[allow(clippy::large_enum_variant)]
-pub enum Conv<B: Backend> {
+pub enum Conv {
     /// Basic convolution block used for all variants.
-    BaseConv(BaseConv<B>),
+    BaseConv(BaseConv),
     /// Depthwise separable convolution block, used for some blocks by YOLOX-Nano.
-    DwsConv(DwsConv<B>),
+    DwsConv(DwsConv),
 }
 
-impl<B: Backend> Conv<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+impl Conv {
+    pub fn forward(&self, x: Tensor<4>) -> Tensor<4> {
         match self {
             Self::BaseConv(conv) => conv.forward(x),
             Self::DwsConv(conv) => conv.forward(x),
@@ -46,7 +46,7 @@ pub struct ConvConfig {
 
 impl ConvConfig {
     /// Initialize a new [convolution block](Conv) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> Conv<B> {
+    pub fn init(&self, device: &Device) -> Conv {
         if self.depthwise {
             Conv::DwsConv(
                 DwsConvConfig::new(
@@ -74,13 +74,13 @@ impl ConvConfig {
 
 /// A Conv2d -> BatchNorm -> activation block.
 #[derive(Module, Debug)]
-pub struct BaseConv<B: Backend> {
-    conv: Conv2d<B>,
-    bn: BatchNorm<B>,
+pub struct BaseConv {
+    conv: Conv2d,
+    bn: BatchNorm,
 }
 
-impl<B: Backend> BaseConv<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+impl BaseConv {
+    pub fn forward(&self, x: Tensor<4>) -> Tensor<4> {
         let x = self.conv.forward(x);
         let x = self.bn.forward(x);
 
@@ -119,7 +119,7 @@ impl BaseConvConfig {
     }
 
     /// Initialize a new [base convolution block](BaseConv) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> BaseConv<B> {
+    pub fn init(&self, device: &Device) -> BaseConv {
         BaseConv {
             conv: self.conv.init(device),
             bn: self.bn.init(device),
@@ -130,13 +130,13 @@ impl BaseConvConfig {
 /// A [depthwise separable convolution](https://paperswithcode.com/method/depthwise-separable-convolution)
 /// block. Both depthwise and pointwise blocks consist of a Conv2d -> BatchNorm -> activation block.
 #[derive(Module, Debug)]
-pub struct DwsConv<B: Backend> {
-    dconv: BaseConv<B>,
-    pconv: BaseConv<B>,
+pub struct DwsConv {
+    dconv: BaseConv,
+    pconv: BaseConv,
 }
 
-impl<B: Backend> DwsConv<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+impl DwsConv {
+    pub fn forward(&self, x: Tensor<4>) -> Tensor<4> {
         let x = self.dconv.forward(x);
         self.pconv.forward(x)
     }
@@ -160,7 +160,7 @@ impl DwsConvConfig {
     }
 
     /// Initialize a new [depthwise separable convolution block](DwsConv) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> DwsConv<B> {
+    pub fn init(&self, device: &Device) -> DwsConv {
         DwsConv {
             dconv: self.dconv.init(device),
             pconv: self.pconv.init(device),
@@ -170,12 +170,12 @@ impl DwsConvConfig {
 
 /// Focus width and height information into channel space.
 #[derive(Module, Debug)]
-pub struct Focus<B: Backend> {
-    conv: BaseConv<B>,
+pub struct Focus {
+    conv: BaseConv,
 }
 
-impl<B: Backend> Focus<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+impl Focus {
+    pub fn forward(&self, x: Tensor<4>) -> Tensor<4> {
         let device = x.device();
         let [_, _, h, w] = x.dims();
 
@@ -226,7 +226,7 @@ impl FocusConfig {
     }
 
     /// Initialize a new [focus block](Focus) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> Focus<B> {
+    pub fn init(&self, device: &Device) -> Focus {
         Focus {
             conv: self.conv.init(device),
         }
@@ -235,13 +235,13 @@ impl FocusConfig {
 
 /// Dual convolution block used for feature extraction in the prediction head.
 #[derive(Module, Debug)]
-pub struct ConvBlock<B: Backend> {
-    conv0: Conv<B>,
-    conv1: Conv<B>,
+pub struct ConvBlock {
+    conv0: Conv,
+    conv1: Conv,
 }
 
-impl<B: Backend> ConvBlock<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+impl ConvBlock {
+    pub fn forward(&self, x: Tensor<4>) -> Tensor<4> {
         let x = self.conv0.forward(x);
         self.conv1.forward(x)
     }
@@ -263,7 +263,7 @@ impl ConvBlockConfig {
     }
 
     /// Initialize a new [dual convolution block](ConvBlock) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> ConvBlock<B> {
+    pub fn init(&self, device: &Device) -> ConvBlock {
         ConvBlock {
             conv0: self.conv0.init(device),
             conv1: self.conv1.init(device),

@@ -1,6 +1,6 @@
 use crate::model::{AlbertConfig, AlbertMaskedLM};
 use burn::config::Config;
-use burn::tensor::backend::Backend;
+use burn::tensor::Device;
 use burn_store::{KeyRemapper, ModuleSnapshot, PyTorchToBurnAdapter, SafetensorsStore};
 use std::path::{Path, PathBuf};
 
@@ -25,8 +25,8 @@ impl std::fmt::Display for LoadError {
 impl std::error::Error for LoadError {}
 
 /// Load pre-trained weights from a safetensors file into the masked LM model.
-pub fn load_pretrained<B: Backend>(
-    model: &mut AlbertMaskedLM<B>,
+pub fn load_pretrained(
+    model: &mut AlbertMaskedLM,
     checkpoint_path: impl AsRef<Path>,
 ) -> Result<(), LoadError> {
     // HF keys start with "albert." for the base model, which matches our Burn field name.
@@ -177,7 +177,7 @@ pub fn load_config(path: impl AsRef<Path>) -> Result<AlbertConfig, LoadError> {
 }
 
 #[cfg(feature = "pretrained")]
-impl<B: Backend> AlbertMaskedLM<B> {
+impl AlbertMaskedLM {
     /// Load a pre-trained ALBERT masked LM model.
     ///
     /// Downloads from HuggingFace Hub (cached after first download).
@@ -186,7 +186,7 @@ impl<B: Backend> AlbertMaskedLM<B> {
     /// - `variant`: Model size. Default is `AlbertVariant::BaseV2`.
     /// - `cache_dir`: Optional cache directory. Defaults to system cache dir.
     pub fn pretrained(
-        device: &B::Device,
+        device: &Device,
         variant: AlbertVariant,
         cache_dir: Option<PathBuf>,
     ) -> Result<(Self, tokenizers::Tokenizer), LoadError> {

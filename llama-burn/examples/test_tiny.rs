@@ -1,5 +1,4 @@
-use burn::tensor::{backend::Backend, Device};
-use burn_flex::{Flex, FlexDevice};
+use burn::tensor::Device;
 use llama_burn::{llama::LlamaConfig, sampling::Sampler};
 
 fn model_path() -> String {
@@ -12,7 +11,7 @@ fn tokenizer_path() -> String {
     format!("{}/.cache/tinyllama-pytorch/tokenizer.json", home)
 }
 
-pub fn test<B: Backend>(device: Device<B>) {
+pub fn test(device: Device) {
     let max_seq_len = 128;
     let model_path = model_path();
     let tokenizer_path = tokenizer_path();
@@ -23,7 +22,7 @@ pub fn test<B: Backend>(device: Device<B>) {
 
     let mut llama = LlamaConfig::tiny_llama(&tokenizer_path)
         .with_max_seq_len(max_seq_len)
-        .load_pretrained::<B, llama_burn::tokenizer::SentiencePieceTokenizer>(&model_path, &device)
+        .load_pretrained::<llama_burn::tokenizer::SentiencePieceTokenizer>(&model_path, &device)
         .expect("Failed to load model");
 
     println!("Model loaded successfully!");
@@ -40,5 +39,5 @@ pub fn test<B: Backend>(device: Device<B>) {
 }
 
 pub fn main() {
-    test::<Flex>(FlexDevice);
+    test(Default::default());
 }

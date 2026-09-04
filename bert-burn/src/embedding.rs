@@ -2,8 +2,8 @@ use crate::data::BertInferenceBatch;
 use burn::config::Config;
 use burn::module::Module;
 use burn::nn::{Dropout, DropoutConfig, Embedding, EmbeddingConfig, LayerNorm, LayerNormConfig};
-use burn::tensor::backend::Backend;
-use burn::tensor::{Float, Int, Tensor};
+use burn::tensor::Device;
+use burn::tensor::{assert_shape, Float, Int, Tensor};
 
 #[derive(Config, Debug)]
 pub struct BertEmbeddingsConfig {
@@ -17,19 +17,19 @@ pub struct BertEmbeddingsConfig {
 }
 
 #[derive(Module, Debug)]
-pub struct BertEmbeddings<B: Backend> {
+pub struct BertEmbeddings {
     pub pad_token_idx: usize,
-    word_embeddings: Embedding<B>,
-    position_embeddings: Embedding<B>,
-    token_type_embeddings: Embedding<B>,
-    layer_norm: LayerNorm<B>,
+    word_embeddings: Embedding,
+    position_embeddings: Embedding,
+    token_type_embeddings: Embedding,
+    layer_norm: LayerNorm,
     dropout: Dropout,
     max_position_embeddings: usize,
 }
 
 impl BertEmbeddingsConfig {
     /// Initializes BertEmbeddings with default weights
-    pub fn init<B: Backend>(&self, device: &B::Device) -> BertEmbeddings<B> {
+    pub fn init(&self, device: &Device) -> BertEmbeddings {
         let word_embeddings = EmbeddingConfig::new(self.vocab_size, self.hidden_size).init(device);
         let position_embeddings =
             EmbeddingConfig::new(self.max_position_embeddings, self.hidden_size).init(device);
@@ -53,16 +53,19 @@ impl BertEmbeddingsConfig {
     }
 }
 
-impl<B: Backend> BertEmbeddings<B> {
+impl BertEmbeddings {
     /// Returns the word embeddings weight matrix `[vocab_size, hidden_size]`.
     ///
     /// Used to tie the MLM decoder weight to the word embeddings.
-    pub fn word_embeddings_weight(&self) -> Tensor<B, 2, Float> {
+    pub fn word_embeddings_weight(&self) -> Tensor<2, Float> {
         self.word_embeddings.weight.val()
     }
 
-    pub fn forward(&self, item: BertInferenceBatch<B>) -> Tensor<B, 3, Float> {
+    pub fn forward(&self, item: BertInferenceBatch) -> Tensor<3, Float> {
         // Items batch contains the tokenized input and padding mask, each of dim: [batch_size, max_seq_length]
+        let [batch_size, seq_length] = item.tokens.dims();
+        assert_shape!(item.mask_pad, [batch_size, seq_length]);
+
         let input_shape = item.tokens.shape();
         let input_ids = item.tokens;
 
@@ -72,7 +75,7 @@ impl<B: Backend> BertEmbeddings<B> {
 
         let device = &self.position_embeddings.devices()[0];
 
-        let token_type_ids = Tensor::<B, 2, Int>::zeros(input_shape.clone(), device);
+        let token_type_ids = Tensor::<2, Int>::zeros(input_shape.clone(), device);
         let token_type_embeddings = self.token_type_embeddings.forward(token_type_ids);
 
         embeddings = embeddings + token_type_embeddings;
@@ -82,10 +85,9 @@ impl<B: Backend> BertEmbeddings<B> {
         // https://github.com/facebookresearch/fairseq/issues/1187
 
         let seq_length = input_shape.dims::<2>()[1];
-        let mut position_ids_tensor: Tensor<B, 2, Int> =
-            Tensor::arange(0..seq_length as i64, device)
-                .reshape([1, seq_length])
-                .expand(input_shape.clone());
+        let mut position_ids_tensor: Tensor<2, Int> = Tensor::arange(0..seq_length as i64, device)
+            .reshape([1, seq_length])
+            .expand(input_shape.clone());
 
         if self.max_position_embeddings != 512 {
             // RoBERTa use a different scheme than BERT to create position indexes where padding tokens are given

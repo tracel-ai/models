@@ -7,7 +7,6 @@
 
 use albert_burn::{AlbertMaskedLM, AlbertVariant, tokenize_batch};
 use burn::prelude::*;
-use burn_flex::Flex;
 use divan::{AllocProfiler, Bencher};
 use std::cell::RefCell;
 
@@ -15,21 +14,21 @@ use std::cell::RefCell;
 static ALLOC: AllocProfiler = AllocProfiler::system();
 
 thread_local! {
-    static STATE: RefCell<Option<BenchState<Flex>>> = const { RefCell::new(None) };
+    static STATE: RefCell<Option<BenchState>> = const { RefCell::new(None) };
 }
 
-struct BenchState<B: Backend> {
-    model: AlbertMaskedLM<B>,
-    input_ids: Tensor<B, 2, Int>,
-    attention_mask: Tensor<B, 2>,
+struct BenchState {
+    model: AlbertMaskedLM,
+    input_ids: Tensor<2, Int>,
+    attention_mask: Tensor<2>,
 }
 
-fn init_state<B: Backend>(device: &B::Device) -> BenchState<B> {
-    let (model, tokenizer) = AlbertMaskedLM::<B>::pretrained(device, AlbertVariant::BaseV2, None)
+fn init_state(device: &Device) -> BenchState {
+    let (model, tokenizer) = AlbertMaskedLM::pretrained(device, AlbertVariant::BaseV2, None)
         .expect("Failed to load pretrained model");
 
     let sentence = "The capital of France is [MASK].";
-    let (input_ids, attention_mask) = tokenize_batch::<B>(&tokenizer, &[sentence], device);
+    let (input_ids, attention_mask) = tokenize_batch(&tokenizer, &[sentence], device);
 
     BenchState {
         model,

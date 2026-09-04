@@ -1,8 +1,8 @@
 use burn::config::Config;
 use burn::module::Module;
 use burn::nn::{Dropout, DropoutConfig, Embedding, EmbeddingConfig, LayerNorm, LayerNormConfig};
-use burn::tensor::backend::Backend;
-use burn::tensor::{Int, Tensor};
+use burn::tensor::Device;
+use burn::tensor::{Int, Tensor, assert_shape};
 
 /// Configuration for ALBERT factorized embeddings.
 #[derive(Config, Debug)]
@@ -20,16 +20,16 @@ pub(crate) struct AlbertEmbeddingsConfig {
 /// Outputs `embedding_size`-dimensional vectors. The projection to `hidden_size`
 /// is performed by the encoder (matching HuggingFace's architecture).
 #[derive(Module, Debug)]
-pub struct AlbertEmbeddings<B: Backend> {
-    word_embeddings: Embedding<B>,
-    position_embeddings: Embedding<B>,
-    token_type_embeddings: Embedding<B>,
-    layer_norm: LayerNorm<B>,
+pub struct AlbertEmbeddings {
+    word_embeddings: Embedding,
+    position_embeddings: Embedding,
+    token_type_embeddings: Embedding,
+    layer_norm: LayerNorm,
     dropout: Dropout,
 }
 
 impl AlbertEmbeddingsConfig {
-    pub fn init<B: Backend>(&self, device: &B::Device) -> AlbertEmbeddings<B> {
+    pub fn init(&self, device: &Device) -> AlbertEmbeddings {
         let word_embeddings =
             EmbeddingConfig::new(self.vocab_size, self.embedding_size).init(device);
         let position_embeddings =
@@ -51,9 +51,9 @@ impl AlbertEmbeddingsConfig {
     }
 }
 
-impl<B: Backend> AlbertEmbeddings<B> {
+impl AlbertEmbeddings {
     /// Returns the word embeddings weight tensor `[vocab_size, embedding_size]`.
-    pub fn word_embeddings_weight(&self) -> Tensor<B, 2> {
+    pub fn word_embeddings_weight(&self) -> Tensor<2> {
         self.word_embeddings.weight.val()
     }
 
@@ -62,10 +62,13 @@ impl<B: Backend> AlbertEmbeddings<B> {
     /// Output shape: `[batch_size, seq_len, embedding_size]`.
     pub fn forward(
         &self,
-        input_ids: Tensor<B, 2, Int>,
-        token_type_ids: Option<Tensor<B, 2, Int>>,
-    ) -> Tensor<B, 3> {
+        input_ids: Tensor<2, Int>,
+        token_type_ids: Option<Tensor<2, Int>>,
+    ) -> Tensor<3> {
         let [batch_size, seq_len] = input_ids.dims();
+        if let Some(token_type_ids) = &token_type_ids {
+            assert_shape!(token_type_ids, [batch_size, seq_len]);
+        }
         let device = &input_ids.device();
 
         let word_embeds = self.word_embeddings.forward(input_ids);
