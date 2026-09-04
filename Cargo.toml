@@ -3,7 +3,6 @@ resolver = "3"
 members = [
     "albert-burn",
     "bert-burn",
-    "llama-burn",
     "minilm-burn",
     "mobilenetv2-burn",
     "resnet-burn",
@@ -37,9 +36,6 @@ rand        = { version = "0.9", default-features = false }
 tar         = "0.4"
 csv         = "1"
 flate2      = "1"
-base64      = "0.22"
-rustc-hash  = "1.1"
-tiktoken-rs = "0.11"
 derive-new  = "0.7"
 criterion   = "0.8"
 divan       = "0.1"
