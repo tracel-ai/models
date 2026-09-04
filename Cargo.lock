@@ -3280,6 +3280,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "daachorse"
+version = "3.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5614204febbc33cc07a2806aa6440b904ac012b68eecc37f4493ea4a76455a3d"
+
+[[package]]
 name = "darling"
 version = "0.20.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3963,7 +3969,7 @@ dependencies = [
  "burn 0.22.0-pre.3 (git+https://github.com/tracel-ai/burn?rev=5bd017038495063afea85aa200fb94d6969028c3)",
  "csv",
  "flate2",
- "rand 0.9.5",
+ "rand 0.10.2",
  "resnet-burn",
  "serde",
  "tar",
@@ -6574,7 +6580,7 @@ dependencies = [
  "rustc_apfloat",
  "slotmap",
  "smallvec",
- "spin 0.10.1",
+ "spin 0.12.3",
  "thiserror 2.0.20",
  "utf8-chars",
 ]
@@ -6601,7 +6607,7 @@ dependencies = [
  "rustc_apfloat",
  "slotmap",
  "smallvec",
- "spin 0.10.1",
+ "spin 0.12.3",
  "thiserror 2.0.20",
  "utf8-chars",
 ]
@@ -8045,15 +8051,6 @@ dependencies = [
 
 [[package]]
 name = "spin"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "023a211cb3138dbc438680b32560ad89f699977624c9f8dbb95a47d5b4c07dd3"
-dependencies = [
- "lock_api",
-]
-
-[[package]]
-name = "spin"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a1655da78f3df8cecf4239a02d5c8b0966e485b0edc06f5f23cec7bcf460e61"
@@ -8596,13 +8593,13 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokenizers"
-version = "0.22.2"
+version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b238e22d44a15349529690fb07bd645cf58149a1b1e44d6cb5bd1641ff1a6223"
+checksum = "7afbf6e88718afcc138bad01d6ccc3051dbbc3b2ce9793d8b8a3aeb610969cfc"
 dependencies = [
  "ahash",
- "aho-corasick",
  "compact_str",
+ "daachorse",
  "dary_heap",
  "derive_builder",
  "esaxx-rs",
@@ -10051,7 +10048,7 @@ dependencies = [
  "burn-store 0.22.0-pre.3 (git+https://github.com/tracel-ai/burn?rev=5bd017038495063afea85aa200fb94d6969028c3)",
  "dirs",
  "image",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "serde",
 ]
 

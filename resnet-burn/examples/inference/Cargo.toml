@@ -2,6 +2,7 @@
 authors = ["laggui <lagrange.guillaume.1@gmail.com>"]
 name = "inference"
 license.workspace = true
+rust-version.workspace = true
 version = "0.2.0"
 edition = "2021"
 publish = false
