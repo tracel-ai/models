@@ -133,23 +133,33 @@ pub fn load_model_config(path: impl AsRef<Path>) -> Result<BertModelConfig, Load
 /// Download model config and weights from Hugging Face Hub.
 /// Cached files are reused.
 pub fn download_hf_model(model_name: &str) -> Result<(PathBuf, PathBuf), LoadError> {
-    let api = hf_hub::api::sync::Api::new()
+    let client = hf_hub::HFClientSync::new()
         .map_err(|e| LoadError::Download(format!("Failed to create HF API client: {}", e)))?;
-    let repo = api.model(model_name.to_string());
+    // Ids here have no owner ("roberta-base"), which `split_id` reports as an empty one.
+    let (owner, name) = hf_hub::split_id(model_name);
+    let repo = client.model(owner, name);
 
-    let model_filepath = repo.get("model.safetensors").map_err(|e| {
-        LoadError::Download(format!(
-            "Failed to download `model.safetensors` for {}: {}",
-            model_name, e
-        ))
-    })?;
+    let model_filepath = repo
+        .download_file()
+        .filename("model.safetensors")
+        .send()
+        .map_err(|e| {
+            LoadError::Download(format!(
+                "Failed to download `model.safetensors` for {}: {}",
+                model_name, e
+            ))
+        })?;
 
-    let config_filepath = repo.get("config.json").map_err(|e| {
-        LoadError::Download(format!(
-            "Failed to download `config.json` for {}: {}",
-            model_name, e
-        ))
-    })?;
+    let config_filepath = repo
+        .download_file()
+        .filename("config.json")
+        .send()
+        .map_err(|e| {
+            LoadError::Download(format!(
+                "Failed to download `config.json` for {}: {}",
+                model_name, e
+            ))
+        })?;
 
     Ok((config_filepath, model_filepath))
 }

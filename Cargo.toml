@@ -29,9 +29,7 @@ tokio       = "1"
 libm        = "0.2"
 itertools   = { version = "0.15", default-features = false }
 dirs        = "6"
-# 1.0 is an API rewrite (new client builder, owner/name split, `blocking` feature) and
-# pulls in the xet stack; upgrading it means rewriting the download path in three crates.
-hf-hub      = "0.5"
+hf-hub      = { version = "1.0", features = ["blocking"] }
 image       = { version = "0.25", default-features = false }
 clap        = { version = "4", features = ["derive"] }
 tokenizers  = { version = "0.23", default-features = false }
