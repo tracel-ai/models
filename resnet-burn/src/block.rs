@@ -9,20 +9,20 @@ use burn::{
         conv::{Conv2d, Conv2dConfig},
         BatchNorm, BatchNormConfig, Initializer, PaddingConfig2d, Relu,
     },
-    tensor::{backend::Backend, Device, Tensor},
+    tensor::{debug_assert_shape, Device, Tensor},
 };
 
 #[derive(Module, Debug)]
 #[allow(clippy::large_enum_variant)]
-pub enum ResidualBlock<B: Backend> {
+pub enum ResidualBlock {
     /// A bottleneck residual block.
-    Bottleneck(Bottleneck<B>),
+    Bottleneck(Bottleneck),
     /// A basic residual block.
-    Basic(BasicBlock<B>),
+    Basic(BasicBlock),
 }
 
-impl<B: Backend> ResidualBlock<B> {
-    fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
+impl ResidualBlock {
+    fn forward(&self, input: Tensor<4>) -> Tensor<4> {
         match self {
             Self::Basic(block) => block.forward(input),
             Self::Bottleneck(block) => block.forward(input),
@@ -39,7 +39,7 @@ struct ResidualBlockConfig {
 }
 
 impl ResidualBlockConfig {
-    fn init<B: Backend>(&self, device: &Device<B>) -> ResidualBlock<B> {
+    fn init(&self, device: &Device) -> ResidualBlock {
         if self.bottleneck {
             ResidualBlock::Bottleneck(
                 BottleneckConfig::new(self.in_channels, self.out_channels, self.stride)
@@ -57,17 +57,17 @@ impl ResidualBlockConfig {
 /// ResNet [basic residual block](https://paperswithcode.com/method/residual-block) implementation.
 /// Derived from [torchivision.models.resnet.BasicBlock](https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py).
 #[derive(Module, Debug)]
-pub struct BasicBlock<B: Backend> {
-    conv1: Conv2d<B>,
-    bn1: BatchNorm<B>,
+pub struct BasicBlock {
+    conv1: Conv2d,
+    bn1: BatchNorm,
     relu: Relu,
-    conv2: Conv2d<B>,
-    bn2: BatchNorm<B>,
-    downsample: Option<Downsample<B>>,
+    conv2: Conv2d,
+    bn2: BatchNorm,
+    downsample: Option<Downsample>,
 }
 
-impl<B: Backend> BasicBlock<B> {
-    fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
+impl BasicBlock {
+    fn forward(&self, input: Tensor<4>) -> Tensor<4> {
         let identity = input.clone();
 
         // Conv block
@@ -77,13 +77,16 @@ impl<B: Backend> BasicBlock<B> {
         let out = self.conv2.forward(out);
         let out = self.bn2.forward(out);
 
-        // Skip connection
-        let out = {
-            match &self.downsample {
-                Some(downsample) => out + downsample.forward(identity),
-                None => out + identity,
-            }
+        // Skip connection: the residual must match the conv output exactly, whether or not
+        // it went through a downsample. A stride or channel count that disagrees shows up
+        // here rather than as a broadcast further on.
+        let [batch_size, channels, height, width] = out.dims();
+        let residual = match &self.downsample {
+            Some(downsample) => downsample.forward(identity),
+            None => identity,
         };
+        debug_assert_shape!(residual, [batch_size, channels, height, width]);
+        let out = out + residual;
 
         // Activation
         self.relu.forward(out)
@@ -98,19 +101,19 @@ impl<B: Backend> BasicBlock<B> {
 /// to the second 3x3 convolution while the original paper places it to the first 1x1 convolution.
 /// This variant improves the accuracy and is known as [ResNet V1.5](https://ngc.nvidia.com/catalog/model-scripts/nvidia:resnet_50_v1_5_for_pytorch).
 #[derive(Module, Debug)]
-pub struct Bottleneck<B: Backend> {
-    conv1: Conv2d<B>,
-    bn1: BatchNorm<B>,
+pub struct Bottleneck {
+    conv1: Conv2d,
+    bn1: BatchNorm,
     relu: Relu,
-    conv2: Conv2d<B>,
-    bn2: BatchNorm<B>,
-    conv3: Conv2d<B>,
-    bn3: BatchNorm<B>,
-    downsample: Option<Downsample<B>>,
+    conv2: Conv2d,
+    bn2: BatchNorm,
+    conv3: Conv2d,
+    bn3: BatchNorm,
+    downsample: Option<Downsample>,
 }
 
-impl<B: Backend> Bottleneck<B> {
-    fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
+impl Bottleneck {
+    fn forward(&self, input: Tensor<4>) -> Tensor<4> {
         let identity = input.clone();
 
         // Conv block
@@ -123,13 +126,16 @@ impl<B: Backend> Bottleneck<B> {
         let out = self.conv3.forward(out);
         let out = self.bn3.forward(out);
 
-        // Skip connection
-        let out = {
-            match &self.downsample {
-                Some(downsample) => out + downsample.forward(identity),
-                None => out + identity,
-            }
+        // Skip connection: the residual must match the conv output exactly, whether or not
+        // it went through a downsample. A stride or channel count that disagrees shows up
+        // here rather than as a broadcast further on.
+        let [batch_size, channels, height, width] = out.dims();
+        let residual = match &self.downsample {
+            Some(downsample) => downsample.forward(identity),
+            None => identity,
         };
+        debug_assert_shape!(residual, [batch_size, channels, height, width]);
+        let out = out + residual;
 
         // Activation
         self.relu.forward(out)
@@ -138,13 +144,13 @@ impl<B: Backend> Bottleneck<B> {
 
 /// Downsample layer applies a 1x1 conv to reduce the resolution (H, W) and adjust the number of channels.
 #[derive(Module, Debug)]
-pub struct Downsample<B: Backend> {
-    conv: Conv2d<B>,
-    bn: BatchNorm<B>,
+pub struct Downsample {
+    conv: Conv2d,
+    bn: BatchNorm,
 }
 
-impl<B: Backend> Downsample<B> {
-    pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
+impl Downsample {
+    pub fn forward(&self, input: Tensor<4>) -> Tensor<4> {
         let out = self.conv.forward(input);
         self.bn.forward(out)
     }
@@ -152,12 +158,12 @@ impl<B: Backend> Downsample<B> {
 
 /// Collection of sequential residual blocks.
 #[derive(Module, Debug)]
-pub struct LayerBlock<B: Backend> {
-    blocks: Vec<ResidualBlock<B>>,
+pub struct LayerBlock {
+    blocks: Vec<ResidualBlock>,
 }
 
-impl<B: Backend> LayerBlock<B> {
-    pub fn forward(&self, input: Tensor<B, 4>) -> Tensor<B, 4> {
+impl LayerBlock {
+    pub fn forward(&self, input: Tensor<4>) -> Tensor<4> {
         let mut out = input;
         for block in &self.blocks {
             out = block.forward(out);
@@ -210,7 +216,7 @@ impl BasicBlockConfig {
     }
 
     /// Initialize a new [basic residual block](BasicBlock) module.
-    fn init<B: Backend>(&self, device: &Device<B>) -> BasicBlock<B> {
+    fn init(&self, device: &Device) -> BasicBlock {
         // Conv initializer
         let initializer = Initializer::KaimingNormal {
             gain: SQRT_2, // recommended value for ReLU
@@ -291,7 +297,7 @@ impl BottleneckConfig {
     }
 
     /// Initialize a new [bottleneck residual block](Bottleneck) module.
-    fn init<B: Backend>(&self, device: &Device<B>) -> Bottleneck<B> {
+    fn init(&self, device: &Device) -> Bottleneck {
         // Conv initializer
         let initializer = Initializer::KaimingNormal {
             gain: SQRT_2, // recommended value for ReLU
@@ -343,7 +349,7 @@ impl DownsampleConfig {
     }
 
     /// Initialize a new [downsample](Downsample) module.
-    fn init<B: Backend>(&self, device: &B::Device) -> Downsample<B> {
+    fn init(&self, device: &Device) -> Downsample {
         // Conv initializer
         let initializer = Initializer::KaimingNormal {
             gain: SQRT_2, // recommended value for ReLU
@@ -369,7 +375,7 @@ pub struct LayerBlockConfig {
 
 impl LayerBlockConfig {
     /// Initialize a new [LayerBlock](LayerBlock) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> LayerBlock<B> {
+    pub fn init(&self, device: &Device) -> LayerBlock {
         let blocks = (0..self.num_blocks)
             .map(|b| {
                 if b == 0 {

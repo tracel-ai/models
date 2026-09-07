@@ -1,6 +1,6 @@
 use crate::model::{MiniLmConfig, MiniLmModel};
 use burn::config::Config;
-use burn::tensor::backend::Backend;
+use burn::tensor::Device;
 use burn_store::{KeyRemapper, ModuleSnapshot, PyTorchToBurnAdapter, SafetensorsStore};
 use std::path::{Path, PathBuf};
 
@@ -41,8 +41,8 @@ impl std::error::Error for LoadError {}
 /// - `intermediate.dense` → `pwff.linear_inner`
 /// - `output.dense` → `pwff.linear_outer`
 /// - `LayerNorm.weight/bias` → `gamma/beta`
-pub fn load_pretrained<B: Backend>(
-    model: &mut MiniLmModel<B>,
+pub fn load_pretrained(
+    model: &mut MiniLmModel,
     checkpoint_path: impl AsRef<Path>,
 ) -> Result<(), LoadError> {
     // Key mappings: HuggingFace BERT -> Burn TransformerEncoder
@@ -113,22 +113,30 @@ pub fn download_hf_model(
     cache_dir: Option<PathBuf>,
 ) -> Result<HfModelFiles, LoadError> {
     let cache_dir = cache_dir.unwrap_or_else(default_cache_dir);
-    let api = hf_hub::api::sync::ApiBuilder::new()
-        .with_cache_dir(cache_dir)
-        .build()
+    let client = hf_hub::HFClient::builder()
+        .cache_dir(cache_dir)
+        .build_sync()
         .map_err(|e| LoadError::Download(format!("Failed to create HF API: {}", e)))?;
-    let repo = api.model(model_name.to_string());
+    // 1.0 addresses repositories by owner and name rather than a single id.
+    let (owner, name) = hf_hub::split_id(model_name);
+    let repo = client.model(owner, name);
 
     let config_path = repo
-        .get("config.json")
+        .download_file()
+        .filename("config.json")
+        .send()
         .map_err(|e| LoadError::Download(format!("Failed to download config: {}", e)))?;
 
     let weights_path = repo
-        .get("model.safetensors")
+        .download_file()
+        .filename("model.safetensors")
+        .send()
         .map_err(|e| LoadError::Download(format!("Failed to download weights: {}", e)))?;
 
     let tokenizer_path = repo
-        .get("tokenizer.json")
+        .download_file()
+        .filename("tokenizer.json")
+        .send()
         .map_err(|e| LoadError::Download(format!("Failed to download tokenizer: {}", e)))?;
 
     Ok(HfModelFiles {
@@ -165,7 +173,7 @@ impl MiniLmVariant {
 }
 
 #[cfg(feature = "pretrained")]
-impl<B: Backend> MiniLmModel<B> {
+impl MiniLmModel {
     /// Load a pre-trained MiniLM model.
     ///
     /// Downloads from HuggingFace Hub (cached after first download).
@@ -176,7 +184,7 @@ impl<B: Backend> MiniLmModel<B> {
     /// - `variant`: Model variant (L6 or L12). Defaults to L12.
     /// - `cache_dir`: Optional cache directory. Defaults to system cache dir.
     pub fn pretrained(
-        device: &B::Device,
+        device: &Device,
         variant: MiniLmVariant,
         cache_dir: Option<PathBuf>,
     ) -> Result<(Self, tokenizers::Tokenizer), LoadError> {

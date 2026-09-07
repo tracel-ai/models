@@ -3,27 +3,27 @@ use burn::config::Config;
 use burn::nn::conv::Conv2dConfig;
 use burn::nn::{BatchNorm, BatchNormConfig};
 use burn::tensor::Tensor;
-use burn::{module::Module, nn::conv::Conv2d, tensor::backend::Backend};
+use burn::{module::Module, nn::conv::Conv2d, tensor::Device};
 
 #[derive(Module, Debug)]
-pub struct PointWiseLinear<B: Backend> {
-    conv: Conv2d<B>,
-    norm: BatchNorm<B>,
+pub struct PointWiseLinear {
+    conv: Conv2d,
+    norm: BatchNorm,
 }
 
-impl<B: Backend> PointWiseLinear<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+impl PointWiseLinear {
+    pub fn forward(&self, x: Tensor<4>) -> Tensor<4> {
         self.norm.forward(self.conv.forward(x))
     }
 }
 
 /// [Inverted Residual Block](https://paperswithcode.com/method/inverted-residual-block).
 #[derive(Module, Debug)]
-pub struct InvertedResidual<B: Backend> {
+pub struct InvertedResidual {
     use_res_connect: bool,
-    pw: Option<Conv2dNormActivation<B>>, // pointwise, only when expand ratio != 1
-    dw: Conv2dNormActivation<B>,
-    pw_linear: PointWiseLinear<B>,
+    pw: Option<Conv2dNormActivation>, // pointwise, only when expand ratio != 1
+    dw: Conv2dNormActivation,
+    pw_linear: PointWiseLinear,
 }
 
 /// [InvertedResidual](InvertedResidual) configuration.
@@ -37,7 +37,7 @@ pub struct InvertedResidualConfig {
 
 impl InvertedResidualConfig {
     /// Initialize a new [InvertedResidual](InvertedResidual) module.
-    pub fn init<B: Backend>(&self, device: &B::Device) -> InvertedResidual<B> {
+    pub fn init(&self, device: &Device) -> InvertedResidual {
         let hidden_dim = self.inp * self.expand_ratio;
         let pw = if self.expand_ratio != 1 {
             Some(
@@ -69,8 +69,8 @@ impl InvertedResidualConfig {
     }
 }
 
-impl<B: Backend> InvertedResidual<B> {
-    pub fn forward(&self, x: &Tensor<B, 4>) -> Tensor<B, 4> {
+impl InvertedResidual {
+    pub fn forward(&self, x: &Tensor<4>) -> Tensor<4> {
         let mut out = x.clone();
         if let Some(pw) = &self.pw {
             out = pw.forward(out);

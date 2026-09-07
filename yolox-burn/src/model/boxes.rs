@@ -1,5 +1,5 @@
 use alloc::vec::Vec;
-use burn::tensor::{backend::Backend, ElementConversion, Tensor};
+use burn::tensor::{assert_shape, Tensor};
 use itertools::Itertools;
 
 pub struct BoundingBox {
@@ -27,13 +27,14 @@ pub struct BoundingBox {
 ///
 /// Vector of bounding boxes grouped by class for each batch. The boxes are sorted in decreasing
 /// order of scores for each class.
-pub fn nms<B: Backend>(
-    boxes: Tensor<B, 3>,
-    scores: Tensor<B, 3>,
+pub fn nms(
+    boxes: Tensor<3>,
+    scores: Tensor<3>,
     iou_threshold: f32,
     score_threshold: f32,
 ) -> Vec<Vec<Vec<BoundingBox>>> {
     let [batch_size, num_boxes, num_classes] = scores.dims();
+    assert_shape!(boxes, [batch_size, num_boxes, 4]);
 
     // Bounding boxes grouped by batch and by (maximum) class index
     let mut bboxes = boxes
@@ -43,23 +44,15 @@ pub fn nms<B: Backend>(
         .map(|(candidate_boxes, candidate_scores)| {
             // Keep max scoring boxes only ([num_boxes, 1], [num_boxes, 1])
             let (cls_score, cls_idx) = candidate_scores.squeeze_dim::<2>(0).max_dim_with_indices(1);
-            let cls_score: Vec<_> = cls_score
-                .into_data()
-                .iter::<B::FloatElem>()
-                .map(|v| v.elem::<f32>())
-                .collect();
+            let cls_score: Vec<_> = cls_score.into_data().iter::<f32>().collect();
             let cls_idx: Vec<_> = cls_idx
                 .into_data()
-                .iter::<B::IntElem>()
-                .map(|v| v.elem::<i64>() as usize)
+                .iter::<i64>()
+                .map(|v| v as usize)
                 .collect();
 
             // [num_boxes, 4]
-            let candidate_boxes: Vec<_> = candidate_boxes
-                .into_data()
-                .iter::<B::FloatElem>()
-                .map(|v| v.elem::<f32>())
-                .collect();
+            let candidate_boxes: Vec<_> = candidate_boxes.into_data().iter::<f32>().collect();
 
             // Per-class filtering based on score
             (0..num_classes)

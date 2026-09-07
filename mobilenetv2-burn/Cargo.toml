@@ -4,6 +4,7 @@ name = "mobilenetv2-burn"
 version = "0.1.0"
 edition = "2021"
 license.workspace = true
+rust-version.workspace = true
 
 [features]
 default = []
@@ -17,7 +18,6 @@ dirs       = { workspace = true, optional = true }
 serde      = { workspace = true, features = ["derive", "alloc"] }
 
 [dev-dependencies]
-burn-flex = { workspace = true }
 image     = { workspace = true, features = ["png", "jpeg"] }
 
 [[example]]

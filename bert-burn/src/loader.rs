@@ -15,7 +15,6 @@
 use crate::model::{BertMaskedLM, BertModel, BertModelConfig};
 use burn::config::Config;
 use burn::module::Param;
-use burn::tensor::backend::Backend;
 use burn_store::{KeyRemapper, ModuleSnapshot, PyTorchToBurnAdapter, SafetensorsStore};
 use std::path::{Path, PathBuf};
 
@@ -68,8 +67,8 @@ fn build_remapper(mappings: Vec<(&str, &str)>) -> Result<KeyRemapper, LoadError>
 /// Load pre-trained weights from a safetensors file into a `BertModel`.
 ///
 /// Supports both BERT (`bert.*`) and RoBERTa (`roberta.*`) checkpoints; the prefix is stripped.
-pub fn load_pretrained<B: Backend>(
-    model: &mut BertModel<B>,
+pub fn load_pretrained(
+    model: &mut BertModel,
     checkpoint_path: impl AsRef<Path>,
 ) -> Result<(), LoadError> {
     let mut mappings = vec![(r"^(?:bert|roberta)\.(.+)", "$1")];
@@ -94,8 +93,8 @@ pub fn load_pretrained<B: Backend>(
 /// The MLM decoder weight is tied to `word_embeddings.weight` after loading, mirroring HF's
 /// runtime behavior (RoBERTa checkpoints store the decoder bias as `lm_head.bias`, and the
 /// decoder weight is tied rather than stored).
-pub fn load_pretrained_masked_lm<B: Backend>(
-    model: &mut BertMaskedLM<B>,
+pub fn load_pretrained_masked_lm(
+    model: &mut BertMaskedLM,
     checkpoint_path: impl AsRef<Path>,
 ) -> Result<(), LoadError> {
     let mut mappings = vec![(r"^(?:bert|roberta)\.(.+)", "bert.$1")];
@@ -134,23 +133,33 @@ pub fn load_model_config(path: impl AsRef<Path>) -> Result<BertModelConfig, Load
 /// Download model config and weights from Hugging Face Hub.
 /// Cached files are reused.
 pub fn download_hf_model(model_name: &str) -> Result<(PathBuf, PathBuf), LoadError> {
-    let api = hf_hub::api::sync::Api::new()
+    let client = hf_hub::HFClientSync::new()
         .map_err(|e| LoadError::Download(format!("Failed to create HF API client: {}", e)))?;
-    let repo = api.model(model_name.to_string());
+    // Ids here have no owner ("roberta-base"), which `split_id` reports as an empty one.
+    let (owner, name) = hf_hub::split_id(model_name);
+    let repo = client.model(owner, name);
 
-    let model_filepath = repo.get("model.safetensors").map_err(|e| {
-        LoadError::Download(format!(
-            "Failed to download `model.safetensors` for {}: {}",
-            model_name, e
-        ))
-    })?;
+    let model_filepath = repo
+        .download_file()
+        .filename("model.safetensors")
+        .send()
+        .map_err(|e| {
+            LoadError::Download(format!(
+                "Failed to download `model.safetensors` for {}: {}",
+                model_name, e
+            ))
+        })?;
 
-    let config_filepath = repo.get("config.json").map_err(|e| {
-        LoadError::Download(format!(
-            "Failed to download `config.json` for {}: {}",
-            model_name, e
-        ))
-    })?;
+    let config_filepath = repo
+        .download_file()
+        .filename("config.json")
+        .send()
+        .map_err(|e| {
+            LoadError::Download(format!(
+                "Failed to download `config.json` for {}: {}",
+                model_name, e
+            ))
+        })?;
 
     Ok((config_filepath, model_filepath))
 }

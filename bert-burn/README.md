@@ -16,9 +16,9 @@ bert-burn = { git = "https://github.com/tracel-ai/models", package = "bert-burn"
 
 ## Example Usage
 
-Example usage for getting sentence embedding from given input text. The backend is selected through
-[`burn-flex`](https://crates.io/crates/burn-flex), which accepts a backend name via the `BURN_BACKEND`
-environment variable (`ndarray`, `wgpu`, `cuda`, `tch`, etc.). Safetensors weights are loaded through
+Example usage for getting sentence embedding from given input text. The example runs on Burn's
+default device, which is the Flex CPU backend unless another backend feature is enabled. Set
+`BURN_DEVICE` to pick among the backends that are enabled. Safetensors weights are loaded through
 [`burn-store`](https://crates.io/crates/burn-store).
 
 ### Sentence embeddings
@@ -31,8 +31,8 @@ cargo run --example infer-embedding --release
 # Using bert-base-uncased model
 cargo run --example infer-embedding --release -- bert-base-uncased
 
-# Using roberta-large model on the wgpu backend
-BURN_BACKEND=wgpu cargo run --example infer-embedding --release -- roberta-large
+# Using roberta-large model
+cargo run --example infer-embedding --release -- roberta-large
 ```
 
 

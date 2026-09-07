@@ -2,7 +2,6 @@ use alloc::vec;
 use burn::{
     module::Module,
     tensor::{
-        backend::Backend,
         module::interpolate,
         ops::{InterpolateMode, InterpolateOptions},
         Device, Tensor,
@@ -15,27 +14,27 @@ use super::{
     darknet::{CspDarknet, CspDarknetConfig},
 };
 
-pub struct FpnFeatures<B: Backend>(pub Tensor<B, 4>, pub Tensor<B, 4>, pub Tensor<B, 4>);
+pub struct FpnFeatures(pub Tensor<4>, pub Tensor<4>, pub Tensor<4>);
 
 /// [PAFPN](https://paperswithcode.com/method/pafpn) is the feature pyramid module used in
 /// [Path Aggregation Network](https://arxiv.org/abs/1803.01534) that combines FPNs with
 /// bottom-up path augmentation.
 #[derive(Module, Debug)]
-pub struct Pafpn<B: Backend> {
-    backbone: CspDarknet<B>,
-    lateral_conv0: BaseConv<B>,
-    c3_n3: CspBottleneck<B>,
-    c3_n4: CspBottleneck<B>,
-    c3_p3: CspBottleneck<B>,
-    c3_p4: CspBottleneck<B>,
-    reduce_conv1: BaseConv<B>,
-    bu_conv1: Conv<B>, // bottom-up conv
-    bu_conv2: Conv<B>, // bottom-up conv
+pub struct Pafpn {
+    backbone: CspDarknet,
+    lateral_conv0: BaseConv,
+    c3_n3: CspBottleneck,
+    c3_n4: CspBottleneck,
+    c3_p3: CspBottleneck,
+    c3_p4: CspBottleneck,
+    reduce_conv1: BaseConv,
+    bu_conv1: Conv, // bottom-up conv
+    bu_conv2: Conv, // bottom-up conv
 }
 
-impl<B: Backend> Pafpn<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> FpnFeatures<B> {
-        fn upsample<B: Backend>(x_in: Tensor<B, 4>, scale: usize) -> Tensor<B, 4> {
+impl Pafpn {
+    pub fn forward(&self, x: Tensor<4>) -> FpnFeatures {
+        fn upsample(x_in: Tensor<4>, scale: usize) -> Tensor<4> {
             let [_, _, h, w] = x_in.dims();
             interpolate(
                 x_in,
@@ -161,7 +160,7 @@ impl PafpnConfig {
     }
 
     /// Initialize a new [PAFPN](Pafpn) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> Pafpn<B> {
+    pub fn init(&self, device: &Device) -> Pafpn {
         Pafpn {
             backbone: self.backbone.init(device),
             lateral_conv0: self.lateral_conv0.init(device),

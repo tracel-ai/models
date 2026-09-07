@@ -1,7 +1,7 @@
 use super::tokenizer::Tokenizer;
 use burn::data::dataloader::batcher::Batcher;
 use burn::nn::attention::generate_padding_mask;
-use burn::tensor::backend::Backend;
+use burn::tensor::Device;
 use burn::tensor::{Bool, Int, Tensor};
 use std::sync::Arc;
 
@@ -14,16 +14,16 @@ pub struct BertInputBatcher {
 }
 
 #[derive(Debug, Clone, new)]
-pub struct BertInferenceBatch<B: Backend> {
+pub struct BertInferenceBatch {
     /// Tokenized text as 2D tensor: [batch_size, max_seq_length]
-    pub tokens: Tensor<B, 2, Int>,
+    pub tokens: Tensor<2, Int>,
     /// Padding mask for the tokenized text containing booleans for padding locations
-    pub mask_pad: Tensor<B, 2, Bool>,
+    pub mask_pad: Tensor<2, Bool>,
 }
 
-impl<B: Backend> Batcher<B, String, BertInferenceBatch<B>> for BertInputBatcher {
+impl Batcher<String, BertInferenceBatch> for BertInputBatcher {
     /// Batches a vector of strings into an inference batch
-    fn batch(&self, items: Vec<String>, device: &B::Device) -> BertInferenceBatch<B> {
+    fn batch(&self, items: Vec<String>, device: &Device) -> BertInferenceBatch {
         let mut tokens_list = Vec::with_capacity(items.len());
 
         // Tokenize each string

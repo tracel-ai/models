@@ -3,7 +3,6 @@ resolver = "3"
 members = [
     "albert-burn",
     "bert-burn",
-    "llama-burn",
     "minilm-burn",
     "mobilenetv2-burn",
     "resnet-burn",
@@ -15,32 +14,29 @@ members = [
 
 [workspace.package]
 license = "MIT OR Apache-2.0"
+rust-version = "1.98"
 
 [workspace.dependencies]
 # burn ecosystem
-burn        = { version = "0.21.0", default-features = false }
-burn-store  = { version = "0.21.0", default-features = false }
-burn-flex   = { version = "0.21.0" }
-burn-onnx   = { version = "0.21.0" }
+burn        = { git = "https://github.com/tracel-ai/burn", rev = "5bd017038495063afea85aa200fb94d6969028c3", default-features = false }
+burn-store  = { git = "https://github.com/tracel-ai/burn", rev = "5bd017038495063afea85aa200fb94d6969028c3", default-features = false }
+burn-onnx   = { version = "0.22.0-pre.3" }
 
 # shared third-party
 serde       = { version = "1", default-features = false }
 serde_json  = "1"
 tokio       = "1"
 libm        = "0.2"
-itertools   = { version = "0.14", default-features = false }
+itertools   = { version = "0.15", default-features = false }
 dirs        = "6"
-hf-hub      = "0.5"
+hf-hub      = { version = "1.0", features = ["blocking"] }
 image       = { version = "0.25", default-features = false }
 clap        = { version = "4", features = ["derive"] }
-tokenizers  = { version = "0.22", default-features = false }
-rand        = { version = "0.9", default-features = false }
+tokenizers  = { version = "0.23", default-features = false }
+rand        = { version = "0.10", default-features = false }
 tar         = "0.4"
 csv         = "1"
 flate2      = "1"
-base64      = "0.22"
-rustc-hash  = "1.1"
-tiktoken-rs = "0.11"
 derive-new  = "0.7"
 criterion   = "0.8"
 divan       = "0.1"

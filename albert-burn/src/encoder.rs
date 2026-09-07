@@ -2,24 +2,24 @@ use burn::module::Module;
 use burn::nn::activation::ActivationConfig;
 use burn::nn::transformer::{TransformerEncoderConfig, TransformerEncoderLayer};
 use burn::nn::{Linear, LinearConfig};
-use burn::tensor::backend::Backend;
-use burn::tensor::{Bool, Tensor};
+use burn::tensor::Device;
+use burn::tensor::{Bool, Tensor, assert_shape};
 
 /// ALBERT encoder with cross-layer parameter sharing.
 ///
 /// Contains a projection from `embedding_size` to `hidden_size` followed by
 /// a single `TransformerEncoderLayer` applied `num_hidden_layers` times.
 #[derive(Module, Debug)]
-pub struct AlbertEncoder<B: Backend> {
+pub struct AlbertEncoder {
     /// Projects from embedding_size to hidden_size.
-    pub projection: Linear<B>,
+    pub projection: Linear,
     /// The single shared transformer layer.
-    pub layer: TransformerEncoderLayer<B>,
+    pub layer: TransformerEncoderLayer,
     /// Number of times to apply the shared layer.
     pub num_hidden_layers: usize,
 }
 
-impl<B: Backend> AlbertEncoder<B> {
+impl AlbertEncoder {
     /// Create a new ALBERT encoder.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -30,7 +30,7 @@ impl<B: Backend> AlbertEncoder<B> {
         num_hidden_layers: usize,
         dropout: f64,
         layer_norm_eps: f64,
-        device: &B::Device,
+        device: &Device,
     ) -> Self {
         let projection = LinearConfig::new(embedding_size, hidden_size).init(device);
 
@@ -55,7 +55,12 @@ impl<B: Backend> AlbertEncoder<B> {
     }
 
     /// Forward pass: project embeddings, then apply the shared layer `num_hidden_layers` times.
-    pub fn forward(&self, x: Tensor<B, 3>, mask_pad: Option<Tensor<B, 2, Bool>>) -> Tensor<B, 3> {
+    pub fn forward(&self, x: Tensor<3>, mask_pad: Option<Tensor<2, Bool>>) -> Tensor<3> {
+        if let Some(mask_pad) = &mask_pad {
+            let [batch_size, seq_len, _] = x.dims();
+            assert_shape!(mask_pad, [batch_size, seq_len]);
+        }
+
         let mut x = self.projection.forward(x);
         for _ in 0..self.num_hidden_layers {
             x = self.layer.forward(x, mask_pad.clone(), None);

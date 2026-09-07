@@ -4,6 +4,7 @@ name = "squeezenet-burn"
 version = "0.1.0"
 edition = "2021"
 license.workspace = true
+rust-version.workspace = true
 
 [features]
 default = ["weights_file", "weights_file_dump"]
@@ -14,11 +15,10 @@ weights_file_dump = []
 
 [dependencies]
 burn       = { workspace = true }
-burn-store = { workspace = true }
+burn-store = { workspace = true, features = ["std"] }
 serde      = { workspace = true, features = ["derive", "alloc"] }
 
 [dev-dependencies]
-burn-flex = { workspace = true }
 image     = { workspace = true, features = ["png", "jpeg"] }
 
 [build-dependencies]

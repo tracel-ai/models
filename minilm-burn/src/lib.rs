@@ -11,12 +11,9 @@
 //!
 //! ```ignore
 //! use minilm_burn::{MiniLmConfig, MiniLmModel};
-//! use burn_flex::Flex;
-//!
-//! type B = Flex;
 //!
 //! let device = Default::default();
-//! let (model, tokenizer) = MiniLmModel::<B>::pretrained(&device, Default::default(), None)?;
+//! let (model, tokenizer) = MiniLmModel::pretrained(&device, Default::default(), None)?;
 //! ```
 
 mod embedding;

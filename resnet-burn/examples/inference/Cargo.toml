@@ -2,6 +2,7 @@
 authors = ["laggui <lagrange.guillaume.1@gmail.com>"]
 name = "inference"
 license.workspace = true
+rust-version.workspace = true
 version = "0.2.0"
 edition = "2021"
 publish = false
@@ -9,6 +10,5 @@ publish = false
 [dependencies]
 resnet-burn = { path = "../..", features = ["pretrained"] }
 burn        = { workspace = true }
-burn-flex   = { workspace = true }
-burn-store  = { workspace = true, features = ["burnpack"] }
+burn-store  = { workspace = true }
 image       = { workspace = true, features = ["png", "jpeg"] }

@@ -8,24 +8,24 @@ use super::{
 };
 use burn::{
     module::Module,
-    tensor::{backend::Backend, Device, Tensor},
+    tensor::{Device, Tensor},
 };
 
 /// Darknet backbone feature maps.
-pub struct DarknetFeatures<B: Backend>(pub Tensor<B, 4>, pub Tensor<B, 4>, pub Tensor<B, 4>);
+pub struct DarknetFeatures(pub Tensor<4>, pub Tensor<4>, pub Tensor<4>);
 
 /// [CSPDarknet-53](https://paperswithcode.com/method/cspdarknet53) backbone.
 #[derive(Module, Debug)]
-pub struct CspDarknet<B: Backend> {
-    stem: Focus<B>,
-    dark2: CspBlock<B>,
-    dark3: CspBlock<B>,
-    dark4: CspBlock<B>,
-    dark5: CspBlock<B>,
+pub struct CspDarknet {
+    stem: Focus,
+    dark2: CspBlock,
+    dark3: CspBlock,
+    dark4: CspBlock,
+    dark5: CspBlock,
 }
 
-impl<B: Backend> CspDarknet<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> DarknetFeatures<B> {
+impl CspDarknet {
+    pub fn forward(&self, x: Tensor<4>) -> DarknetFeatures {
         let x = self.stem.forward(x);
         let x = self.dark2.forward(x);
         let f1 = self.dark3.forward(x);
@@ -101,7 +101,7 @@ impl CspDarknetConfig {
     }
 
     /// Initialize a new [CspDarknet](CspDarknet) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> CspDarknet<B> {
+    pub fn init(&self, device: &Device) -> CspDarknet {
         CspDarknet {
             stem: self.stem.init(device),
             dark2: self.dark2.init(device),
@@ -115,14 +115,14 @@ impl CspDarknetConfig {
 /// A BaseConv -> CspBottleneck block.
 /// The SppBottleneck layer is only used in the last block of [CSPDarknet-53](CspDarknet).
 #[derive(Module, Debug)]
-pub struct CspBlock<B: Backend> {
-    conv: Conv<B>,
-    c3: CspBottleneck<B>,
-    spp: Option<SppBottleneck<B>>,
+pub struct CspBlock {
+    conv: Conv,
+    c3: CspBottleneck,
+    spp: Option<SppBottleneck>,
 }
 
-impl<B: Backend> CspBlock<B> {
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+impl CspBlock {
+    pub fn forward(&self, x: Tensor<4>) -> Tensor<4> {
         let mut x = self.conv.forward(x);
 
         if let Some(spp) = &self.spp {
@@ -162,7 +162,7 @@ impl CspBlockConfig {
     }
 
     /// Initialize a new [CSP block](CspBlock) module.
-    pub fn init<B: Backend>(&self, device: &Device<B>) -> CspBlock<B> {
+    pub fn init(&self, device: &Device) -> CspBlock {
         CspBlock {
             conv: self.conv.init(device),
             c3: self.c3.init(device),

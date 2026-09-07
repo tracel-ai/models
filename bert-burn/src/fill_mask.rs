@@ -4,7 +4,7 @@ use crate::{
     model::BertMaskedLM,
     model::BertModelConfig,
 };
-use burn::tensor::{activation::softmax, backend::Backend, Element, Tensor};
+use burn::tensor::{activation::softmax, assert_shape, Element, Tensor};
 
 type TokenType = usize;
 const MASK_TOKEN_ID: TokenType = 50264;
@@ -15,11 +15,11 @@ pub struct FillMaskResult {
     pub top_k: Vec<(f32, String)>,
 }
 
-pub fn fill_mask<B: Backend>(
-    model: &BertMaskedLM<B>,
+pub fn fill_mask(
+    model: &BertMaskedLM,
     model_config: &BertModelConfig,
     tokenizer: &BertTokenizer,
-    input: BertInferenceBatch<B>,
+    input: BertInferenceBatch,
 ) -> Vec<Vec<FillMaskResult>> {
     let [batch_size, seq_len] = input.tokens.dims();
     let output = model.forward(input.clone());
@@ -28,6 +28,7 @@ pub fn fill_mask<B: Backend>(
 
     // Embedding size
     let d_model = model_config.vocab_size;
+    assert_shape!(output, [batch_size, seq_len, d_model]);
     for i in 0..batch_size {
         let mut batch_results = vec![];
         let input_tokens = input
@@ -38,7 +39,7 @@ pub fn fill_mask<B: Backend>(
             .into_data();
         // Find the mask tokens in the input, as a list of indices
         let masks = find_masks(
-            input_tokens.as_slice::<B::IntElem>().unwrap(),
+            &input_tokens.iter::<i64>().collect::<Vec<_>>(),
             MASK_TOKEN_ID,
         );
         for mask in masks {
@@ -73,24 +74,18 @@ fn find_masks<T: Element>(tokens: &[T], mask_token_id: TokenType) -> Vec<usize> 
     masks
 }
 
-fn data_to_vec_f32<T: Element>(data: &[T]) -> Vec<f32> {
-    data.iter().map(|x| x.to_f32()).collect()
-}
-
-fn data_to_vec_usize<T: Element>(data: &[T]) -> Vec<usize> {
-    data.iter().map(|x| x.to_usize()).collect()
-}
-
-fn top_k<B: Backend>(k: usize, logits: Tensor<B, 1>) -> Vec<(usize, f32)> {
+fn top_k(k: usize, logits: Tensor<1>) -> Vec<(usize, f32)> {
     let (pre_soft_probs, indices) = logits.sort_with_indices(0);
     let (probabilities, indices) = (
-        data_to_vec_f32(
-            softmax(pre_soft_probs, 0)
-                .into_data()
-                .as_slice::<B::FloatElem>()
-                .unwrap(),
-        ),
-        data_to_vec_usize(indices.into_data().as_slice::<B::IntElem>().unwrap()),
+        softmax(pre_soft_probs, 0)
+            .into_data()
+            .iter::<f32>()
+            .collect::<Vec<_>>(),
+        indices
+            .into_data()
+            .iter::<i64>()
+            .map(|i| i as usize)
+            .collect::<Vec<_>>(),
     );
     probabilities
         .iter()

@@ -12,20 +12,19 @@ use burn::{
         },
     },
     prelude::*,
-    record::{CompactRecorder, Recorder},
+    store::ModuleRecord,
     tensor::activation::sigmoid,
 };
 use resnet_burn::ResNet;
 
-pub fn infer<B: Backend>(artifact_dir: &str, device: B::Device, threshold: f32) {
+pub fn infer(artifact_dir: &str, device: Device, threshold: f32) {
     // Load trained ResNet-18
     let config = TrainingConfig::load(format!("{artifact_dir}/config.json"))
         .expect("Config should exist for the model");
-    let record = CompactRecorder::new()
-        .load(format!("{artifact_dir}/model").into(), &device)
-        .expect("Trained model should exist");
+    let record =
+        ModuleRecord::load(format!("{artifact_dir}/model")).expect("Trained model should exist");
 
-    let model: ResNet<B> = ResNet::resnet18(config.num_classes, &device).load_record(record);
+    let model: ResNet = ResNet::resnet18(config.num_classes, &device).load_record(record);
 
     // Get an item from validation split with multiple labels
     let (_train, valid) =
@@ -46,8 +45,8 @@ pub fn infer<B: Backend>(artifact_dir: &str, device: B::Device, threshold: f32) 
     // Get predicted class names over the specified threshold
     let predicted = output.greater_equal_elem(threshold).nonzero()[1]
         .to_data()
-        .iter::<B::IntElem>()
-        .map(|i| CLASSES[i.elem::<i64>() as usize])
+        .iter::<i64>()
+        .map(|i| CLASSES[i as usize])
         .collect::<Vec<_>>();
 
     println!("Predicted: {:?}\nExpected: {:?}", predicted, label);
