@@ -35,7 +35,7 @@ yolox-burn = { git = "https://github.com/tracel-ai/models", package = "yolox-bur
 
 The [inference example](examples/inference.rs) initializes a YOLOX-Tiny from the COCO
 [pre-trained weights](https://github.com/Megvii-BaseDetection/YOLOX?tab=readme-ov-file#standard-models)
-with the `NdArray` backend and performs inference on the provided input image.
+on the default device and performs inference on the provided input image.
 
 You can run the example with the following command:
 

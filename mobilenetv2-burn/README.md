@@ -31,7 +31,7 @@ mobilenetv2-burn = { git = "https://github.com/tracel-ai/models", package = "mob
 
 The [inference example](examples/inference.rs) initializes a MobileNetV2 from the ImageNet
 [pre-trained weights](https://pytorch.org/vision/main/models/generated/torchvision.models.mobilenet_v2.html#torchvision.models.MobileNet_V2_Weights)
-with the `NdArray` backend and performs inference on the provided input image.
+on the default device and performs inference on the provided input image.
 
 You can run the example with the following command:
 

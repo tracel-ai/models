@@ -37,30 +37,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## Features
-
-- `pretrained` - Enables model download utilities (default)
-- `ndarray` - NdArray backend
-
-Backend features:
-
-- `wgpu` - WebGPU backend
-- `cuda` - CUDA backend
-- `tch-cpu` - LibTorch CPU backend
-- `tch-gpu` - LibTorch GPU backend
-
 ## Example
 
 Run the fill-mask inference example:
 
 ```bash
-cargo run --example inference --features "pretrained,ndarray" --release
+cargo run --example inference --release
 ```
 
 Specify a variant:
 
 ```bash
-cargo run --example inference --features "pretrained,ndarray" --release -- xxlarge
+cargo run --example inference --release -- xxlarge
 ```
 
 ### Results by variant
@@ -112,7 +100,7 @@ Prompt: `"The capital of France is [MASK]."`
 Integration tests (requires model download):
 
 ```bash
-cargo test --features "pretrained,ndarray" -- --ignored
+cargo test -- --ignored
 ```
 
 Tests verify logit values, top-5 predictions, statistics, and per-position L2 norms across 3
