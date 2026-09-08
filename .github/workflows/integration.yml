@@ -1,0 +1,42 @@
+name: Integration
+
+# The integration tests are #[ignore]d because they download pretrained weights
+# from HuggingFace, so the Rust workflow's `cargo test` never runs them. Without
+# this job they can break without anyone noticing, which is how the albert
+# tolerance failure in #101 survived two burn upgrades.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        crate: [albert-burn, minilm-burn]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98
+
+      - name: Cache cargo registry and target
+        uses: Swatinem/rust-cache@v2
+
+      - name: Cache downloaded models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/burn-models
+          key: burn-models-${{ matrix.crate }}
+
+      - name: Test
+        run: cargo test -p ${{ matrix.crate }} --release --locked --verbose -- --ignored

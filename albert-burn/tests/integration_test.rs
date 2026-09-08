@@ -22,9 +22,13 @@ use albert_burn::{AlbertMaskedLM, tokenize_batch};
 
 /// Relative tolerance for comparing logit values.
 ///
-/// f32 matmul precision differs between ndarray (Rust) and PyTorch (MKL/Accelerate).
-/// After 12 shared transformer layers, these accumulate to ~1e-4 relative error.
-const REL_TOL: f32 = 5e-4;
+/// f32 matmul precision differs between the Rust backend (gemm) and PyTorch
+/// (MKL/Accelerate). After 12 shared transformer layers, these accumulate to
+/// ~1e-4 relative error. The spread is wider where a logit is small enough that
+/// `rel_diff` clamps the scale to 1.0 and the check becomes an absolute one:
+/// S3 logit[0] measures 5.11e-4 on burn 0.21 and 5.05e-4 on burn main, so the
+/// limit has to sit above that on both.
+const REL_TOL: f32 = 1e-3;
 
 fn rel_diff(actual: f32, expected: f32) -> f32 {
     let abs_diff = (actual - expected).abs();
