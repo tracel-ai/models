@@ -33,7 +33,7 @@ resnet-burn = { git = "https://github.com/tracel-ai/models", package = "resnet-b
 The [inference example](examples/inference/examples/inference.rs) initializes a ResNet-18 from the
 ImageNet
 [pre-trained weights](https://pytorch.org/vision/stable/models/generated/torchvision.models.resnet18.html#torchvision.models.ResNet18_Weights)
-with the `NdArray` backend and performs inference on the provided input image.
+on the default device and performs inference on the provided input image.
 
 From the workspace root, run the example with the following command:
 
