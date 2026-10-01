@@ -33,6 +33,7 @@ Explore the curated list of models developed by the community ♥.
 | [DeepSeek-OCR-2]      | OCR inference              | [huahuadeliaoliao/DeepSeek-OCR-2-burn] |
 | SpeechAligner         | Speech model training      | [dnvt/burn-speech-training]            |
 | [Wav2Vec 2.0]         | Speech recognition         | [privacyresearchgroup/wav2vec-burn]    |
+| [OmniVoice]           | Voice Cloning / TTS        | [inventwithdean/OmniVoice]             |
 
 ## License Information
 
@@ -71,6 +72,7 @@ respective repositories for specific license information.
 [SSD]: https://arxiv.org/abs/1512.02325
 [DeepSeek-OCR-2]: https://huggingface.co/deepseek-ai/DeepSeek-OCR-2
 [Wav2Vec 2.0]: https://arxiv.org/abs/2006.11477
+[OmniVoice]: https://arxiv.org/abs/2604.00688
 
 <!-- Community Repositories -->
 
@@ -86,3 +88,4 @@ respective repositories for specific license information.
 [huahuadeliaoliao/DeepSeek-OCR-2-burn]: https://github.com/huahuadeliaoliao/DeepSeek-OCR-2-burn
 [dnvt/burn-speech-training]: https://github.com/dnvt/burn-speech-training
 [privacyresearchgroup/wav2vec-burn]: https://github.com/privacyresearchgroup/wav2vec-burn
+[inventwithdean/OmniVoice]: https://github.com/inventwithdean/OmniVoice
