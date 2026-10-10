@@ -38,8 +38,8 @@ impl Pafpn {
             let [_, _, h, w] = x_in.dims();
             interpolate(
                 x_in,
-                [h * scale, w * scale],
-                InterpolateOptions::new(InterpolateMode::Nearest),
+                InterpolateOptions::new(InterpolateMode::Nearest)
+                    .with_output_size([h * scale, w * scale]),
             )
         }
 

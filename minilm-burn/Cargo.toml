@@ -12,7 +12,7 @@ default = ["pretrained"]
 pretrained = ["burn/network", "dep:dirs", "dep:hf-hub"]
 
 [dependencies]
-burn       = { workspace = true, features = ["std"] }
+burn       = { workspace = true, features = ["std", "linalg"] }
 burn-store = { workspace = true, features = ["std", "safetensors"] }
 
 tokenizers = { workspace = true, features = ["onig"] }
