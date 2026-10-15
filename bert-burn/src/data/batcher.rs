@@ -5,6 +5,8 @@ use burn::tensor::Device;
 use burn::tensor::{Bool, Int, Tensor};
 use std::sync::Arc;
 
+// derive(new) expands to a constructor clippy flags as redundant field names.
+#[allow(clippy::redundant_field_names)]
 #[derive(new)]
 pub struct BertInputBatcher {
     /// Tokenizer for converting input text string to token IDs
@@ -13,6 +15,8 @@ pub struct BertInputBatcher {
     max_seq_length: usize,
 }
 
+// derive(new) expands to a constructor clippy flags as redundant field names.
+#[allow(clippy::redundant_field_names)]
 #[derive(Debug, Clone, new)]
 pub struct BertInferenceBatch {
     /// Tokenized text as 2D tensor: [batch_size, max_seq_length]
