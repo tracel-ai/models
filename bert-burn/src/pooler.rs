@@ -6,6 +6,8 @@ use burn::{
 };
 use derive_new::new;
 
+// derive(new) expands to a constructor clippy flags as redundant field names.
+#[allow(clippy::redundant_field_names)]
 /// Pooler
 #[derive(Module, Debug, new)]
 pub struct Pooler {
