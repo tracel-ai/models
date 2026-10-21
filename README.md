@@ -35,6 +35,7 @@ Explore the curated list of models developed by the community ♥.
 | [Wav2Vec 2.0]         | Speech recognition         | [privacyresearchgroup/wav2vec-burn]    |
 | [OmniVoice]           | Voice Cloning / TTS        | [inventwithdean/OmniVoice]             |
 | [Qwen-Image-2.1]      | Image Generation           | [inventwithdean/Qwen-Image-2.1]
+| [Cohere Transcribe]   | Speech recognition         | [array-of-stars/cohere-transcribe-burn] |
 
 ## License Information
 
@@ -75,6 +76,7 @@ respective repositories for specific license information.
 [Wav2Vec 2.0]: https://arxiv.org/abs/2006.11477
 [OmniVoice]: https://arxiv.org/abs/2604.00688
 [Qwen-Image-2.1]: https://huggingface.co/Qwen/Qwen-Image-2.1
+[Cohere Transcribe]: https://huggingface.co/CohereLabs/cohere-transcribe-03-2026
 
 <!-- Community Repositories -->
 
@@ -92,3 +94,4 @@ respective repositories for specific license information.
 [privacyresearchgroup/wav2vec-burn]: https://github.com/privacyresearchgroup/wav2vec-burn
 [inventwithdean/OmniVoice]: https://github.com/inventwithdean/OmniVoice
 [inventwithdean/Qwen-Image-2.1]: https://github.com/inventwithdean/Qwen-Image-2.1
+[array-of-stars/cohere-transcribe-burn]: https://github.com/array-of-stars/cohere-transcribe-burn
