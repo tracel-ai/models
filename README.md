@@ -96,3 +96,4 @@ respective repositories for specific license information.
 [inventwithdean/OmniVoice]: https://github.com/inventwithdean/OmniVoice
 [inventwithdean/Qwen-Image-2.1]: https://github.com/inventwithdean/Qwen-Image-2.1
 [array-of-stars/cohere-transcribe-burn]: https://github.com/array-of-stars/cohere-transcribe-burn
+[Kostyanikov/Whisper-burn]: https://github.com/Kostyanikov/Whisper-burn
