@@ -34,8 +34,9 @@ Explore the curated list of models developed by the community ♥.
 | SpeechAligner         | Speech model training      | [dnvt/burn-speech-training]            |
 | [Wav2Vec 2.0]         | Speech recognition         | [privacyresearchgroup/wav2vec-burn]    |
 | [OmniVoice]           | Voice Cloning / TTS        | [inventwithdean/OmniVoice]             |
-| [Qwen-Image-2.1]      | Image Generation           | [inventwithdean/Qwen-Image-2.1]
-| [Cohere Transcribe]   | Speech recognition         | [array-of-stars/cohere-transcribe-burn] |
+| [Qwen-Image-2.1]      | Image Generation           | [inventwithdean/Qwen-Image-2.1]        |
+| [Cohere Transcribe]   | Speech recognition         | [array-of-stars/cohere-transcribe-burn]|
+| [Whisper]             | Speech recognition         | [Kostyanikov/Whisper-burn]             |
 
 ## License Information
 
