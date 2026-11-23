@@ -10,6 +10,7 @@ examples constructed using the [Burn] deep learning framework.
 | [ALBERT]      | Masked language model         | [albert-burn](albert-burn/)           |
 | [MiniLM]      | Sentence embeddings           | [minilm-burn](minilm-burn/)           |
 | [MobileNetV2] | Mobile image classification   | [mobilenetv2-burn](mobilenetv2-burn/) |
+| [Qwen3.5]     | Hybrid language model         | [qwen35-burn](qwen35-burn/)           |
 | [SqueezeNet]  | Compact image classification  | [squeezenet-burn](squeezenet-burn/)   |
 | [ResNet]      | Residual image classification | [resnet-burn](resnet-burn/)           |
 | [RoBERTa]     | Text encoder                  | [bert-burn](bert-burn/)               |
@@ -60,6 +61,7 @@ respective repositories for specific license information.
 [ALBERT]: https://arxiv.org/abs/1909.11942
 [MiniLM]: https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2
 [MobileNetV2]: https://arxiv.org/abs/1801.04381
+[Qwen3.5]: https://huggingface.co/Qwen/Qwen3.5-0.8B
 [SqueezeNet]: https://arxiv.org/abs/1602.07360
 [ResNet]: https://arxiv.org/abs/1512.03385
 [RoBERTa]: https://arxiv.org/abs/1907.11692

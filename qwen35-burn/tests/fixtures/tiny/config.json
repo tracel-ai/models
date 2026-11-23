@@ -1,0 +1,13 @@
+{
+  "tie_word_embeddings": true,
+  "text_config": {
+    "vocab_size": 64, "hidden_size": 32, "intermediate_size": 48, "num_hidden_layers": 4,
+    "num_attention_heads": 4, "num_key_value_heads": 2, "head_dim": 32,
+    "hidden_act": "silu", "max_position_embeddings": 1024, "rms_norm_eps": 1e-6,
+    "attn_output_gate": true, "output_gate_type": "swish", "full_attention_interval": 4,
+    "linear_conv_kernel_dim": 4, "linear_key_head_dim": 8, "linear_value_head_dim": 6,
+    "linear_num_key_heads": 2, "linear_num_value_heads": 4,
+    "rope_parameters": { "mrope_interleaved": true, "mrope_section": [2, 1, 1],
+                         "partial_rotary_factor": 0.25, "rope_theta": 10000000 }
+  }
+}
