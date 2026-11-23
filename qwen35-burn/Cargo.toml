@@ -1,0 +1,25 @@
+[package]
+authors = ["Rickard Lundin <rickard@ignalina.dk>"]
+name = "qwen35-burn"
+version = "0.1.0"
+edition = "2024"
+license.workspace = true
+rust-version.workspace = true
+description = "Qwen3.5 text model (Gated DeltaNet + gated attention) with Burn"
+
+[features]
+default = []
+# Run on an Nvidia GPU (Burn CUDA backend).
+cuda = ["burn/cuda"]
+
+[dependencies]
+burn       = { workspace = true, features = ["std"] }
+burn-store = { workspace = true, features = ["std", "safetensors"] }
+
+serde      = { workspace = true, features = ["std", "derive"] }
+serde_json = { workspace = true }
+regex      = { workspace = true }
+unicode-normalization = { workspace = true }
+
+[dev-dependencies]
+burn = { workspace = true, features = ["flex", "autodiff"] }

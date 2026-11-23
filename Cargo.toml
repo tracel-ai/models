@@ -5,6 +5,7 @@ members = [
     "bert-burn",
     "minilm-burn",
     "mobilenetv2-burn",
+    "qwen35-burn",
     "resnet-burn",
     "resnet-burn/examples/inference",
     "resnet-burn/examples/finetune",
@@ -34,6 +35,8 @@ image       = { version = "0.25", default-features = false }
 clap        = { version = "4", features = ["derive"] }
 tokenizers  = { version = "0.23", default-features = false }
 rand        = { version = "0.10", default-features = false }
+regex       = { version = "1", default-features = false, features = ["std", "unicode", "perf"] }
+unicode-normalization = { version = "0.1", default-features = false, features = ["std"] }
 tar         = "0.4"
 csv         = "1"
 flate2      = "1"

@@ -1046,6 +1046,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86fde5be8d8273c6a8ecb240c0c74de1c15a277ef69691b88b8289cbafe00768"
 dependencies = [
  "burn-core",
+ "burn-cubecl",
  "burn-fusion",
  "burn-std",
  "num-traits",
@@ -1194,6 +1195,7 @@ checksum = "ca3bf718b130d607b3d3495d09c19d2604de1d116793587ce23586a5a89af9d7"
 dependencies = [
  "burn-autodiff",
  "burn-core",
+ "burn-cubecl",
  "burn-flex",
  "burn-fusion",
  "burn-std",
@@ -1320,6 +1322,7 @@ dependencies = [
  "burn-std",
  "burn-store",
  "bytemuck",
+ "cubecl",
  "derive-new",
  "image",
  "macerator",
@@ -2511,6 +2514,7 @@ dependencies = [
  "cubecl",
  "cubek-attention",
  "cubek-convolution",
+ "cubek-fft",
  "cubek-interpolate",
  "cubek-matmul",
  "cubek-pool",
@@ -2550,6 +2554,15 @@ dependencies = [
  "cubek-tile",
  "half",
  "serde",
+]
+
+[[package]]
+name = "cubek-fft"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fbb3de472d1ff63e10db9cd94b2365d8b03d7e0f24fe2bb906e0c7158e0ec94"
+dependencies = [
+ "cubecl",
 ]
 
 [[package]]
@@ -6543,6 +6556,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "qwen35-burn"
+version = "0.1.0"
+dependencies = [
+ "burn",
+ "burn-store",
+ "regex",
+ "serde",
+ "serde_json",
+ "unicode-normalization",
+]
+
+[[package]]
 name = "r-efi"
 version = "5.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8893,6 +8918,15 @@ name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+
+[[package]]
+name = "unicode-normalization"
+version = "0.1.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75cd3fb03d5288b3ba9a1ee103ac7e9cbb59f0b03d64f8ddfcc04dd42758a85d"
+dependencies = [
+ "tinyvec",
+]
 
 [[package]]
 name = "unicode-normalization-alignments"
