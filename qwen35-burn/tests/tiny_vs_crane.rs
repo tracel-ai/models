@@ -61,6 +61,9 @@ fn rel_err(got: Tensor<3>, want: &[f32]) -> f32 {
         / scale
 }
 
+// CUDA runs f32 matmul as TF32 on tensor-core GPUs.
+const TOL: f32 = if cfg!(feature = "cuda") { 2e-2 } else { 1e-4 };
+
 #[test]
 fn every_layer_and_the_logits_match_crane() {
     let dev = Device::default();
@@ -73,11 +76,11 @@ fn every_layer_and_the_logits_match_crane() {
             .enumerate()
         {
             let err = rel_err(h, &r[&format!("h_{len}_{l}")]);
-            assert!(err < 1e-4, "{len} tokens, layer {l}: {err:.2e}");
+            assert!(err < TOL, "{len} tokens, layer {l}: {err:.2e}");
         }
         let hidden = model.forward(ids(&r, len, &dev)).narrow(1, len - 1, 1);
         let err = rel_err(model.logits(hidden), &r[&format!("logits_{len}")]);
-        assert!(err < 1e-4, "{len} tokens, logits: {err:.2e}");
+        assert!(err < TOL, "{len} tokens, logits: {err:.2e}");
     }
 }
 
